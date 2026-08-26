@@ -1948,8 +1948,7 @@ function drawPlayerShip(x,y,isP2,flash){
 }
 // ===== 护盾光罩绘制（局部坐标，须在战机 translate 后、restore 前调用）=====
 function drawShieldAura(sh,isP2){
-  var _tmp=isP2?p2wSh:wSh;            // 限时护盾（wSh>0）也显示单层光罩
-  if(!sh||sh<=0){ if(_tmp>0)sh=1; else return; }
+  if(!sh||sh<=0)return;               // 只按传入的护盾层数绘制
   var _inv=isP2?p2Invuln:playerInvuln;
   var _pulse=0.5+0.5*Math.sin(frameCount*0.12);            // 呼吸脉动
   var _hit=(_inv>0)?Math.min(1,_inv/30):0;                 // 受击/刚挡下时更亮
