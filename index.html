@@ -1725,7 +1725,7 @@ function drawHUD(){
     ctx.fillText('\u2764 P2 '+p2hp+'/'+p2mhp,260,97);ctx.shadowBlur=0;
   }
   // 天赋属性面板（左上角，HP下方）
-  var sy=gameMode=='dual'?170:120;
+  var sy=gameMode=='dual'?174:124;
   ctx.font='bold 16px Arial';ctx.textAlign='left';
   ctx.fillStyle='#fbb';ctx.fillText('\u2694 攻击 '+(1+tl('atk')*0.5).toFixed(1),10,sy);
   ctx.fillStyle='#9f9';ctx.fillText('\u2764 上限 '+mhp,120,sy);
@@ -1746,29 +1746,27 @@ function drawHUD(){
     if(p2wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+p2wPower,wx,wy);wx+=38;}
     if(p2wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+p2wShield,wx,wy);wx+=62;}
   }
-  ctx.fillStyle='#ffec3d';ctx.font='bold 20px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('\u5206\u6570 '+score,10,30);ctx.shadowBlur=0;
-  ctx.fillStyle='#0af';ctx.font='15px Arial';ctx.fillText(getLv().name,10,50);
-  ctx.fillStyle='#aaa';ctx.font='16px Arial';ctx.fillText('连击 x'+combo,10,72);
+  ctx.fillStyle='#ffec3d';ctx.font='bold 20px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('\u5206\u6570 '+score,10,26);ctx.shadowBlur=0;
+  ctx.fillStyle='#0af';ctx.font='15px Arial';ctx.fillText(getLv().name,10,46);
+  ctx.fillStyle='#aaa';ctx.font='16px Arial';ctx.fillText('连击 x'+combo,10,66);
+  if(vcCombo>=5){var cd=1+Math.min(0.5,Math.floor(vcCombo/5)*0.1);var cp=0.6+0.4*Math.sin(frameCount*0.12);
+    ctx.fillStyle='rgba(255,220,0,'+cp+')';ctx.font='bold 15px Arial';ctx.textAlign='left';
+    ctx.fillText('\u26A1 \u4F24\u5BB3 x'+cd.toFixed(1),145,66);ctx.textAlign='left';}
   if(isBossRush){
-    // 显示当前Boss名字和血量
+    // 显示当前Boss名字和血量（挪到顶部Boss血条下方避免重叠）
     var brBoss=null;for(var bi=0;bi<ens.length;bi++){if(ens[bi].type=='boss'){brBoss=ens[bi];break;}}
     ctx.textAlign='right';
     ctx.fillStyle='#f44';ctx.font='bold 16px Arial';
-    ctx.fillText('\u2620 \u7B2C '+(bossRushRound+1)+'\u9635',420,28);
+    ctx.fillText('\u2620 \u7B2C '+(bossRushRound+1)+'\u9635',420,104);
     ctx.fillStyle='#fcc';ctx.font='17px Arial';
-    ctx.fillText(brBoss?brBoss.name+'\u2014HP'+Math.ceil(brBoss.hp):'\u9ED8\u8BA4',420,46);
-    if(brBoss){ctx.fillStyle='#222';ctx.fillRect(280,52,135,7);ctx.fillStyle='#f44';ctx.fillRect(280,52,135*Math.max(0,brBoss.hp/brBoss.maxHp),7);ctx.strokeStyle='#555';ctx.lineWidth=1;ctx.strokeRect(280,52,135,7);}
+    ctx.fillText(brBoss?brBoss.name+'\u2014HP'+Math.ceil(brBoss.hp):'\u9ED8\u8BA4',420,122);
+    if(brBoss){ctx.fillStyle='#222';ctx.fillRect(280,128,135,7);ctx.fillStyle='#f44';ctx.fillRect(280,128,135*Math.max(0,brBoss.hp/brBoss.maxHp),7);ctx.strokeStyle='#555';ctx.lineWidth=1;ctx.strokeRect(280,128,135,7);}
   }else{
-  ctx.textAlign='right';ctx.fillStyle='#888';ctx.font='16px Arial';ctx.fillText('\u6CE2\u6B21 '+wave+'/'+getLv().waveCount,420,28);}
-  var progress=waveEnemies/waveMax;ctx.fillStyle='#222';ctx.fillRect(280,35,135,7);ctx.fillStyle='#0af';ctx.fillRect(280,35,135*progress,7);
-  ctx.strokeStyle='#555';ctx.lineWidth=1;ctx.strokeRect(280,35,135,7);
-  ctx.fillStyle='#666';ctx.font='16px Arial';ctx.fillText('最高: '+hs,420,62);ctx.textAlign='left';
-  // 连击增伤指示
-  if(vcCombo>=5){var cd=1+Math.min(0.5,Math.floor(vcCombo/5)*0.1);var cp=0.5+0.5*Math.sin(frameCount*0.12);
-    ctx.fillStyle='rgba(255,200,0,'+(0.15*cp)+')';ctx.fillRect(0,65,480,10);
-    ctx.fillStyle='#ff0';ctx.font='bold 17px Arial';ctx.textAlign='center';
-    ctx.fillText('\u26A1 \u8FDE\u51FB x'+vcCombo+'  \u4F24\u5BB3 x'+cd.toFixed(1),240,74);
-    ctx.textAlign='left';}
+  ctx.textAlign='right';ctx.fillStyle='#888';ctx.font='16px Arial';ctx.fillText('\u6CE2\u6B21 '+wave+'/'+getLv().waveCount,420,104);}
+  var progress=waveEnemies/waveMax;ctx.fillStyle='#222';ctx.fillRect(280,110,135,7);ctx.fillStyle='#0af';ctx.fillRect(280,110,135*progress,7);
+  ctx.strokeStyle='#555';ctx.lineWidth=1;ctx.strokeRect(280,110,135,7);
+  ctx.fillStyle='#666';ctx.font='16px Arial';ctx.fillText('最高: '+hs,420,126);ctx.textAlign='left';
+
   // 低血量狂暴指示
   if(hp/mhp<0.3&&hp>0){var wp=0.5+0.5*Math.sin(frameCount*0.2);
     ctx.fillStyle='rgba(255,0,0,'+(0.08*wp)+')';ctx.fillRect(0,0,480,720);
