@@ -77,7 +77,7 @@ function spawnBossRushBoss(){
   if(bossRushRound%10==0)speakText('Boss '+bb.name+' 降临！',0.9,1.3);
   else speakBossArrival(bb.name,true);
 }
-var currentLevel=1,unlockedLevels=20,dropTimer=0,selectedLevel=0,pageSel=0;
+var currentLevel=1,unlockedLevels=1,dropTimer=0,selectedLevel=0,pageSel=0;
 var TOTAL_LEVELS=40;
 // 无尽模式专用
 var isBossRush=false,bossRushRound=0,bossRushHighScore=0,bossRushTimer=0,bossRushBossIdx=0;
@@ -239,7 +239,10 @@ function findTalent(id){for(var i=0;i<TALENTS.length;i++)if(TALENTS[i].id==id)re
 // 某一关首次通关给予的天赋点（难度越高越多），40关累计正好=满级总花费
 function getTpReward(L){if(L<=10)return 1;if(L<=20)return 2;if(L<=30)return 3;return 4;}
 loadTalents();
-// 一次性补发：已通关的前21关应得天赋点（1-10关各1，11-20关各2，21关3 = 共33）
+// [已调整] 原“一次性补发33点天赋”会让首次打开即满级体验（第20关+33天赋）。
+// 现已关闭，改为正常开局：默认第1关、初始天赋点1。游戏内通关仍正常累计天赋点。
+// 如需恢复原爽游版，删除下方 /* */ 注释包裹即可。
+/*
 try{
   if(!localStorage.getItem('tpg21')){
     var due21=0;for(var _L=1;_L<=21;_L++)due21+=getTpReward(_L); // =33
@@ -247,6 +250,7 @@ try{
     localStorage.setItem('tpg21','1');saveTalents();
   }
 }catch(e){}
+*/
 // 满级总花费
 var TALENT_TOTAL_COST=0;for(var _t=0;_t<TALENTS.length;_t++)TALENT_TOTAL_COST+=TALENTS[_t].max*TALENTS[_t].cost;
 // 主动必杀状态
