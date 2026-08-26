@@ -78,6 +78,18 @@ function spawnBossRushBoss(){
   else speakBossArrival(bb.name,true);
 }
 var currentLevel=1,unlockedLevels=1,dropTimer=0,selectedLevel=0,pageSel=0;
+// === 存档版本：旧档自动重置进度（天赋/关卡/通关记录），保留皮肤与音量偏好 ===
+(function(){
+  try{
+    var SAVE_VER='v1';
+    if(localStorage.getItem('tsv_ver')!==SAVE_VER){
+      // 进度类 key：天赋点/天赋等级/解锁关卡/最高分/BossRush分/教程标记/一次性补发标记/各关评价
+      ['ttp','ttl','tul','ths','tbr','tts','tpg21'].forEach(function(k){localStorage.removeItem(k);});
+      for(var i=1;i<=40;i++)localStorage.removeItem('trk_'+i);
+      localStorage.setItem('tsv_ver',SAVE_VER);
+    }
+  }catch(e){}
+})();
 var TOTAL_LEVELS=40;
 // 无尽模式专用
 var isBossRush=false,bossRushRound=0,bossRushHighScore=0,bossRushTimer=0,bossRushBossIdx=0;
