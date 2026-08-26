@@ -37,7 +37,7 @@ function applyHit(type){
   else{sh=6;mag=4;fx=0.4;col='255,0,0';}                          // 普通子弹：轻震+红边
   if(sh>shake){shake=sh;shakeMag=mag;}
   if(fx>=hitFx)hitFx=fx;   // 氛围强度取较大值
-  hitFxColor=col;          // 颜色始终反映“最近一次”受击的攻击类型
+  hitFxColor=col;          // 颜色始终反映"最近一次"受击的攻击类型
 }
 // 纯展示连击系统（不影响任何伤害/分数/激光/导弹）
 var vcCombo=0,vcComboTimer=0,vcComboPop=0;
@@ -252,7 +252,7 @@ function findTalent(id){for(var i=0;i<TALENTS.length;i++)if(TALENTS[i].id==id)re
 // 某一关首次通关给予的天赋点（难度越高越多），40关累计正好=满级总花费
 function getTpReward(L){if(L<=10)return 1;if(L<=20)return 2;if(L<=30)return 3;return 4;}
 loadTalents();
-// [已调整] 原“一次性补发33点天赋”会让首次打开即满级体验（第20关+33天赋）。
+// [已调整] 原"一次性补发33点天赋"会让首次打开即满级体验（第20关+33天赋）。
 // 现已关闭，改为正常开局：默认第1关、初始天赋点1。游戏内通关仍正常累计天赋点。
 // 如需恢复原爽游版，删除下方 /* */ 注释包裹即可。
 /*
@@ -355,6 +355,18 @@ function ac(){
   if(actx.state=='suspended')setTimeout(function(){try{actx.resume();}catch(e){}},100);
   return actx;
 }
+// 在用户手势（点击/触摸）中解锁音频并启动 BGM（浏览器自动播放策略要求）。
+// 去掉首屏黑框后，不再依赖黑框那次点击，改由任意首次交互触发。
+var _audioReady=false;
+function ensureAudio(){try{
+  if(_audioReady)return;_audioReady=true;
+  var a=new(window.AudioContext||window.webkitAudioContext)();
+  if(a.state=='suspended')a.resume();
+  actx=a;
+  // 静音 buffer 解锁移动端音频系统
+  try{var s=a.createBufferSource();s.buffer=a.createBuffer(1,1,22050);s.connect(a.destination);s.start();}catch(e){}
+  startBGM();
+}catch(e){_audioReady=true;}}
 function tone(f,d,t,v,opt){try{if(sfxVolume<=0&&!opt)return;var c=ac(),o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;
   var vol=(v||0.1)*(opt?1:sfxVolume)*MASTER_GAIN*3;if(!opt){if(sfxPack=='retro'){o.type='square';vol*=0.7;}if(sfxPack=='modern'){o.type='sawtooth';vol*=1.2;}}
   if(vol>0.95)vol=0.95;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(Math.max(0.0002,vol),c.currentTime+0.008);g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);
@@ -673,7 +685,7 @@ function firePassiveMissiles(){
   var md=P1*(1+0.3*ml);                   // 伤害随天赋提升
   var spread=0.18;                        // 同侧多枚扇形展开角度
   function emit(cx,cy,fromP1){
-    var dropBonus=(fromP1?wHoming:p2wHoming)>0?2:0; // 掉落“自动追踪”额外加量
+    var dropBonus=(fromP1?wHoming:p2wHoming)>0?2:0; // 掉落"自动追踪"额外加量
     var n=perSide+dropBonus;
     for(var s=-1;s<=1;s+=2){
       for(var k=0;k<n;k++){
@@ -959,18 +971,7 @@ c.ontouchend=function(e){
 };
 
 function handleClick(mx,my){try{
-  if(needStart){
-    needStart=false;
-    try{
-      // 手机端：用户手势上下文中启动 AudioContext + BGM
-      var actxNew=new(window.AudioContext||window.webkitAudioContext)();
-      if(actxNew.state=='suspended')actxNew.resume();
-      actx=actxNew;
-      startBGM();
-      // 再额外创建一个 Silent Buffer 来"解锁"音频系统
-      try{var src=actxNew.createBufferSource();src.buffer=actxNew.createBuffer(1,1,22050);src.connect(actxNew.destination);src.start();}catch(es){}
-    }catch(e){}
-  }
+  ensureAudio();   // 任意首次点击（菜单/关卡/游戏内）都在此手势里解锁音频并启动 BGM
   if(mobileMsgTimer>0){mobileMsgTimer=0;return;}
   if(state=='menu'){
     // 按钮中心=300+58*idx，半高≈26，偏移±2容差
@@ -1242,7 +1243,7 @@ function update(){
   if(vcComboTimer>0){vcComboTimer--;if(vcComboTimer<=0)vcCombo=0;}
   if(vcComboPop>0)vcComboPop=Math.max(0,vcComboPop-0.07);
   if(bossRushTimer>0)bossRushTimer--;
-  // 护盾被动再生：护盾为“层数”，受击逐层消耗；无盾时才计时，到时自动补一层；有盾不计时
+  // 护盾被动再生：护盾为"层数"，受击逐层消耗；无盾时才计时，到时自动补一层；有盾不计时
   if(wShield<=0){if(shieldRegenCd>0)shieldRegenCd--;else{wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(px,py,'#ff0',12);}}
   if(gameMode=='dual'){if(p2wShield<=0){if(p2shieldRegenCd>0)p2shieldRegenCd--;else{p2wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(p2x,p2y,'#ff0',12);}}}
   if(wSlow>0)wSlow--;if(p2wSlow>0)p2wSlow--;
@@ -2431,7 +2432,7 @@ function draw(){
     ctx.fillStyle='#fff';ctx.shadowColor='#0af';ctx.shadowBlur=18;ctx.font='bold 52px Arial';ctx.fillText('×'+vcCombo,0,30);
     ctx.restore();
   }
-  // Boss warning（顶部脉动警告条；游戏持续运行不暂停，仅做醒目提示，消除“假暂停”错觉）
+  // Boss warning（顶部脉动警告条；游戏持续运行不暂停，仅做醒目提示，消除"假暂停"错觉）
   if(bossWarningTimer>0){var bp=0.5+0.5*Math.sin(bossWarningTimer*0.4);
     // 顶部红色警告条（不遮挡中央游戏画面，玩家明显看到战机/子弹仍在动）
     ctx.fillStyle='rgba(170,0,0,'+(0.55+0.35*bp)+')';ctx.fillRect(0,0,480,48);
@@ -2522,7 +2523,7 @@ function draw(){
     // 压暗背景
     ctx.fillStyle='rgba(0,0,0,0.72)';ctx.fillRect(0,0,480,720);
     ctx.textAlign='center';
-    // 中央光带，增强“结算面板”质感（蓝橙科幻感，贴近正版雷霆战机）
+    // 中央光带，增强"结算面板"质感（蓝橙科幻感，贴近正版雷霆战机）
     var _cg=ctx.createLinearGradient(0,150,0,540);
     _cg.addColorStop(0,'rgba(30,60,120,0)');_cg.addColorStop(0.5,'rgba(40,90,170,0.30)');_cg.addColorStop(1,'rgba(30,60,120,0)');
     ctx.fillStyle=_cg;ctx.fillRect(0,150,480,390);
@@ -2621,7 +2622,7 @@ function draw(){
     ctx.fillStyle=g3;ctx.fillRect(0,0,160,720);
     var g4=ctx.createLinearGradient(480,0,480-160,0);g4.addColorStop(0,'rgba('+hitFxColor+','+(a*0.45)+')');g4.addColorStop(1,'rgba('+hitFxColor+',0)');
     ctx.fillStyle=g4;ctx.fillRect(320,0,160,720);
-    // 外圈描边脉冲，强化“被击中”氛围
+    // 外圈描边脉冲，强化"被击中"氛围
     ctx.strokeStyle='rgba('+hitFxColor+','+(a*0.8)+')';ctx.lineWidth=6;ctx.strokeRect(3,3,474,714);
     ctx.restore();
   }
