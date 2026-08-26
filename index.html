@@ -192,7 +192,7 @@ var isMobile=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.te
 try{
   hs=+localStorage.getItem('ths')||0;
   bossRushHighScore=+localStorage.getItem('tbr')||0;
-  unlockedLevels=+(localStorage.getItem('tul'));if(!unlockedLevels||unlockedLevels<20)unlockedLevels=20;
+  unlockedLevels=+(localStorage.getItem('tul'))||1;
   if(unlockedLevels<1)unlockedLevels=1;
   if(unlockedLevels>TOTAL_LEVELS)unlockedLevels=TOTAL_LEVELS;
   gameMode=localStorage.getItem('tgm')||'single';
@@ -231,7 +231,7 @@ var TALENTS=[
 {id:'ultDmg', name:'技能威力提升',desc:'每级 +20% 技能伤害',max:3,cost:2, type:'stat'}
 ];
 var talentLv={},talentPoints=0;
-function loadTalents(){try{talentPoints=+(localStorage.getItem('ttp')||0);var tl=JSON.parse(localStorage.getItem('ttl')||'{}');if(tl&&typeof tl=='object')talentLv=tl;}catch(e){talentPoints=0;talentLv={};}}
+function loadTalents(){try{talentPoints=+(localStorage.getItem('ttp')||1);var tl=JSON.parse(localStorage.getItem('ttl')||'{}');if(tl&&typeof tl=='object')talentLv=tl;}catch(e){talentPoints=0;talentLv={};}}
 function saveTalents(){try{localStorage.setItem('ttp',talentPoints);localStorage.setItem('ttl',JSON.stringify(talentLv));}catch(e){}}
 function tl(id){return talentLv[id]||0;} // 当前等级
 function talentCost(id){var t=findTalent(id);return t.cost;}
