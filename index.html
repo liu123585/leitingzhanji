@@ -1741,7 +1741,7 @@ function drawHUD(){
     if(p2wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+p2wPower,wx,wy);wx+=38;}
     if(p2wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+p2wShield,wx,wy);wx+=62;}
   }
-  ctx.fillStyle='#ffec3d';ctx.font='bold 18px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('\u5F97\u5206: '+score,10,30);ctx.shadowBlur=0;
+  ctx.fillStyle='#ffec3d';ctx.font='bold 20px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('\u5206\u6570 '+score,10,30);ctx.shadowBlur=0;
   ctx.fillStyle='#0af';ctx.font='15px Arial';ctx.fillText(getLv().name,10,50);
   ctx.fillStyle='#aaa';ctx.font='16px Arial';ctx.fillText('连击 x'+combo,10,72);
   if(isBossRush){
@@ -1966,6 +1966,14 @@ function drawShieldAura(sh,isP2){
   ctx.lineWidth=2.5;ctx.strokeStyle='rgba(160,235,255,'+(0.55+0.25*_pulse+0.4*_hit)+')';
   ctx.shadowColor='#7fe9ff';ctx.shadowBlur=14+10*_pulse+20*_hit;
   ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,0,0,6.28);ctx.stroke();
+  // 外层第二圈光环（正版同心圆层次感）
+  ctx.lineWidth=1.5;ctx.strokeStyle='rgba(120,220,255,'+(0.30+0.20*_pulse+0.3*_hit)+')';
+  ctx.shadowBlur=10+8*_pulse+16*_hit;
+  ctx.beginPath();ctx.ellipse(0,-4,_rx+7,_ry+7,0,0,6.28);ctx.stroke();
+  // 外层第三圈细环
+  ctx.lineWidth=1;ctx.strokeStyle='rgba(90,200,255,'+(0.18+0.15*_pulse+0.2*_hit)+')';
+  ctx.shadowBlur=6+6*_pulse;
+  ctx.beginPath();ctx.ellipse(0,-4,_rx+14,_ry+14,0,0,6.28);ctx.stroke();
   // 内层细环（层次感）
   ctx.shadowBlur=0;ctx.lineWidth=1;ctx.strokeStyle='rgba(200,245,255,'+(0.25+0.2*_pulse)+')';
   ctx.beginPath();ctx.ellipse(0,-4,_rx-6,_ry-6,0,0,6.28);ctx.stroke();
