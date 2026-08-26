@@ -2517,22 +2517,38 @@ function draw(){
   }
   // Level Complete（打通关结束）
   if(state=='levelComplete'){
-    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,480,720);
-    ctx.textAlign='center';ctx.fillStyle='#ff0';ctx.font='bold 44px Arial';ctx.shadowColor='#ff0';ctx.shadowBlur=30;ctx.fillText('\u2605 通关 \u2605',240,190);ctx.shadowBlur=0;
-    // 明确说明这是“击败 BOSS 通关”的情况
+    // 压暗背景
+    ctx.fillStyle='rgba(0,0,0,0.72)';ctx.fillRect(0,0,480,720);
+    ctx.textAlign='center';
+    // 中央光带，增强“结算面板”质感（蓝橙科幻感，贴近正版雷霆战机）
+    var _cg=ctx.createLinearGradient(0,150,0,540);
+    _cg.addColorStop(0,'rgba(30,60,120,0)');_cg.addColorStop(0.5,'rgba(40,90,170,0.30)');_cg.addColorStop(1,'rgba(30,60,120,0)');
+    ctx.fillStyle=_cg;ctx.fillRect(0,150,480,390);
+    // 标题 ★ 通关 ★（金色大发光）
+    ctx.fillStyle='#ffd700';ctx.font='bold 46px Arial';ctx.shadowColor='#ff8c00';ctx.shadowBlur=28;
+    ctx.fillText('\u2605 通关 \u2605',240,188);ctx.shadowBlur=0;
+    // 副标题（击败 BOSS / 全部通关）
     if(currentLevel<TOTAL_LEVELS){
-      ctx.fillStyle='#bfffba';ctx.font='bold 22px Arial';ctx.shadowColor='#0f0';ctx.shadowBlur=12;
-      ctx.fillText('—— 你击败 BOSS，成功通关本关 ——',240,232);ctx.shadowBlur=0;
+      ctx.fillStyle='#bfffd0';ctx.font='bold 20px Arial';ctx.shadowColor='#0f0';ctx.shadowBlur=10;
+      ctx.fillText('—— 你击败 BOSS，成功通关本关 ——',240,216);ctx.shadowBlur=0;
     }else{
-      ctx.fillStyle='#ffd27f';ctx.font='bold 22px Arial';ctx.shadowColor='#f80';ctx.shadowBlur=12;
-      ctx.fillText('—— 你通关了全部 40 关！——',240,232);ctx.shadowBlur=0;
+      ctx.fillStyle='#ffd27f';ctx.font='bold 20px Arial';ctx.shadowColor='#f80';ctx.shadowBlur=10;
+      ctx.fillText('—— 你通关了全部 40 关！——',240,216);ctx.shadowBlur=0;
     }
-    ctx.fillStyle='#fff';ctx.font='24px Arial';ctx.fillText(getLv().name,240,272);
-    ctx.fillStyle='#0f0';ctx.font='26px Arial';ctx.fillText('\u2606 '+score,240,320);
-    ctx.fillStyle='#aaa';ctx.font='16px Arial';ctx.fillText('最高连击: x'+mcombo,240,352);
-  ctx.fillStyle='#ff0';ctx.font='bold 20px Arial';ctx.fillText('\u2605 获得天赋点 +'+lastTpGain+'  （共 '+talentPoints+'）',240,408);
-    if(currentLevel<TOTAL_LEVELS){ctx.fillStyle='#0af';ctx.font='18px Arial';ctx.fillText('\u25B6 第'+(currentLevel+1)+'关已解锁',240,378);}
-    else{ctx.fillStyle='#f80';ctx.font='20px Arial';ctx.fillText('\uD83C\uDFC6 恭喜通关全部关卡！',240,378);}
+    // 关卡名
+    ctx.fillStyle='#cfe8ff';ctx.font='18px Arial';ctx.fillText(getLv().name,240,248);
+    // ===== 得分主视觉（正版风格：居中超大金色发光数字 + SCORE 标签）=====
+    ctx.fillStyle='#9fd0ff';ctx.font='bold 16px Arial';ctx.fillText('本 关 得 分    SCORE',240,292);
+    ctx.font='bold 52px Arial';ctx.shadowColor='#ffcf00';ctx.shadowBlur=24;
+    ctx.fillStyle='#ffd700';ctx.strokeStyle='#7a4b00';ctx.lineWidth=4;
+    ctx.strokeText(String(score),240,352);ctx.fillText(String(score),240,352);ctx.shadowBlur=0;
+    // 分隔线
+    ctx.strokeStyle='rgba(255,255,255,0.22)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(120,378);ctx.lineTo(360,378);ctx.stroke();
+    // 次要数据：最高连击 + 获得天赋（双列对称）
+    ctx.textAlign='right';ctx.fillStyle='#ffe27a';ctx.font='bold 17px Arial';ctx.fillText('最高连击   x'+mcombo,228,408);
+    ctx.textAlign='left';ctx.fillStyle='#aaccff';ctx.fillText('获得天赋   +'+lastTpGain,252,408);
+    ctx.textAlign='center';
+    // 按钮（保持原坐标，点击区 my 430~480 不变）
     if(currentLevel<TOTAL_LEVELS){ctx.fillStyle='#0a3';ctx.strokeStyle='#0f0';ctx.lineWidth=2;drawRoundedRect(145,430,70,50,6);ctx.fill();ctx.stroke();}
     ctx.fillStyle='#aaa';ctx.strokeStyle='#888';ctx.lineWidth=2;
     var cx=currentLevel<TOTAL_LEVELS?300:240,bw=currentLevel<TOTAL_LEVELS?80:120;
@@ -2540,6 +2556,14 @@ function draw(){
     ctx.fillStyle='#fff';ctx.font='bold 18px Arial';
     if(currentLevel<TOTAL_LEVELS)ctx.fillText('\u25B6 下一关',180,462);
     ctx.fillText('\u2699 选择关卡',cx,462);
+    // 按钮下方提示
+    if(currentLevel<TOTAL_LEVELS){
+      ctx.fillStyle='#7fffa0';ctx.font='bold 16px Arial';ctx.shadowColor='#0f0';ctx.shadowBlur=6;
+      ctx.fillText('\u25B6 第'+(currentLevel+1)+'关已解锁',240,505);ctx.shadowBlur=0;
+    }else{
+      ctx.fillStyle='#ffd27f';ctx.font='bold 18px Arial';ctx.fillText('\uD83C\uDFC6 恭喜通关全部关卡！',240,505);
+    }
+    ctx.fillStyle='#ffd700';ctx.font='bold 16px Arial';ctx.fillText('天赋点共 '+talentPoints,240,528);
   }
   // Tutorial
   if(state=='playing'&&!tutorialSeen&&fadeAlpha<0.5){
