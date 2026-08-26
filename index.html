@@ -606,7 +606,7 @@ function applyBgmMute(){
 // === LEVEL DATA ===
 var levelData=function(){
   var d=[],names=['初出茅庐','小试牛刀','渐入佳境','烽火连天','血战长空','风起云涌','暗流涌动','十面埋伏','背水一战','绝境反击','龙潭虎穴','雷霆万钧','风驰电掣','天罗地网','浴火重生','万箭齐发','神挡杀神','逆天改命','决战巅峰','不朽传说','[WP]突入群敌','[WP]火力全开','[WP]风暴来袭','[WP]机械肇事','[WP]鹰击千里','[WP]刀枪无眼','[WP]破阵狂潮','[WP]龙吟虎啸','[WP]山河变色','[WP]神兵天降','[WP]龙吟虎啸','[WP]狂风暴雨','[WP]排山倒海','[WP]狂风暴雨','[WP]山河变色','[WP]神兵天降','[WP]黑曜石巨石','[WP]飞星暗箭','[WP]惊魂一幕','[WP]苦海无涯'];
-  for(var i=0;i<40;i++){var lv=i/39,adj=i<20?lv*0.6:0.307692+(lv-0.512821)*2.03684;d.push({name:'第'+(i+1)+'关 · '+names[i],enemySpeed:0.8+adj*2.8,spawnSpeed:Math.max(8,Math.round(50-adj*40)),waveCount:Math.min(8,4+Math.floor(i/3)),enemyMult:0.6+adj*5.0,hpMult:0.5+adj*11.0,bossHp:Math.round(2000+adj*16000)});}
+  for(var i=0;i<40;i++){var lv=i/39,adj=i<20?lv*0.6:0.307692+(lv-0.512821)*2.03684;d.push({name:'第'+(i+1)+'关 · '+names[i],enemySpeed:0.7+adj*1.8,spawnSpeed:Math.max(6,Math.round(38-adj*26)),waveCount:Math.min(6,3+Math.floor(i/6)),enemyMult:0.5+adj*3.4,hpMult:0.45+adj*6.5,bossHp:Math.round(1600+adj*11000)});}
   return d;
 }();
 function getLv(){return levelData[currentLevel-1];}
@@ -619,7 +619,7 @@ function init(lvl){
   maxBombs=3;bombs=maxBombs;
   pt=0;pi=0;playerBurnTimer=0;p2x=240;p2y=680;p2pt=0;p2pi=0;p2BurnTimer=0;
   wLevel=0;wMissile=0;wPower=2;wShield=0;wSlow=0;wHoming=0;wBack=0;
-  p2wLevel=0;p2wMissile=0;p2wPower=2;p2wShield=0;p2wSlow=0;p2wHoming=0;p2wBack=0;
+  p2wLevel=0;p2wMissile=0;p2wPower=3;p2wShield=0;p2wSlow=0;p2wHoming=0;p2wBack=0;
   // 护盾被动：开局即有一层护盾（层数由天赋决定），再生倒计时就绪
   wShield=Math.min(3,1+Math.floor(tl('shield')/2));p2wShield=Math.min(3,1+Math.floor(tl('shield')/2));shieldRegenCd=0;p2shieldRegenCd=0;
   novaUnlocked=tl('nova')>0;skillCds=new Array(ULT_SKILLS.length).fill(0);skinSkillCd=0;passiveLaserCd=0;skinSkillName=activeSkinSkill().name;turretCd=0;p2turretCd=0;missileCd=0;
@@ -703,7 +703,7 @@ function startWave(){
     else if(miniCount==2)speakText('两名小 boss 出现！',0.9,1.3);
     else speakBossArrival(mb.name,false);
   }
-  else{waveMax=12+wave*4+Math.floor(lv.enemyMult*6);play('waveStart');}
+  else{waveMax=22+wave*7+Math.floor(lv.enemyMult*9);play('waveStart');}
   if(wave!=lv.waveCount&&wave%5!=0)waveEnemies=0;
   spawnTimer=wave==1?15:35;
 }
