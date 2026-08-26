@@ -81,7 +81,7 @@ var currentLevel=1,unlockedLevels=1,dropTimer=0,selectedLevel=0,pageSel=0;
 // === 存档版本：旧档自动重置进度（天赋/关卡/通关记录），保留皮肤与音量偏好 ===
 (function(){
   try{
-    var SAVE_VER='v1';
+    var SAVE_VER='v2';
     if(localStorage.getItem('tsv_ver')!==SAVE_VER){
       // 进度类 key：天赋点/天赋等级/解锁关卡/最高分/BossRush分/教程标记/一次性补发标记/各关评价
       ['ttp','ttl','tul','ths','tbr','tts','tpg21'].forEach(function(k){localStorage.removeItem(k);});
@@ -633,8 +633,8 @@ function init(lvl){
   tone(80,0.3,'sawtooth',0.25);
   // 清空上局残留实体
   bls.length=0;ens.length=0;pws.length=0;pts.length=0;drs.length=0;
-  // 进入开场倒计时（240帧=4秒）
-  state='countdown';countdownTimer=240;
+  // 直接进入游戏（去掉开场倒计时黑屏，开局有短无敌保护）
+  state='playing';
 }
 function useBomb(){
   if(state!='playing'||bombs<=0)return;
@@ -1908,7 +1908,7 @@ function drawPlayerShip(x,y,isP2,flash){
   var sk=activeSkinColors();
   ctx.save();ctx.translate(x,y);
   if(flash){ctx.restore();return;}
-  if(sk.form>0){drawTurrets();drawFormShip(sk.form,isP2);ctx.restore();return;}
+  if(sk.form>0){drawTurrets();drawFormShip(sk.form,isP2);drawShieldAura(isP2?p2wShield:wShield,isP2);ctx.restore();return;}
   var body=sk.body,wg=sk.wg,shape=sk.shape,eye=sk.eye;
   if(isP2){var t=body;body=wg;wg=t;}
   var glow=body;
@@ -1942,6 +1942,35 @@ function drawPlayerShip(x,y,isP2,flash){
   ctx.fillStyle='rgba(255,80,80,0.9)';ctx.beginPath();ctx.arc(0,-2,2.5,0,6.28);ctx.fill();
   // 左右机翼炮台（常驻追踪导弹发射器）
   drawTurrets();
+  // 护盾光罩（有护盾时在战机周围显示，正版雷霆战机风格）
+  drawShieldAura(isP2?p2wShield:wShield,isP2);
+  ctx.restore();
+}
+// ===== 护盾光罩绘制（局部坐标，须在战机 translate 后、restore 前调用）=====
+function drawShieldAura(sh,isP2){
+  var _tmp=isP2?p2wSh:wSh;            // 限时护盾（wSh>0）也显示单层光罩
+  if(!sh||sh<=0){ if(_tmp>0)sh=1; else return; }
+  var _inv=isP2?p2Invuln:playerInvuln;
+  var _pulse=0.5+0.5*Math.sin(frameCount*0.12);            // 呼吸脉动
+  var _hit=(_inv>0)?Math.min(1,_inv/30):0;                 // 受击/刚挡下时更亮
+  var _rx=42+sh*3,_ry=54+sh*3;                             // 层数越多罩越大
+  ctx.save();
+  // 柔光填充（中心透明→边缘蓝色）
+  var _g=ctx.createRadialGradient(0,-4,8,0,-4,Math.max(_rx,_ry));
+  _g.addColorStop(0,'rgba(120,220,255,0)');
+  _g.addColorStop(0.7,'rgba(80,200,255,'+(0.10+0.06*sh)+')');
+  _g.addColorStop(1,'rgba(60,180,255,'+(0.20+0.08*sh)+')');
+  ctx.fillStyle=_g;ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,0,0,6.28);ctx.fill();
+  // 主光环（发光描边，受击时爆亮）
+  ctx.lineWidth=2.5;ctx.strokeStyle='rgba(160,235,255,'+(0.55+0.25*_pulse+0.4*_hit)+')';
+  ctx.shadowColor='#7fe9ff';ctx.shadowBlur=14+10*_pulse+20*_hit;
+  ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,0,0,6.28);ctx.stroke();
+  // 内层细环（层次感）
+  ctx.shadowBlur=0;ctx.lineWidth=1;ctx.strokeStyle='rgba(200,245,255,'+(0.25+0.2*_pulse)+')';
+  ctx.beginPath();ctx.ellipse(0,-4,_rx-6,_ry-6,0,0,6.28);ctx.stroke();
+  // 顶部高光弧（玻璃质感）
+  ctx.lineWidth=2;ctx.strokeStyle='rgba(255,255,255,'+(0.4+0.4*_hit)+')';
+  ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,-0.5,Math.PI*1.05,Math.PI*1.5);ctx.stroke();
   ctx.restore();
 }
 // 战机两侧炮台绘制：明显放大、发光、带脉冲蓄能环，确保清晰可见
