@@ -1475,7 +1475,7 @@ function drawMenu(){
   var tg=ctx.createLinearGradient(0,120,0,180);tg.addColorStop(0,'#9ef');tg.addColorStop(0.5,'#0af');tg.addColorStop(1,'#06c');
   ctx.fillStyle=tg;ctx.font='bold 60px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=35;ctx.fillText('雷 霆 战 机',240,170);ctx.shadowBlur=0;
   ctx.shadowColor='#0af';ctx.shadowBlur=8;ctx.fillStyle='#7cf';ctx.font='bold 15px Arial';ctx.fillText('— 经 典 飞 行 射 击 —',240,205);ctx.shadowBlur=0;
-  ctx.fillStyle='#9ab';ctx.font='14px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,235);
+  ctx.fillStyle='#9ab';ctx.font='17px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,235);
 
   // 胶囊按钮通用绘制（所有主菜单按钮统一尺寸：宽260 高50 圆角12）
   function pill(x,y,w,h,fill,stroke,glow,label,lf){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.shadowColor=glow;ctx.shadowBlur=14;drawRoundedRect(x-w/2,y-h/2,w,h,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=lf;ctx.font='bold 22px Arial';ctx.fillText(label,x,y+8);}
@@ -1488,9 +1488,9 @@ function drawMenu(){
   pill(240,BY+BG*5,BW,BH,'rgba(30,30,55,0.85)','#0af','#0af','\u2139 属性介绍','#cdf');
   pill(240,BY+BG*6,BW,BH,'rgba(120,30,150,0.85)','#f6f','#f6f','\u272F 天赋 ('+talentPoints+'点)','#fcf');
   // 无尽模式最高分
-  if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font='13px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
+  if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font='16px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
 
-  ctx.fillStyle='#556';ctx.font='12px Arial';ctx.fillText(gameMode=='dual'?'P1:WASD  P2:方向键 | 自动射击':'方向键/WASD/鼠标 | 自动射击',240,694);
+  ctx.fillStyle='#556';ctx.font='16px Arial';ctx.fillText(gameMode=='dual'?'P1:WASD  P2:方向键 | 自动射击':'方向键/WASD/鼠标 | 自动射击',240,694);
   // 底部飞船
   ctx.save();ctx.translate(240,706);var sc=0.9+0.05*Math.sin(nebulaTime*3);ctx.scale(sc,sc);
   ctx.shadowColor='#0af';ctx.shadowBlur=10;ctx.fillStyle='#0af';
@@ -1504,7 +1504,7 @@ function drawLevelSelect(){
   // 标题
   var tg=ctx.createLinearGradient(0,20,0,50);tg.addColorStop(0,'#7df');tg.addColorStop(1,'#0af');
   ctx.fillStyle=tg;ctx.font='bold 32px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=25;ctx.fillText('选 择 关 卡',240,42);ctx.shadowBlur=0;
-  ctx.fillStyle='#9ab';ctx.font='13px Arial';ctx.fillText('点击关卡选定，再点确认开始  |  共 '+TOTAL_LEVELS+' 关',240,68);
+  ctx.fillStyle='#9ab';ctx.font='16px Arial';ctx.fillText('点击关卡选定，再点确认开始  |  共 '+TOTAL_LEVELS+' 关',240,68);
 
   var totalPages=Math.ceil(TOTAL_LEVELS/20);
   if(pageSel>totalPages-1)pageSel=totalPages-1;
@@ -1529,8 +1529,8 @@ function drawLevelSelect(){
     ctx.fillText((i+1)+'关',lx,ly-2);
     // 状态
     if(locked){ctx.fillStyle='#556';ctx.font='15px Arial';ctx.fillText('\uD83D\uDD12',lx,ly+20);}
-    else if(cur){ctx.fillStyle='#ff0';ctx.font='bold 13px Arial';ctx.fillText('\u2605 当前',lx,ly+20);}
-    else{var rk='-';try{rk=localStorage.getItem('trk_'+(i+1))||'-';}catch(e){}var rc={'S':'#ff0','A':'#0f0','B':'#0af','C':'#9ab','-':'#0f0'}[rk]||'#0f0';ctx.fillStyle='#0f0';ctx.font='13px Arial';ctx.fillText('\u2713 通关',lx,ly+20);ctx.fillStyle=rc;ctx.font='bold 15px Arial';ctx.fillText(rk,lx+30,ly+21);}
+    else if(cur){ctx.fillStyle='#ff0';ctx.font='bold 16px Arial';ctx.fillText('\u2605 当前',lx,ly+20);}
+    else{var rk='-';try{rk=localStorage.getItem('trk_'+(i+1))||'-';}catch(e){}var rc={'S':'#ff0','A':'#0f0','B':'#0af','C':'#9ab','-':'#0f0'}[rk]||'#0f0';ctx.fillStyle='#0f0';ctx.font='16px Arial';ctx.fillText('\u2713 通关',lx,ly+20);ctx.fillStyle=rc;ctx.font='bold 15px Arial';ctx.fillText(rk,lx+30,ly+21);}
   }
 
   // 确认/取消（选中时显示，居中于格子下方）
@@ -1542,7 +1542,7 @@ function drawLevelSelect(){
     drawRoundedRect(260,540,95,52,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
     ctx.fillStyle='#fff';ctx.font='bold 19px Arial';ctx.fillText('\u2714 确认',172,572);ctx.fillText('\u2716 取消',307,572);
   }else{
-    ctx.fillStyle='#456';ctx.font='14px Arial';ctx.fillText('请选择上方关卡',240,570);
+    ctx.fillStyle='#456';ctx.font='17px Arial';ctx.fillText('请选择上方关卡',240,570);
   }
 
   // 底部翻页栏
@@ -1586,7 +1586,7 @@ function drawStats(){
   ];
   for(var i=0;i<its.length;i++){var y=100+i*88;
     ctx.fillStyle=its[i].cl;ctx.shadowColor=its[i].cl;ctx.shadowBlur=10;ctx.textAlign='left';ctx.font='bold 21px Arial';ctx.fillText('\u25A0 '+its[i].name,40,y);
-    ctx.shadowBlur=0;ctx.fillStyle='#bbb';ctx.font='13px Arial';
+    ctx.shadowBlur=0;ctx.fillStyle='#bbb';ctx.font='16px Arial';
     var dl=wrapText(its[i].desc,24);for(var di=0;di<dl.length;di++)ctx.fillText(dl[di],50,y+20+di*18);
   }
   ctx.fillStyle='#666';ctx.font='17px Arial';ctx.textAlign='center';ctx.fillText('点击返回菜单',240,692);
@@ -1611,7 +1611,7 @@ function drawSettings(){
   ctx.fillStyle='#ccc';ctx.font='18px Arial';ctx.textAlign='left';ctx.fillText('\u266B 背景音乐:',30,322);
   ctx.fillStyle='#aaf';ctx.font='20px Arial';ctx.textAlign='center';ctx.fillText('\u25C0',170,328);ctx.fillText('\u25B6',310,328);
   // 歌名放在两切换箭头中间同一行
-  ctx.fillStyle='#ff0';ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.fillText(bgmName(bgmTrack),240,332);
+  ctx.fillStyle='#ff0';ctx.font='bold 17px Arial';ctx.textAlign='center';ctx.fillText(bgmName(bgmTrack),240,332);
   // BGM 暂停/播放按钮
   var pbX=30,pbY=372,pbW=200,pbH=34;
   ctx.fillStyle=bgmMuted?'rgba(70,30,30,0.9)':'rgba(20,50,30,0.9)';ctx.strokeStyle=bgmMuted?'#f66':'#0f0';ctx.lineWidth=2;ctx.shadowColor=bgmMuted?'#f66':'#0f0';ctx.shadowBlur=8;
@@ -1634,7 +1634,7 @@ function drawSettings(){
   var dbX=350,dbY=432,dbW=100,dbH=34;
   ctx.fillStyle='rgba(40,40,70,0.9)';ctx.strokeStyle='#88f';ctx.lineWidth=2;ctx.shadowColor='#88f';ctx.shadowBlur=6;
   drawRoundedRect(dbX,dbY,dbW,dbH,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-  ctx.fillStyle='#cdf';ctx.font='14px Arial';ctx.textAlign='center';ctx.fillText('\u2139 技能详情',dbX+dbW/2,dbY+22);
+  ctx.fillStyle='#cdf';ctx.font='17px Arial';ctx.textAlign='center';ctx.fillText('\u2139 技能详情',dbX+dbW/2,dbY+22);
   ctx.textAlign='center';
   ctx.fillStyle='#666';ctx.font='17px Arial';ctx.textAlign='center';ctx.fillText('\u2190 返回菜单',240,650);
   // 皮肤技能介绍弹窗
@@ -1649,7 +1649,7 @@ function drawSettings(){
     ctx.fillStyle='#ff0';ctx.font='bold 20px Arial';ctx.fillText('\u2728 专属主动技：'+skl.name,240,py0+86);
     ctx.fillStyle='#bbb';ctx.font='15px Arial';
     var dl=wrapText(skl.desc,28);for(var di=0;di<dl.length;di++)ctx.fillText(dl[di],240,py0+120+di*24);
-    ctx.fillStyle='#8af';ctx.font='13px Arial';ctx.fillText('被动技能①机翼激光(每'+Math.round(PASSIVE_LASER_INTERVAL/60)+'秒) ②追踪导弹(每'+Math.round(PASSIVE_MISSILE_INTERVAL/60)+'秒) ③护盾受击后自动再生 — 均可在天赋页升级增强',240,py0+ph0-40);
+    ctx.fillStyle='#8af';ctx.font='16px Arial';ctx.fillText('被动技能①机翼激光(每'+Math.round(PASSIVE_LASER_INTERVAL/60)+'秒) ②追踪导弹(每'+Math.round(PASSIVE_MISSILE_INTERVAL/60)+'秒) ③护盾受击后自动再生 — 均可在天赋页升级增强',240,py0+ph0-40);
     ctx.fillStyle='#0af';ctx.font='15px Arial';ctx.fillText('\u2716 点击任意处关闭',240,py0+ph0-14);
   }
 }
@@ -1664,7 +1664,7 @@ function drawDIY(){
   ctx.textAlign='center';
   var tg=ctx.createLinearGradient(0,40,0,90);tg.addColorStop(0,'#f9f');tg.addColorStop(1,'#90f');
   ctx.fillStyle=tg;ctx.font='bold 42px Arial';ctx.shadowColor='#f0f';ctx.shadowBlur=25;ctx.fillText('\u2708 战 机 D I Y',240,80);ctx.shadowBlur=0;
-  ctx.fillStyle='#9ab';ctx.font='14px Arial';ctx.fillText('自定义你的专属战机 · 实时预览',240,108);
+  ctx.fillStyle='#9ab';ctx.font='17px Arial';ctx.fillText('自定义你的专属战机 · 实时预览',240,108);
   // 预览
   ctx.save();ctx.fillStyle='rgba(255,255,255,0.04)';drawRoundedRect(170,128,140,120,14);ctx.fill();
   drawPlayerShip(240,188,false,false);ctx.restore();
@@ -1701,7 +1701,7 @@ function drawHUD(){
     var bc=r>0.5?'#f0f':r>0.2?'#f80':'#f00';ctx.shadowColor=bc;ctx.shadowBlur=12;
     ctx.fillStyle=bc;ctx.fillRect(10,by+2,408*r,18);ctx.shadowBlur=0;
     ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.strokeRect(8,by,424,24);
-    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 14px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 17px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;
     ctx.fillText('\u2620 '+(e.isBig?'\u5927 ':'')+(e.name||'BOSS')+'   '+Math.max(0,Math.ceil(e.hp))+' / '+e.maxHp,220,by+16);ctx.shadowBlur=0;bIdx++;
   }
   ctx.textAlign='left';
@@ -1710,32 +1710,32 @@ function drawHUD(){
   if(gameMode=='dual'){ctx.fillStyle='#039';ctx.fillRect(bx,by,bw,bh);hc=hr>0.5?'#0af':hr>0.25?'#f80':'#f00';}
   ctx.shadowColor=hc;ctx.shadowBlur=12;ctx.fillStyle=hc;ctx.fillRect(bx+2,by+2,(bw-4)*hr,bh-4);ctx.shadowBlur=0;
   ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(bx,by,bw,bh);
-  ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
+  ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
   ctx.fillText('\u2764 '+(gameMode=='dual'?'P1 ':'')+hp+'/'+mhp,bx+bw/2,by+bh-5);ctx.shadowBlur=0;
   if(gameMode=='dual'){
     ctx.fillStyle='#030';ctx.fillRect(200,82,120,20);var h2r=p2hp/p2mhp,hc2=h2r>0.5?'#0f0':h2r>0.25?'#fa0':'#f00';
     ctx.shadowColor=hc2;ctx.shadowBlur=12;ctx.fillStyle=hc2;ctx.fillRect(202,84,116*h2r,16);ctx.shadowBlur=0;
     ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(200,82,120,20);
-    ctx.fillStyle='#fff';ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
+    ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
     ctx.fillText('\u2764 P2 '+p2hp+'/'+p2mhp,260,97);ctx.shadowBlur=0;
   }
   // 天赋属性面板（左上角，HP下方）
   var sy=gameMode=='dual'?170:120;
-  ctx.font='bold 12px Arial';ctx.textAlign='left';
+  ctx.font='bold 16px Arial';ctx.textAlign='left';
   ctx.fillStyle='#fbb';ctx.fillText('\u2694 攻击 '+(1+tl('atk')*0.5).toFixed(1),10,sy);
   ctx.fillStyle='#9f9';ctx.fillText('\u2764 上限 '+mhp,120,sy);
   ctx.fillStyle='#9cf';ctx.fillText('\u26A1 射速 Lv'+tl('spd'),220,sy);
   ctx.fillStyle='#fc9';ctx.fillText('\u273B 暴击 Lv'+tl('crit'),10,sy+18);
   ctx.fillStyle='#f9f';ctx.fillText('\u2728 吸血 Lv'+tl('leech'),110,sy+18);
   ctx.fillStyle='#ff9';ctx.fillText('\u25A3 护盾 Lv'+tl('shield'),210,sy+18);
-  ctx.font='bold 14px Arial';var wx=10,wy=sy+38;
-  if(gameMode=='dual'){ctx.fillStyle='#0af';ctx.font='bold 11px Arial';ctx.fillText('P1',wx,wy);wx+=22;ctx.font='bold 14px Arial';}
+  ctx.font='bold 17px Arial';var wx=10,wy=sy+38;
+  if(gameMode=='dual'){ctx.fillStyle='#0af';ctx.font='bold 15px Arial';ctx.fillText('P1',wx,wy);wx+=22;ctx.font='bold 17px Arial';}
   if(wLevel>0){ctx.fillStyle='#0ff';ctx.fillText('\u25A0 散'+wLevel,wx,wy);wx+=38;}
   if(wMissile>0){ctx.fillStyle='#f80';ctx.fillText('\u25A0 导'+wMissile,wx,wy);wx+=38;}
   if(wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+wPower,wx,wy);wx+=38;}
   if(wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+wShield,wx,wy);wx+=62;}
   // 减速效果不显示HUD提示
-  if(gameMode=='dual'){wx=10;wy=145;ctx.fillStyle='#0f0';ctx.font='bold 11px Arial';ctx.fillText('P2',wx,wy);wx+=22;ctx.font='bold 14px Arial';
+  if(gameMode=='dual'){wx=10;wy=145;ctx.fillStyle='#0f0';ctx.font='bold 15px Arial';ctx.fillText('P2',wx,wy);wx+=22;ctx.font='bold 17px Arial';
     if(p2wLevel>0){ctx.fillStyle='#0ff';ctx.fillText('\u25A0 散'+p2wLevel,wx,wy);wx+=38;}
     if(p2wMissile>0){ctx.fillStyle='#f80';ctx.fillText('\u25A0 导'+p2wMissile,wx,wy);wx+=38;}
     if(p2wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+p2wPower,wx,wy);wx+=38;}
@@ -1743,31 +1743,31 @@ function drawHUD(){
   }
   ctx.fillStyle='#ffec3d';ctx.font='bold 18px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('\u5F97\u5206: '+score,10,30);ctx.shadowBlur=0;
   ctx.fillStyle='#0af';ctx.font='15px Arial';ctx.fillText(getLv().name,10,50);
-  ctx.fillStyle='#aaa';ctx.font='13px Arial';ctx.fillText('连击 x'+combo,10,72);
+  ctx.fillStyle='#aaa';ctx.font='16px Arial';ctx.fillText('连击 x'+combo,10,72);
   if(isBossRush){
     // 显示当前Boss名字和血量
     var brBoss=null;for(var bi=0;bi<ens.length;bi++){if(ens[bi].type=='boss'){brBoss=ens[bi];break;}}
     ctx.textAlign='right';
     ctx.fillStyle='#f44';ctx.font='bold 16px Arial';
     ctx.fillText('\u2620 \u7B2C '+(bossRushRound+1)+'\u9635',420,28);
-    ctx.fillStyle='#fcc';ctx.font='14px Arial';
+    ctx.fillStyle='#fcc';ctx.font='17px Arial';
     ctx.fillText(brBoss?brBoss.name+'\u2014HP'+Math.ceil(brBoss.hp):'\u9ED8\u8BA4',420,46);
     if(brBoss){ctx.fillStyle='#222';ctx.fillRect(280,52,135,7);ctx.fillStyle='#f44';ctx.fillRect(280,52,135*Math.max(0,brBoss.hp/brBoss.maxHp),7);ctx.strokeStyle='#555';ctx.lineWidth=1;ctx.strokeRect(280,52,135,7);}
   }else{
-  ctx.textAlign='right';ctx.fillStyle='#888';ctx.font='13px Arial';ctx.fillText('\u6CE2\u6B21 '+wave+'/'+getLv().waveCount,420,28);}
+  ctx.textAlign='right';ctx.fillStyle='#888';ctx.font='16px Arial';ctx.fillText('\u6CE2\u6B21 '+wave+'/'+getLv().waveCount,420,28);}
   var progress=waveEnemies/waveMax;ctx.fillStyle='#222';ctx.fillRect(280,35,135,7);ctx.fillStyle='#0af';ctx.fillRect(280,35,135*progress,7);
   ctx.strokeStyle='#555';ctx.lineWidth=1;ctx.strokeRect(280,35,135,7);
-  ctx.fillStyle='#666';ctx.font='12px Arial';ctx.fillText('最高: '+hs,420,62);ctx.textAlign='left';
+  ctx.fillStyle='#666';ctx.font='16px Arial';ctx.fillText('最高: '+hs,420,62);ctx.textAlign='left';
   // 连击增伤指示
   if(vcCombo>=5){var cd=1+Math.min(0.5,Math.floor(vcCombo/5)*0.1);var cp=0.5+0.5*Math.sin(frameCount*0.12);
     ctx.fillStyle='rgba(255,200,0,'+(0.15*cp)+')';ctx.fillRect(0,65,480,10);
-    ctx.fillStyle='#ff0';ctx.font='bold 14px Arial';ctx.textAlign='center';
+    ctx.fillStyle='#ff0';ctx.font='bold 17px Arial';ctx.textAlign='center';
     ctx.fillText('\u26A1 \u8FDE\u51FB x'+vcCombo+'  \u4F24\u5BB3 x'+cd.toFixed(1),240,74);
     ctx.textAlign='left';}
   // 低血量狂暴指示
   if(hp/mhp<0.3&&hp>0){var wp=0.5+0.5*Math.sin(frameCount*0.2);
     ctx.fillStyle='rgba(255,0,0,'+(0.08*wp)+')';ctx.fillRect(0,0,480,720);
-    ctx.fillStyle='#f44';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText('\u26A1 \u72C2\u66B4\u6A21\u5F0F \u2014 \u5C04\u901F x2',240,14);ctx.textAlign='left';}
+    ctx.fillStyle='#f44';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.fillText('\u26A1 \u72C2\u66B4\u6A21\u5F0F \u2014 \u5C04\u901F x2',240,14);ctx.textAlign='left';}
   // 炸弹按钮（右下角，移动端/PC通用）
   var bx2=400,by2=640,bw2=70,bh2=70;
   ctx.fillStyle=bombs>0?'rgba(255,140,0,0.85)':'rgba(80,80,90,0.7)';
@@ -1793,7 +1793,7 @@ function drawHUD(){
       drawRoundedRect(ux,uy,ubw,ubh,10);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
       ctx.fillStyle='#fff';ctx.textAlign='center';
       ctx.font='bold 24px Arial';ctx.fillText(us.ico,ux+ubw/2,uy+30);
-      ctx.font='bold 12px Arial';ctx.fillText(us.name,ux+ubw/2,uy+48);
+      ctx.font='bold 16px Arial';ctx.fillText(us.name,ux+ubw/2,uy+48);
       if(skillCds[ui]>0){ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(ux,uy,ubw,ubh);
         ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.fillText(Math.ceil(skillCds[ui]/60)+'s',ux+ubw/2,uy+32);}
       if(sideR)uCountR++;else uCountL++;
@@ -1814,7 +1814,7 @@ function drawTalent(){
   ctx.fillText('\u272F 天 赋 系 统',240,52);ctx.shadowBlur=0;
   ctx.fillStyle='#ff0';ctx.font='bold 18px Arial';
   ctx.fillText('\u2605 可用天赋点：'+talentPoints+'    （满级共需 '+TALENT_TOTAL_COST+' 点）',240,84);
-  ctx.fillStyle='#9ab';ctx.font='12px Arial';
+  ctx.fillStyle='#9ab';ctx.font='16px Arial';
   ctx.fillText('通关关卡获得天赋点，越后面的关给得越多；打不过可重刷前面的关',240,104);
   // 列表（大字号，支持滚动；裁剪在标题下方~返回按钮上方的视窗内，避免滚动时盖住顶部标题）
   var startY=120,rh=72;
@@ -1830,14 +1830,14 @@ function drawTalent(){
     drawRoundedRect(20,y,440,rh-8,10);ctx.fill();ctx.stroke();
     // 第一行：名称(左) + 类型(右)
     ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='bold 21px Arial';ctx.fillText(t.name,36,y+28);
-    ctx.fillStyle=t.type=='active'?'#f6f':t.type=='passive'?'#9f9':'#9cf';ctx.font='13px Arial';ctx.textAlign='right';
+    ctx.fillStyle=t.type=='active'?'#f6f':t.type=='passive'?'#9f9':'#9cf';ctx.font='16px Arial';ctx.textAlign='right';
     ctx.fillText(t.type=='active'?'主动技能':t.type=='passive'?'被动技能':'属性',388,y+28);ctx.textAlign='left';
     // 第二/三行：说明(完整两行，不截断) + 等级文字(右下)
-    ctx.fillStyle='#bbb';ctx.font='13px Arial';ctx.textAlign='left';
+    ctx.fillStyle='#bbb';ctx.font='16px Arial';ctx.textAlign='left';
     var dlines=wrapText(t.desc,26);if(dlines.length>2)dlines=dlines.slice(0,2);
     for(var dl=0;dl<dlines.length;dl++)ctx.fillText(dlines[dl],36,y+46+dl*16);
     // 等级文字（右下角，清晰显示已升几级）
-    ctx.fillStyle=maxed?'#0f0':'#0ff';ctx.font='bold 14px Arial';ctx.textAlign='right';
+    ctx.fillStyle=maxed?'#0f0':'#0ff';ctx.font='bold 17px Arial';ctx.textAlign='right';
     ctx.fillText('Lv.'+cur+'/'+t.max,388,y+62);ctx.textAlign='left';
     // + 按钮
     var bx=400,by=y+rh/2-16;
@@ -1855,10 +1855,10 @@ function drawTalent(){
   // 一键满级按钮（仅在PC/当前设备有效，不影响其他设备）
   ctx.fillStyle='rgba(100,20,60,0.8)';ctx.strokeStyle='#f6f';ctx.lineWidth=2;
   drawRoundedRect(320,ry,100,36,8);ctx.fill();ctx.stroke();
-  ctx.fillStyle='#fcf';ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.fillText('\u2605 一键满级',370,ry+24);
-  ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='9px Arial';ctx.fillText('仅本设备生效',370,ry+36);
+  ctx.fillStyle='#fcf';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.fillText('\u2605 一键满级',370,ry+24);
+  ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='15px Arial';ctx.fillText('仅本设备生效',370,ry+36);
   // 滚动提示（放在返回按钮上方，避免与按钮/最后一项重叠）
-  if(maxScroll>0){ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='11px Arial';ctx.textAlign='center';
+  if(maxScroll>0){ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='15px Arial';ctx.textAlign='center';
     ctx.fillText(talentScroll<=0?'↓ 上滑/滚轮查看剩余天赋':(talentScroll>=maxScroll?'— 已到底部 —':'↑↓ 滑动查看更多'),240,648);}
 }
 function buyTalent(id){
@@ -2222,7 +2222,7 @@ function draw(){
   // Boss 头顶常驻名字（绝对坐标，不受缩放影响）
   for(var i=0;i<ens.length;i++){var e=ens[i];if(e.type!='boss')continue;
     var ty=e.y-(e.isBig?70:48);
-    ctx.textAlign='center';ctx.font='bold '+(e.isBig?16:13)+'px Arial';
+    ctx.textAlign='center';ctx.font='bold '+(e.isBig?18:16)+'px Arial';
     ctx.fillStyle=e.color||'#fff';ctx.shadowColor=e.color||'#f0f';ctx.shadowBlur=12;
     ctx.fillText('\u2620 '+(e.name||'BOSS'),e.x,ty);
     ctx.shadowBlur=0;
@@ -2281,7 +2281,7 @@ function draw(){
   for(var i=0;i<pws.length;i++){var p=pws[i];ctx.save();var bob=Math.sin(p.t*0.1)*4;ctx.translate(p.x,p.y+bob);
     for(var j=0;j<pwTypes.length;j++)if(pwTypes[j].id==p.type){var pt2=pwTypes[j];ctx.shadowColor=pt2.color;ctx.shadowBlur=25;
       ctx.fillStyle='#111';ctx.beginPath();ctx.arc(0,0,13,0,6.28);ctx.fill();
-      ctx.fillStyle=pt2.color;ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.fillText(pt2.disp,0,5);
+      ctx.fillStyle=pt2.color;ctx.font='bold 17px Arial';ctx.textAlign='center';ctx.fillText(pt2.disp,0,5);
       ctx.shadowBlur=0;ctx.strokeStyle=pt2.color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,13,0,6.28);ctx.stroke();break;
     }ctx.restore();
   }
@@ -2307,7 +2307,7 @@ function draw(){
       ctx.shadowColor='#fa0';ctx.shadowBlur=15;ctx.strokeStyle='#fa0';ctx.lineWidth=2;drawRoundedRect(-12,-12,24,20,3);ctx.stroke();ctx.strokeStyle='#fc0';ctx.lineWidth=1;drawRoundedRect(-12,-12,24,20,3);ctx.stroke();
       ctx.fillStyle='#fa0';ctx.font='bold 15px Arial';ctx.textAlign='center';ctx.fillText('\uD83D\uDCE6',0,3);ctx.shadowBlur=0;
       if(d.hp<3){ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(-12,16,24,4);ctx.fillStyle='#0f0';ctx.fillRect(-12,16,24*(d.hp/3),4);}
-    }else{ctx.fillStyle='rgba(255,170,0,0.3)';ctx.beginPath();ctx.arc(0,0,16,0,6.28);ctx.fill();ctx.fillStyle='#fa0';ctx.font='14px Arial';ctx.textAlign='center';ctx.fillText('\u2713',0,5);}
+    }else{ctx.fillStyle='rgba(255,170,0,0.3)';ctx.beginPath();ctx.arc(0,0,16,0,6.28);ctx.fill();ctx.fillStyle='#fa0';ctx.font='17px Arial';ctx.textAlign='center';ctx.fillText('\u2713',0,5);}
     ctx.restore();
   }
   // Player 1
@@ -2319,7 +2319,7 @@ function draw(){
   if(p2BurnTimer>0){var pba2=0.4+0.3*Math.sin(frameCount*0.3+1);ctx.fillStyle='rgba(255,60,0,'+(pba2*0.3)+')';ctx.beginPath();ctx.arc(p2x,p2y,22,0,6.28);ctx.fill();ctx.shadowColor='#f80';ctx.shadowBlur=20;ctx.fillStyle='rgba(255,120,0,0)';ctx.beginPath();ctx.arc(p2x,p2y,18,0,6.28);ctx.fill();ctx.shadowBlur=0;if(frameCount%3==0){var fa2=Math.random()*6.2832,fs2=0.3+Math.random()*1;pts.push({x:p2x+Math.cos(fa2)*16,y:p2y+Math.sin(fa2)*16-5,vx:Math.cos(fa2)*fs2*0.3,vy:-0.5-Math.random()*0.8,cl:['#f80','#ff0','#f44'][Math.floor(Math.random()*3)],life:8+Math.random()*6,sz:0.8+Math.random()*1.5});}}
   // Particles
   for(var i=0;i<pts.length;i++){var p=pts[i];
-    if(p.txt){ctx.fillStyle=p.cl||'#fff';ctx.globalAlpha=p.life/30;ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.fillText(p.txt,p.x,p.y);ctx.globalAlpha=1;continue;}
+    if(p.txt){ctx.fillStyle=p.cl||'#fff';ctx.globalAlpha=p.life/30;ctx.font='bold 17px Arial';ctx.textAlign='center';ctx.fillText(p.txt,p.x,p.y);ctx.globalAlpha=1;continue;}
     var al=p.life/30;ctx.fillStyle=p.cl||'#fff';ctx.globalAlpha=al;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill();
   }
   ctx.globalAlpha=1;
@@ -2485,7 +2485,7 @@ function draw(){
     drawRoundedRect(130,632,200,18,9);ctx.fill();ctx.stroke();
     ctx.fillStyle='#0af';drawRoundedRect(130,632,Math.max(9,200*bgmVolume),18,9);ctx.fill();
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(130+200*bgmVolume,641,11,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#555';ctx.font='13px Arial';ctx.textAlign='center';
+    ctx.fillStyle='#555';ctx.font='16px Arial';ctx.textAlign='center';
     ctx.fillText('ESC 返回关卡 | '+(gameMode=='dual'?'P1:WASD  P2:方向键':'方向键/WASD/鼠标/触屏'),240,672);
   }
   // Game Over（被打死结束）
@@ -2605,7 +2605,7 @@ function draw(){
     ctx.fillText('\u25B6 点击屏幕开始游戏',240,360);
     ctx.fillStyle='#9ab';ctx.font='15px Arial';
     ctx.fillText('（首次点击将开启音乐与音效）',240,410);
-    ctx.fillStyle='#0af';ctx.font='14px Arial';
+    ctx.fillStyle='#0af';ctx.font='17px Arial';
     ctx.fillText('\u2708 单人 / 双人  ·  DIY皮肤  ·  本地BGM',240,560);
     ctx.restore();return;
   }
