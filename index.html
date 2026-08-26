@@ -70,7 +70,8 @@ function spawnBossRushBoss(){
   var hpScale=0.25+bossRushRound*0.12;
   var bossHP=Math.max(500,Math.round(lv.bossHp*bb.hpMul*hpScale));
   var e={x:240,y:-60,vx:0,vy:1.0,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:0,phase:1,abilities:bb};
-  if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;ens.push(e);
+  if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;  ens.push(e);
+  shake=20;shakeMag=12;for(var _ri=0;_ri<26;_ri++){var _ra=_ri/26*6.283;pts.push({x:240,y:140,vx:Math.cos(_ra)*6,vy:Math.sin(_ra)*6,life:32,cl:'#ff8c00',sz:3+Math.random()*3});}
   wShield=1+tl('shield');play('shield');bossRushTimer=0;
   // 给玩家补满基础火力（Boss Rush没有小兵捡道具）
   wPower=Math.max(wPower,5);wLevel=Math.max(wLevel,2);wMissile=Math.max(wMissile,2);
@@ -2430,15 +2431,16 @@ function draw(){
     ctx.fillStyle='#fff';ctx.shadowColor='#0af';ctx.shadowBlur=18;ctx.font='bold 52px Arial';ctx.fillText('×'+vcCombo,0,30);
     ctx.restore();
   }
-  // Boss warning（脉动闪红 + 大字标注）
+  // Boss warning（顶部脉动警告条；游戏持续运行不暂停，仅做醒目提示，消除“假暂停”错觉）
   if(bossWarningTimer>0){var bp=0.5+0.5*Math.sin(bossWarningTimer*0.4);
-    ctx.fillStyle='rgba(255,0,0,'+(0.10+0.12*bp)+')';ctx.fillRect(0,0,480,720);
-    ctx.fillStyle='#f44';ctx.font='bold '+(34+8*bp)+'px Arial';ctx.textAlign='center';
-    ctx.shadowColor='#f44';ctx.shadowBlur=24+16*bp;
-    ctx.fillText('\u26A0 BOSS \u6765\u88AD \u26A0',240,280);
-    ctx.font='bold 20px Arial';ctx.fillStyle='#ff8';ctx.shadowColor='#ff8';ctx.shadowBlur=16;
-    ctx.fillText('\u2014 \u7B2C '+wave+'/'+getLv().waveCount+'\u6CE2 \u2014',240,330);
-    ctx.shadowBlur=0;
+    // 顶部红色警告条（不遮挡中央游戏画面，玩家明显看到战机/子弹仍在动）
+    ctx.fillStyle='rgba(170,0,0,'+(0.55+0.35*bp)+')';ctx.fillRect(0,0,480,48);
+    ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 24px Arial';
+    ctx.shadowColor='#f00';ctx.shadowBlur=14+10*bp;
+    ctx.fillText('\u26A0 BOSS \u6765\u88AD \u26A0',240,32);ctx.shadowBlur=0;
+    // 中央轻提示（半透明，不挡操作）
+    ctx.fillStyle='rgba(255,90,90,'+(0.55+0.35*bp)+')';ctx.font='bold 28px Arial';
+    ctx.shadowColor='#f44';ctx.shadowBlur=16;ctx.fillText('\u51C6 \u5907 \u6218 \u6597',240,370);ctx.shadowBlur=0;
   }
   // Pause
   if(state=='pause'){
