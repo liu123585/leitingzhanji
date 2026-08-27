@@ -25,7 +25,6 @@ ctx.scale(DPR,DPR);
 try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(_sd&&_sd.set){Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,enumerable:true,get:function(){return _sd.get.call(this);},set:function(v){_sd.set.call(this,Math.min(v,6));}});}}catch(e){}
 var state='menu',score=0,hs=0,combo=0,mcombo=0,gameMode='single';
 var hitstop=0;          // 命中定格（卡肉感）：>0 时本帧跳过部分更新
-var killFlash=0;        // 击杀白闪强度（0~1，逐帧衰减）
 var winFlash=0;         // 通关全屏金色闪光强度（0~1，逐帧衰减）
 var winShakeDone=false;
 // === 受击反馈：按攻击类型区分震屏强度 + 屏幕边缘受击氛围 ===
@@ -1122,7 +1121,6 @@ function update(){
   if(fadeDir>0){fadeAlpha+=0.03;if(fadeAlpha>=1){if(!tutorialSeen){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}}fadeDir=-1;}}else if(fadeDir<0){fadeAlpha-=0.03;if(fadeAlpha<=0){fadeDir=0;fadeAlpha=0;}}
   if(hitFx>0)hitFx-=0.04;if(hitFx<0)hitFx=0;
   if(bombFx>0)bombFx-=0.04;if(bombFx<0)bombFx=0;
-  if(killFlash>0)killFlash-=0.08;if(killFlash<0)killFlash=0;
   if(winFlash>0&&state!=='levelComplete')winFlash-=0.03;if(winFlash<0)winFlash=0;
   // 命中定格（卡肉感）：本帧冻结敌人移动与射击，让打击更有重量
   if(hitstop>0){hitstop--;
@@ -1303,7 +1301,6 @@ function update(){
           boom(e.x,e.y,'#ff0',Math.round(10*mul));
           boom(e.x,e.y,'#f80',Math.round(14*mul));
           // 小怪震屏已禁用
-          killFlash=Math.max(killFlash,0.5);
           hitstop=Math.max(hitstop,(e.type=='l'?5:e.type=='m'?3:2));
           onKillHeal();vcComboKill();
           // 击杀飘字（分数+连击）
@@ -2706,10 +2703,6 @@ function draw(){
   }
   // Fade overlay
   if(fadeAlpha>0){ctx.fillStyle='rgba(0,0,0,'+fadeAlpha+')';ctx.fillRect(0,0,480,720);}
-  // 击杀白闪（命中定格同时触发的屏幕反馈，强化打击感）
-  if(killFlash>0&&state=='playing'){
-    ctx.fillStyle='rgba(255,255,255,'+(killFlash*0.35)+')';ctx.fillRect(0,0,480,720);
-  }
   // 通关金色全屏闪光
   if(winFlash>0&&(state=='levelComplete')){
     ctx.fillStyle='rgba(255,210,80,'+(winFlash*0.5)+')';ctx.fillRect(0,0,480,720);
