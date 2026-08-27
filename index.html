@@ -74,10 +74,10 @@ var p2x,p2y,p2hp,p2mhp,p2pt,p2pi,p2Invuln=0,p2BurnTimer=0;
 var bls=[],ens=[],pts=[],pws=[],drs=[],stars=[],lasers=[],wingLasers=[],et=0,df=1,keys={};
 var wave=0,waveEnemies=0,waveMax=0,spawnTimer=0,bossWarningTimer=0;
 // === 整体节奏加速参数（一处调全局）===
-var PBULLET_SPEED=2.2;  // 玩家子弹移动速度倍率（稍快）
-var EBULLET_SPEED=1.2;  // 敌人子弹移动速度倍率（稍慢，前几关友好）
-var ENEMY_SPD_MUL=1.2;  // 敌机下落速度倍率
-var SPAWN_MUL=0.60;     // 刷怪间隔倍率（越小越密）
+var PBULLET_SPEED=1.6;  // 玩家子弹移动速度倍率（降低，避免画面过花）
+var EBULLET_SPEED=0.85; // 敌人子弹移动速度倍率（减慢，更易看清）
+var ENEMY_SPD_MUL=0.85; // 敌机下落速度倍率（整体节奏放缓）
+var SPAWN_MUL=0.85;     // 刷怪间隔倍率（越大越稀疏，减少密度）
 // 立即生成大 Boss（预警期间玩家点击/触摸时调用，或倒计时归零时自动调用）
 function spawnBoss(){if(bossWarningTimer<=0&&state!='playing')return;bossWarningTimer=0;var lv=getLv();var count=currentLevel>=30?4:currentLevel>=20?3:currentLevel>=10?2:1;for(var i=0;i<count;i++){var bb=BIGBOSSES[((currentLevel-1)+i)%BIGBOSSES.length];var bossHP=Math.round(lv.bossHp*bb.hpMul);var e={x:240+(i-(count-1)/2)*60,y:-60-i*30,vx:0,vy:1.2,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:i*10,phase:1,abilities:bb};if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;ens.push(e);}wShield=1+tl('shield');if(gameMode=='dual')p2wShield=1+tl('shield');play('shield');var fn=BIGBOSSES[(currentLevel-1)%BIGBOSSES.length].name;if(count>=3)speakText('大 boss 集群降临！',0.9,1.3);else if(count==2)speakText('两名大 boss 降临！',0.9,1.3);else speakBossArrival(fn,true);}
 // BOSS挑战：直接生成一个Boss（跳过小兵）
@@ -957,7 +957,7 @@ document.onkeyup=function(e){keys[e.key]=false;};
 c.onclick=function(e){var r=c.getBoundingClientRect();handleClick((e.clientX-r.left)*480/r.width,(e.clientY-r.top)*720/r.height);};
 var volDrag=0; // 0=无 1=音效 2=BGM（暂停界面拖动滑块）
 function setVolFromX(which,mx){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;if(which==1){sfxVolume=p;localStorage.setItem('tsv',p);tone(660,0.04,'sine',0.04);}else{bgmVolume=p;applyBgmVolume();localStorage.setItem('tbv',p);}}
-c.onmousedown=function(e){var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>596&&y<618&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>630&&y<652&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();uiDragLock=1;return;}}};
+c.onmousedown=function(e){var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>628&&y<646&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>662&&y<680&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();uiDragLock=1;return;}}};
 c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(uiDragLock)return;if(state=='playing'&&gameMode!='dual'&&bossWarningTimer<=0){px=Math.round((e.clientX-r.left)*480/r.width);py=Math.round((e.clientY-r.top)*720/r.height);}};
 window.onmouseup=function(){uiDragLock=0;};
 c.onwheel=function(e){if(state!='talent')return;e.preventDefault();talentScroll+=e.deltaY*0.5;var maxS=Math.max(0,120+TALENTS.length*72+64-640);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;};
@@ -1090,12 +1090,12 @@ function handleClick(mx,my){try{
     else if(my>384-UH(48)/2&&my<384+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=unlockedLevels;pageSel=Math.floor((unlockedLevels-1)/20);state='levelSelect';}
     else if(my>456-UH(48)/2&&my<456+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=0;state='menu';}
     // BGM 开关（媒体按钮）
-    else if(my>450&&my<488&&mx>150&&mx<330){bgmMuted=!bgmMuted;try{localStorage.setItem('tbm',bgmMuted?'1':'0');}catch(e){}applyBgmMute();play('menuClick');return;}
-    else if(my>508&&my<560&&mx>114&&mx<178){var tk=bgmPlayList;var i=tk.indexOf(bgmTrack);switchBGM(tk[(i-1+tk.length)%tk.length]);return;}
-    else if(my>508&&my<560&&mx>302&&mx<366){var tk=bgmPlayList;var i=tk.indexOf(bgmTrack);switchBGM(tk[(i+1)%tk.length]);return;}
+    else if(my>506&&my<544&&mx>150&&mx<330){bgmMuted=!bgmMuted;try{localStorage.setItem('tbm',bgmMuted?'1':'0');}catch(e){}applyBgmMute();play('menuClick');return;}
+    else if(my>566&&my<610&&mx>114&&mx<178){var tk=bgmPlayList;var i=tk.indexOf(bgmTrack);switchBGM(tk[(i-1+tk.length)%tk.length]);return;}
+    else if(my>566&&my<610&&mx>302&&mx<366){var tk=bgmPlayList;var i=tk.indexOf(bgmTrack);switchBGM(tk[(i+1)%tk.length]);return;}
     // 音量滑块（音效 / BGM），点击即设值
-    else if(my>596&&my<618&&mx>130&&mx<330){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;sfxVolume=p;localStorage.setItem('tsv',p);tone(660,0.04,'sine',0.04);}
-    else if(my>630&&my<652&&mx>130&&mx<330){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;bgmVolume=p;applyBgmVolume();localStorage.setItem('tbv',p);}
+    else if(my>628&&my<646&&mx>130&&mx<330){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;sfxVolume=p;localStorage.setItem('tsv',p);tone(660,0.04,'sine',0.04);}
+    else if(my>662&&my<680&&mx>130&&mx<330){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;bgmVolume=p;applyBgmVolume();localStorage.setItem('tbv',p);}
   }else if(state=='settings'){
     if(skinInfoOpen){skinInfoOpen=false;play('menuClick');return;}
     var hv=function(yy,isB){
@@ -1310,7 +1310,7 @@ function update(){
     else if(rk<0.30+lv.enemyMult*0.08)ek='mg';
     var eSpd=lv.enemySpeed*ENEMY_SPD_MUL;
     ens.push({x:40+Math.random()*400,y:-30,vx:(Math.random()-0.5)*0.5,vy:eSpd,hp:eHP,maxHp:eHP,type:eType,kind:ek,skin:(currentLevel+Math.floor(Math.random()*3))%6,w:eType=='s'?24:eType=='m'?32:40,h:eType=='s'?20:eType=='m'?28:36,t:0,fireTimer:Math.floor(Math.random()*30),mgBurst:0});
-    waveEnemies++;spawnTimer=Math.max(4,Math.floor(lv.spawnSpeed*SPAWN_MUL)+Math.floor(Math.random()*14-7));
+    waveEnemies++;spawnTimer=Math.max(7,Math.floor(lv.spawnSpeed*SPAWN_MUL)+Math.floor(Math.random()*14-7));
   }
   if(gameMode=='dual'){
     var spd1=4.5;
@@ -1327,7 +1327,7 @@ function update(){
       var wSideN=(wL>=3?1:0)+(wL>=5?1:0);
       var wHomN=(homingTimer>0)||(p2wPower>=4);
       fireBullets(p2x,p2y,wL,wMisN,p2wPower,p2wSlow,wHomN,wBkN,wSideN);
-      p2pt=Math.max(2,4-wL);
+      p2pt=Math.max(3,5-wL);
     }else p2pt--;
   }else{
     var spd=4.5;
@@ -1342,7 +1342,7 @@ function update(){
     var wSideN=(wL>=3?1:0)+(wL>=5?1:0);
     var wHomN=(homingTimer>0)||(wPower>=4);
     fireBullets(px,py,wL,wMisN,wPower,wSlow,wHomN,wBkN,wSideN);
-    var baseCd=Math.max(2,4-wL);var cd=wSlow>0?1:Math.max(1,baseCd-tl('spd'));var od=hp/mhp<0.3?0.5:1;pt=Math.max(1,Math.round(cd*od));
+    var baseCd=Math.max(3,5-wL);var cd=wSlow>0?1:Math.max(1,baseCd-tl('spd'));var od=hp/mhp<0.3?0.5:1;pt=Math.max(1,Math.round(cd*od));
   }else pt--;
   for(var si=0;si<skillCds.length;si++)if(skillCds[si]>0)skillCds[si]--;if(playerInvuln>0)playerInvuln--;if(p2Invuln>0)p2Invuln--;
   if(passiveLaserCd>0)passiveLaserCd--;else{passiveLaserCd=PASSIVE_LASER_INTERVAL;useSkinSkill();}
@@ -1413,7 +1413,7 @@ function update(){
       if(e.isBig&&e.phase==1&&e.hp<e.maxHp*0.5){e.phase=2;play('bossWarning');pts.push({x:e.x,y:e.y,vy:0,life:50,txt:'PHASE 2!',cl:e.color||'#f0f'});}
       if(e.y<80){e.vy+=0.02;if(e.vy>1)e.vy=1;}else{e.vy=Math.sin(frameCount*0.04)*0.4;e.vx=Math.sin(frameCount*0.025+(e.isBig?0:1.5))*1.5;}
       if(e.x<50){e.x=50;e.vx*=-1;}if(e.x>430){e.x=430;e.vx*=-1;}if(e.y<30)e.y=30;if(e.y>220)e.y=220;
-      var ft=(e.isBig?(e.phase==2?14:26):20)*(wSlow>0?2:1);
+      var ft=(e.isBig?(e.phase==2?22:40):32)*(wSlow>0?2:1);
       if(e.fireTimer>ft&&e.y>30){
         e.fireTimer=0;
         if(e.isBig&&e.phase==2){ // 大Boss二阶段：环形+螺旋混合
@@ -1426,14 +1426,14 @@ function update(){
     if(e.type!='boss'&&e.y>30&&e.y<460){
       var glv=getLv();
       if(e.kind=='mg'){ // 机枪型：高频三连发（仅中型/大型）
-        if(e.fireTimer>(wSlow>0?28:14)){e.fireTimer=0;var a=Math.atan2(py-e.y,px-e.x);var sp=3.4+glv.enemySpeed*0.5;var si=e.skin%EBULLET.length;
+        if(e.fireTimer>(wSlow>0?40:22)){e.fireTimer=0;var a=Math.atan2(py-e.y,px-e.x);var sp=3.4+glv.enemySpeed*0.5;var si=e.skin%EBULLET.length;
           for(var gb=-1;gb<=1;gb++){var aa=a+gb*0.12;enemyBullet(e.x,e.y+10,Math.cos(aa)*sp,Math.sin(aa)*sp,si,1);}}
       }else if(e.kind=='missile'){ // 激光型：机翼两侧常驻蓝色粗激光（向下贯穿，跟随飞机）
-        if(e.fireTimer>64){e.fireTimer=0;
+        if(e.fireTimer>80){e.fireTimer=0;
           if(!e._wl){e._wl=true;spawnWingLaser({owner:'enemy',ref:e,side:-1,ang:Math.PI/2,hostile:true,dmg:1,life:999999});spawnWingLaser({owner:'enemy',ref:e,side:1,ang:Math.PI/2,hostile:true,dmg:1,life:999999});}
         }
       }else{ // 普通型：瞄准单发，关卡越高越频繁
-        var normFt=(30-Math.min(10,glv.enemyMult*1.5)+Math.random()*16)*(wSlow>0?2:1);
+        var normFt=(42-Math.min(10,glv.enemyMult*1.5)+Math.random()*16)*(wSlow>0?2:1);
         if(e.fireTimer>normFt){e.fireTimer=0;var a2=Math.atan2(py-e.y,px-e.x);var sp2=3.0+glv.enemySpeed*0.45;var si2=e.skin%EBULLET.length;enemyBullet(e.x,e.y+10,Math.cos(a2)*sp2,Math.sin(a2)*sp2,si2,1);}
       }
     }
@@ -2650,38 +2650,38 @@ function draw(){
     pbtn(240,384,UWw(220),UH(48),'\u2630 选择关卡','rgba(0,160,120,0.9)');
     pbtn(240,456,UWw(220),UH(48),'\u2302 返回主菜单','rgba(180,20,20,0.9)');
     ctx.textAlign='center';
-    // === 音乐控制区 ===
+    // === 音乐控制区（下移到主菜单按钮下方，避免重叠）===
     // BGM 开关（媒体按钮：⏸暂停 / ▶播放）
-    var mtbx=150,mtby=444,mtbw=180,mtbh=38;
+    var mtbx=150,mtby=506,mtbw=180,mtbh=38;
     ctx.fillStyle='rgba(20,30,60,0.9)';ctx.strokeStyle='#0af';ctx.lineWidth=2;ctx.shadowColor='#0af';ctx.shadowBlur=8;
     drawRoundedRect(mtbx,mtby,mtbw,mtbh,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
     ctx.fillStyle='#0af';ctx.font='20px Arial';ctx.textAlign='left';ctx.fillText(bgmMuted?'\u25B6':'\u23F8',mtbx+20,mtby+26);
     ctx.fillStyle='#fff';ctx.font='17px Arial';ctx.textAlign='left';ctx.fillText(bgmMuted?'BGM 已关':'BGM 播放',mtbx+50,mtby+25);
     ctx.textAlign='center';
     // 切歌控件
-    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='center';ctx.fillText('\u266B 切换歌曲',240,498);
+    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='center';ctx.fillText('\u266B 切换歌曲',240,560);
     ctx.fillStyle='rgba(40,40,70,0.9)';ctx.strokeStyle='#88f';ctx.lineWidth=2;
-    drawRoundedRect(120,512,52,44,8);ctx.fill();ctx.stroke();
-    drawRoundedRect(308,512,52,44,8);ctx.fill();ctx.stroke();
+    drawRoundedRect(120,566,52,44,8);ctx.fill();ctx.stroke();
+    drawRoundedRect(308,566,52,44,8);ctx.fill();ctx.stroke();
     ctx.fillStyle='#fff';ctx.font='bold 26px Arial';ctx.textAlign='center';
-    ctx.fillText('\u23EE',146,541);ctx.fillText('\u23ED',334,541);
-    // 歌名放在两按钮中间同一行（按钮间距加大，空间更宽松）
-    ctx.fillStyle='#ff0';ctx.font='bold 15px Arial';ctx.fillText(bgmName(bgmTrack),240,540);
-    // 音量滑块（音效 / BGM），加大尺寸，点击或拖动实时调节
-    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='left';ctx.fillText('\u266A 音效',60,606);
-    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='right';ctx.fillText(Math.round(sfxVolume*100)+'%',420,606);
+    ctx.fillText('\u23EE',146,595);ctx.fillText('\u23ED',334,595);
+    // 歌名放在两按钮中间
+    ctx.fillStyle='#ff0';ctx.font='bold 15px Arial';ctx.fillText(bgmName(bgmTrack),240,594);
+    // 音量滑块（音效 / BGM）
+    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='left';ctx.fillText('\u266A 音效',60,636);
+    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='right';ctx.fillText(Math.round(sfxVolume*100)+'%',420,636);
     ctx.fillStyle='rgba(40,40,70,0.9)';ctx.strokeStyle='#88f';ctx.lineWidth=2;ctx.textAlign='center';
-    drawRoundedRect(130,598,200,18,9);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#0af';drawRoundedRect(130,598,Math.max(9,200*sfxVolume),18,9);ctx.fill();
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(130+200*sfxVolume,607,11,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='left';ctx.fillText('\u266B 音乐',60,640);
-    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='right';ctx.fillText(Math.round(bgmVolume*100)+'%',420,640);
+    drawRoundedRect(130,628,200,18,9);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#0af';drawRoundedRect(130,628,Math.max(9,200*sfxVolume),18,9);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(130+200*sfxVolume,637,11,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='left';ctx.fillText('\u266B 音乐',60,670);
+    ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='right';ctx.fillText(Math.round(bgmVolume*100)+'%',420,670);
     ctx.fillStyle='rgba(40,40,70,0.9)';ctx.strokeStyle='#88f';ctx.lineWidth=2;ctx.textAlign='center';
-    drawRoundedRect(130,632,200,18,9);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#0af';drawRoundedRect(130,632,Math.max(9,200*bgmVolume),18,9);ctx.fill();
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(130+200*bgmVolume,641,11,0,Math.PI*2);ctx.fill();
+    drawRoundedRect(130,662,200,18,9);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#0af';drawRoundedRect(130,662,Math.max(9,200*bgmVolume),18,9);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(130+200*bgmVolume,671,11,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#555';ctx.font='16px Arial';ctx.textAlign='center';
-    ctx.fillText('ESC 继续游戏 | '+(gameMode=='dual'?'P1:WASD  P2:方向键':'方向键/WASD/鼠标/触屏'),240,672);
+    ctx.fillText('ESC 继续游戏 | '+(gameMode=='dual'?'P1:WASD  P2:方向键':'方向键/WASD/鼠标/触屏'),240,700);
   }
   // Game Over（被打死结束）
   if(state=='over'){
