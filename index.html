@@ -2761,10 +2761,7 @@ function draw(){
   }
   // Fade overlay
   if(fadeAlpha>0){ctx.fillStyle='rgba(0,0,0,'+fadeAlpha+')';ctx.fillRect(0,0,480,720);}
-  // 通关金色全屏闪光
-  if(winFlash>0&&(state=='levelComplete')){
-    ctx.fillStyle='rgba(255,210,80,'+(winFlash*0.5)+')';ctx.fillRect(0,0,480,720);
-  }
+
   ctx.restore();
 }
 
