@@ -1572,6 +1572,7 @@ function drawRoundedRect(x,y,w,h,r){
 var _bgGrad=null,_bgVg;
 var _nebCanvas=document.createElement('canvas');_nebCanvas.width=480;_nebCanvas.height=720;var _nebCtx=_nebCanvas.getContext('2d');
 var _nebDone=false;
+var _menuTitleGrad=null,_lsTitleGrad=null;
 function drawNebula(){if(_nebDone)return;_nebDone=true;var c=_nebCtx;c.clearRect(0,0,480,720);for(var i=0;i<4;i++){var nx=80+i*120,ny=200+i*55;var ng=c.createRadialGradient(nx,ny,0,nx,ny,150);var rc=20+i*40,gc=40+i*30,bc=110+i*60;ng.addColorStop(0,'rgba('+rc+','+gc+','+bc+',0.07)');ng.addColorStop(1,'rgba(0,0,30,0)');c.fillStyle=ng;c.fillRect(0,0,480,720);}}
 function drawBackground(){
   if(!_bgGrad){_bgGrad=ctx.createLinearGradient(0,0,0,720);_bgGrad.addColorStop(0,'#05081a');_bgGrad.addColorStop(0.45,'#0a0e2e');_bgGrad.addColorStop(1,'#160a2e');}
