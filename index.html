@@ -76,7 +76,7 @@ var wave=0,waveEnemies=0,waveMax=0,spawnTimer=0,bossWarningTimer=0;
 var PBULLET_SPEED=2.2;  // 玩家子弹移动速度倍率（稍快）
 var EBULLET_SPEED=1.2;  // 敌人子弹移动速度倍率（稍慢，前几关友好）
 var ENEMY_SPD_MUL=1.2;  // 敌机下落速度倍率
-var SPAWN_MUL=0.50;     // 刷怪间隔倍率（越小越密）
+var SPAWN_MUL=0.60;     // 刷怪间隔倍率（越小越密）
 // 立即生成大 Boss（预警期间玩家点击/触摸时调用，或倒计时归零时自动调用）
 function spawnBoss(){if(bossWarningTimer<=0&&state!='playing')return;bossWarningTimer=0;var lv=getLv();var count=currentLevel>=30?4:currentLevel>=20?3:currentLevel>=10?2:1;for(var i=0;i<count;i++){var bb=BIGBOSSES[((currentLevel-1)+i)%BIGBOSSES.length];var bossHP=Math.round(lv.bossHp*bb.hpMul);var e={x:240+(i-(count-1)/2)*60,y:-60-i*30,vx:0,vy:1.2,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:i*10,phase:1,abilities:bb};if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;ens.push(e);}wShield=1+tl('shield');if(gameMode=='dual')p2wShield=1+tl('shield');play('shield');var fn=BIGBOSSES[(currentLevel-1)%BIGBOSSES.length].name;if(count>=3)speakText('大 boss 集群降临！',0.9,1.3);else if(count==2)speakText('两名大 boss 降临！',0.9,1.3);else speakBossArrival(fn,true);}
 // BOSS挑战：直接生成一个Boss（跳过小兵）
@@ -692,7 +692,7 @@ function applyBgmMute(){
 // === LEVEL DATA ===
 var levelData=function(){
   var d=[],names=['初出茅庐','小试牛刀','渐入佳境','烽火连天','血战长空','风起云涌','暗流涌动','十面埋伏','背水一战','绝境反击','龙潭虎穴','雷霆万钧','风驰电掣','天罗地网','浴火重生','万箭齐发','神挡杀神','逆天改命','决战巅峰','不朽传说','[WP]突入群敌','[WP]火力全开','[WP]风暴来袭','[WP]机械肇事','[WP]鹰击千里','[WP]刀枪无眼','[WP]破阵狂潮','[WP]龙吟虎啸','[WP]山河变色','[WP]神兵天降','[WP]龙吟虎啸','[WP]狂风暴雨','[WP]排山倒海','[WP]狂风暴雨','[WP]山河变色','[WP]神兵天降','[WP]黑曜石巨石','[WP]飞星暗箭','[WP]惊魂一幕','[WP]苦海无涯'];
-  for(var i=0;i<40;i++){var lv=i/39,adj=i<20?lv*0.6:0.307692+(lv-0.512821)*2.03684;d.push({name:'第'+(i+1)+'关 · '+names[i],enemySpeed:0.7+adj*1.8,spawnSpeed:Math.max(6,Math.round(38-adj*26)),waveCount:Math.min(6,3+Math.floor(i/6)),enemyMult:0.5+adj*3.4,hpMult:0.45+adj*6.5,bossHp:Math.round(1600+adj*11000)});}
+  for(var i=0;i<40;i++){var lv=i/39,adj=i<20?lv*0.6:0.307692+(lv-0.512821)*2.03684;d.push({name:'第'+(i+1)+'关 · '+names[i],enemySpeed:0.7+adj*1.8,spawnSpeed:Math.max(9,Math.round(40-adj*24)),waveCount:Math.min(6,3+Math.floor(i/6)),enemyMult:0.5+adj*3.4,hpMult:0.45+adj*6.5,bossHp:Math.round(1600+adj*11000)});}
   return d;
 }();
 function getLv(){return levelData[currentLevel-1];}
@@ -1182,7 +1182,7 @@ function update(){
   frameCount++;nebulaTime+=0.002;
   for(var i=0;i<stars.length;i++){var s=stars[i];s.y+=s.v;if(s.y>720){s.y=0;s.x=Math.random()*480;s.ph=Math.random()*6.28;}s.ph+=0.05;s.twinkle=0.5+0.5*Math.sin(s.ph);}
   if(fadeDir>0){fadeAlpha+=0.03;if(fadeAlpha>=1){if(!tutorialSeen){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}}fadeDir=-1;}}else if(fadeDir<0){fadeAlpha-=0.03;if(fadeAlpha<=0){fadeDir=0;fadeAlpha=0;}}
-  if(state=='playing'){if(!tutorialSeen){tutTimer++;if(tutTimer>300){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}tutTimer=0;}}else tutTimer=0;}
+  if(state=='playing'){if(!tutorialSeen){tutTimer++;if(tutTimer>90){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}tutTimer=0;}}else tutTimer=0;}
   if(hitFx>0)hitFx-=0.04;if(hitFx<0)hitFx=0;
   if(bombFx>0)bombFx-=0.04;if(bombFx<0)bombFx=0;
   if(hitSndCd>0)hitSndCd--;
@@ -1410,7 +1410,7 @@ function update(){
           if(!e._wl){e._wl=true;spawnWingLaser({owner:'enemy',ref:e,side:-1,ang:Math.PI/2,hostile:true,dmg:1,life:999999});spawnWingLaser({owner:'enemy',ref:e,side:1,ang:Math.PI/2,hostile:true,dmg:1,life:999999});}
         }
       }else{ // 普通型：瞄准单发，关卡越高越频繁
-        var normFt=(30-Math.min(14,glv.enemyMult*2)+Math.random()*16)*(wSlow>0?2:1);
+        var normFt=(30-Math.min(10,glv.enemyMult*1.5)+Math.random()*16)*(wSlow>0?2:1);
         if(e.fireTimer>normFt){e.fireTimer=0;var a2=Math.atan2(py-e.y,px-e.x);var sp2=3.0+glv.enemySpeed*0.45;var si2=e.skin%EBULLET.length;enemyBullet(e.x,e.y+10,Math.cos(a2)*sp2,Math.sin(a2)*sp2,si2,1);}
       }
     }
