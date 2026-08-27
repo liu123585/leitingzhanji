@@ -23,11 +23,11 @@ resizeCanvas();window.addEventListener('resize',resizeCanvas);
 ctx.scale(DPR,DPR);
 // 全局限制 shadowBlur 上限（Canvas 阴影模糊是 GPU 最大开销）
 try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(_sd&&_sd.set){Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,enumerable:true,get:function(){return _sd.get.call(this);},set:function(v){_sd.set.call(this,Math.min(v,6));}});}}catch(e){}
-var state='menu',score=0,hs=0,combo=0,mcombo=0,shake=0,shakeMag=0,gameMode='single';
+var state='menu',score=0,hs=0,combo=0,mcombo=0,gameMode='single';
 var hitstop=0;          // 命中定格（卡肉感）：>0 时本帧跳过部分更新
 var killFlash=0;        // 击杀白闪强度（0~1，逐帧衰减）
 var winFlash=0;         // 通关全屏金色闪光强度（0~1，逐帧衰减）
-var winShakeDone=false; // 通关震动是否已触发（避免每帧重复震）
+var winShakeDone=false;
 // === 受击反馈：按攻击类型区分震屏强度 + 屏幕边缘受击氛围 ===
 var hitFx=0;            // 边缘受击氛围强度（0~1，逐帧衰减）
 var hitFxColor='255,0,0'; // 当前受击氛围颜色（rgb 字符串）
@@ -39,7 +39,7 @@ function applyHit(type){
   else if(type==HIT_LASER){sh=3;mag=2;fx=0.45;col='180,60,255';play('hitLaser');} // 敌方激光：微震+激光音效
   else if(type==HIT_BOSS){sh=4;mag=3;fx=0.5;col='255,140,40';play('hitBoss');}  // Boss弹幕：微震+重击音效
   else{sh=2;mag=1;fx=0.3;col='255,0,0';play('hitBullet');}                          // 普通子弹：极微震+轻击音效
-  if(sh>shake){shake=sh;shakeMag=mag;}
+  // 震屏已禁用
   if(fx>=hitFx)hitFx=fx;   // 氛围强度取较大值
   hitFxColor=col;          // 颜色始终反映"最近一次"受击的攻击类型
 }
@@ -75,7 +75,7 @@ function spawnBossRushBoss(){
   var bossHP=Math.max(500,Math.round(lv.bossHp*bb.hpMul*hpScale));
   var e={x:240,y:-60,vx:0,vy:1.0,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:0,phase:1,abilities:bb};
   if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;  ens.push(e);
-  shake=10;shakeMag=6;for(var _ri=0;_ri<26;_ri++){var _ra=_ri/26*6.283;pts.push({x:240,y:140,vx:Math.cos(_ra)*6,vy:Math.sin(_ra)*6,life:32,cl:'#ff8c00',sz:3+Math.random()*3});}
+  for(var _ri=0;_ri<26;_ri++){var _ra=_ri/26*6.283;pts.push({x:240,y:140,vx:Math.cos(_ra)*6,vy:Math.sin(_ra)*6,life:32,cl:'#ff8c00',sz:3+Math.random()*3});}
   wShield=1+tl('shield');play('shield');bossRushTimer=0;
   // 给玩家补满基础火力（Boss Rush没有小兵捡道具）
   wPower=Math.max(wPower,5);wLevel=Math.max(wLevel,2);wMissile=Math.max(wMissile,2);
@@ -305,7 +305,7 @@ function useNova(){
   var sk=ULT_SKILLS[selectedUlt];if(!sk)return;
   skillCds[selectedUlt]=sk.cd;novaStars=[];ultCracks=[];ultVortex=0;ultVortexExplode=0;
   if(sk.type=='burst'){
-    burstTimer=90;shake=2;shakeMag=2;
+    burstTimer=90;
     novaRing=10;novaRingAlpha=0.9;novaFx=1;novaRingLast=0;
     // 大冲击波：清子弹+击退敌人
     novaRing=10;novaRingAlpha=0.9;novaFx=1;novaRingLast=0;
@@ -331,7 +331,7 @@ function useNova(){
     for(var bi=bls.length-1;bi>=0;bi--){if(!bls[bi].pl){var bdx=px-bls[bi].x,bdy=py-bls[bi].y;if(Math.sqrt(bdx*bdx+bdy*bdy)<250){bls.splice(bi,1);}}}
   }else if(sk.type=='slash'){
     // 维度斩：屏幕大X斩
-    slashTimer=60;slashPhase=0;shake=5;shakeMag=4;
+    slashTimer=60;slashPhase=0;
     for(var ei=ens.length-1;ei>=0;ei--){var e=ens[ei];
       var sx=e.x-px,sy=e.y-py;
       if(Math.abs(Math.abs(sx)-Math.abs(sy))<100&&Math.abs(sx)<250&&Math.abs(sy)<350){
@@ -448,7 +448,7 @@ function speakBossDown(name,isBig){
 }
 // 统一的 Boss 被击败处理：音效 + 爆炸特效 + 连击 + 语音播报（三处击杀共用，避免重复触发）
 function onBossDefeated(e,x,y,isBig,bonus){
-  play('bossKill');shake=12;shakeMag=8;winFlash=1; // 中等屏震 + 金闪
+  play('bossKill');winFlash=1; // 金闪
   boom(x,y,'#f0f',40);boom(x,y,'#ff0',30);boom(x,y,'#fff',20);
   // 额外冲击波粒子环（打击感拉满）
   for(var _ri=0;_ri<40;_ri++){var _a=_ri/40*6.283,_sp=2+Math.random()*6;pts.push({x:x,y:y,vx:Math.cos(_a)*_sp,vy:Math.sin(_a)*_sp,life:30+Math.random()*30,cl:['#ff0','#f0f','#fff','#0ff'][Math.floor(Math.random()*4)],sz:1+Math.random()*3});}
@@ -656,7 +656,7 @@ function init(lvl){
   // 无敌
   playerInvuln=150;if(gameMode=='dual')p2Invuln=150;
   // 通用音效基础
-  noise(0.3,0.2);shake=15;shakeMag=9;
+  noise(0.3,0.2);
   tone(80,0.3,'sawtooth',0.25);
   // 清空上局残留实体与波次状态（关键：必须重置 wave，否则上一关结束时的 wave 会带入新关卡，导致进第二关直接判定胜利）
   bls.length=0;ens.length=0;pws.length=0;pts.length=0;drs.length=0;
@@ -666,7 +666,7 @@ function init(lvl){
 }
 function useBomb(){
   if(state!='playing'||bombs<=0)return;
-  bombs--;bombFx=1;shake=10;shakeMag=7;play('bossKill');
+  bombs--;bombFx=1;play('bossKill');
   // 清空所有敌弹
   for(var i=bls.length-1;i>=0;i--){if(!bls[i].pl){boom(bls[i].x,bls[i].y,'#fff',4);bls.splice(i,1);}}
   // 伤害全部敌人（小兵与小型Boss秒杀，大Boss扣血，天赋加伤）
@@ -689,7 +689,7 @@ function useSkinSkill(){
   spawnWingLaser({owner:'p1',ref:null,side:-1,ang:-Math.PI/2,hostile:false,dmg:ld,life:llife,w:lw});
   spawnWingLaser({owner:'p1',ref:null,side:1,ang:-Math.PI/2,hostile:false,dmg:ld,life:llife,w:lw});
   if(gameMode=='dual'){spawnWingLaser({owner:'p2',ref:null,side:-1,ang:-Math.PI/2,hostile:false,dmg:ld,life:llife,w:lw});spawnWingLaser({owner:'p2',ref:null,side:1,ang:-Math.PI/2,hostile:false,dmg:ld,life:llife,w:lw});}
-  play('bossKill');shake=3;shakeMag=2;
+  play('bossKill');
 }
 // 导弹被动：由天赋等级驱动（数量/伤害/间隔），始终触发，不依赖掉落
 function firePassiveMissiles(){
@@ -1120,7 +1120,6 @@ function update(){
   frameCount++;nebulaTime+=0.002;
   for(var i=0;i<stars.length;i++){var s=stars[i];s.y+=s.v;if(s.y>720){s.y=0;s.x=Math.random()*480;s.ph=Math.random()*6.28;}s.ph+=0.05;s.twinkle=0.5+0.5*Math.sin(s.ph);}
   if(fadeDir>0){fadeAlpha+=0.03;if(fadeAlpha>=1){if(!tutorialSeen){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}}fadeDir=-1;}}else if(fadeDir<0){fadeAlpha-=0.03;if(fadeAlpha<=0){fadeDir=0;fadeAlpha=0;}}
-  if(shake>0){shakeMag*=0.85;shake--;if(shake<=0)shakeMag=0;}
   if(hitFx>0)hitFx-=0.04;if(hitFx<0)hitFx=0;
   if(bombFx>0)bombFx-=0.04;if(bombFx<0)bombFx=0;
   if(killFlash>0)killFlash-=0.08;if(killFlash<0)killFlash=0;
@@ -1128,7 +1127,6 @@ function update(){
   // 命中定格（卡肉感）：本帧冻结敌人移动与射击，让打击更有重量
   if(hitstop>0){hitstop--;
     // 仍衰减屏幕特效，但跳过敌人/子弹推进，制造短暂"卡肉"
-    if(shake>0){shakeMag*=0.85;shake--;if(shake<=0)shakeMag=0;}
     return;
   }
   // novaStars cleanup (particles from any skill type)
@@ -1168,7 +1166,7 @@ function update(){
         else{e.hp=0;score+=15;boom(e.x,e.y,'#7c4dff',15);spawnDrop(e.x,e.y,'s');onKillHeal();vcComboKill();ens.splice(ei,1);}}}
     novaStars=[];novaRing=0;novaFx=1;novaRingAlpha=0.6;novaRingLast=0;
     for(var ps=0;ps<40;ps++){var pa=Math.random()*6.28;var ps2=3+Math.random()*8;novaStars.push({x:px,y:py,vx:Math.cos(pa)*ps2,vy:Math.sin(pa)*ps2,life:30+Math.random()*15,cl:['#7c4dff','#b388ff','#fff'][Math.floor(Math.random()*3)],sz:3+Math.random()*4});}
-    shake=5;shakeMag=4;ultVortex=0;ultVortexExplode=15;
+    ultVortex=0;ultVortexExplode=15;
   }
   if(slashTimer>0){
     slashTimer--;
@@ -1304,7 +1302,7 @@ function update(){
           boom(e.x,e.y,'#fff',Math.round(6*mul));
           boom(e.x,e.y,'#ff0',Math.round(10*mul));
           boom(e.x,e.y,'#f80',Math.round(14*mul));
-          if(shake<5){shake=5;shakeMag=4*mul;} // 小怪轻震
+          // 小怪震屏已禁用
           killFlash=Math.max(killFlash,0.5);
           hitstop=Math.max(hitstop,(e.type=='l'?5:e.type=='m'?3:2));
           onKillHeal();vcComboKill();
@@ -1319,7 +1317,7 @@ function update(){
   for(var i=ens.length-1;i>=0;i--){var e=ens[i];e.y+=e.vy;e.x+=e.vx||0;if(e.t>0)e.t--;e.fireTimer++;if(e.type!='boss'){if(e.x<20)e.x=20;if(e.x>460)e.x=460;}
     // 敌机身体撞击玩家（与子弹命中共用护盾/掉血逻辑）
     var ehw=e.w/2+12;
-    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;shake=Math.max(shake,8);shakeMag=Math.max(shakeMag,7);hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');}}}}
+    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');}}}}
     if(gameMode=='dual'&&Math.abs(e.x-p2x)<ehw&&Math.abs(e.y-p2y)<(e.h/2+14)){if(p2Invuln<=0){if(p2wShield>0){p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);p2Invuln=30;}else{p2hp--;play('playerHit');applyHit(HIT_RAM);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}}}
     if(state=='over')break;
     if(e.type=='boss'){
@@ -1483,7 +1481,7 @@ function update(){
       // 发放天赋点（每次通关都给，难度越高越多；首次打通全40关正好点满）
       var tpGain=getTpReward(currentLevel);talentPoints+=tpGain;lastTpGain=tpGain;saveTalents();
       // 通关强烈反馈：金闪 + 大屏震 + 上扬音效
-      winFlash=1;shake=10;shakeMag=7;
+      winFlash=1;
       play('levelComplete');
     }
   }
@@ -2132,8 +2130,7 @@ function drawFormShip(form,isP2){
 
 // === MAIN DRAW ===
 function draw(){
-  if(shake>0){var s=shakeMag;ctx.save();ctx.translate(Math.random()*s-s/2,Math.random()*s-s/2);}
-  else ctx.save();
+  ctx.save();
   drawBackground();
   // 开场倒计时（黑屏 + 金色数字 3/2/1 + 雷霆战机图标）
   if(state=='countdown'){
