@@ -23,6 +23,10 @@ resizeCanvas();window.addEventListener('resize',resizeCanvas);
 ctx.scale(DPR,DPR);
 // 全局限制 shadowBlur 上限（Canvas 阴影模糊是 GPU 最大开销）
 try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(_sd&&_sd.set){Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,enumerable:true,get:function(){return _sd.get.call(this);},set:function(v){_sd.set.call(this,Math.min(v,6));}});}}catch(e){}
+// 预渲染发光精灵缓存：用 drawImage 替代实体上的 shadowBlur（shadowBlur 是 canvas 最大性能杀手）
+var _glowCache={};
+function _glowRGB(c){if(c&&c[0]=='#'){var h=c.slice(1);if(h.length==3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];var n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];}return [200,230,255];}
+function glowSprite(col,r){if(r<1)r=1;var key=col+'|'+Math.round(r);var s=_glowCache[key];if(s)return s;var c=document.createElement('canvas');c.width=c.height=Math.ceil(r*2);var g=c.getContext('2d');var rgb=_glowRGB(col),cx=r;var rg=g.createRadialGradient(cx,cx,0,cx,cx,cx);rg.addColorStop(0,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.85)');rg.addColorStop(0.45,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.35)');rg.addColorStop(1,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0)');g.fillStyle=rg;g.beginPath();g.arc(cx,cx,cx,0,6.28);g.fill();_glowCache[key]=c;return c;}
 var state='menu',score=0,hs=0,combo=0,mcombo=0,gameMode='single';
 var hitstop=0;          // 命中定格（卡肉感）：>0 时本帧跳过部分更新
 var winFlash=0;         // 通关全屏金色闪光强度（0~1，逐帧衰减）
@@ -2213,17 +2217,20 @@ function draw(){
   // Gameplay（敌弹，赛博朋克多样样式）
   for(var i=0;i<bls.length;i++){var b=bls[i];if(!b.pl)continue;
     var col=b.cl||'#0ff';
-    if(b.laser){ // 追尾激光束：画成细长发光光束
-      ctx.save();ctx.globalAlpha=0.95;ctx.strokeStyle=col;ctx.shadowColor=col;ctx.shadowBlur=16;ctx.lineWidth=6;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+(b.vx||0)*b.len/8,b.y+(b.vy||0)*b.len/8);ctx.stroke();
-      ctx.strokeStyle='#fff';ctx.shadowBlur=6;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+(b.vx||0)*b.len/8,b.y+(b.vy||0)*b.len/8);ctx.stroke();
+    if(b.laser){ // 追尾激光束：发光光束（预渲染光晕替代阴影，性能更好）
+      var ex=b.x+(b.vx||0)*b.len/8, ey=b.y+(b.vy||0)*b.len/8;
+      ctx.save();ctx.globalAlpha=0.95;ctx.lineCap='round';
+      ctx.drawImage(glowSprite(col,9), b.x-9, b.y-9);
+      ctx.strokeStyle=col;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(ex,ey);ctx.stroke();
+      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(ex,ey);ctx.stroke();
       ctx.restore();continue;
     }
     // RPG 火箭弹样式：沿飞行方向绘制的拉长弹体 + 尖弹头 + 尾翼 + 尾焰（棱角分明）
     var ang=Math.atan2(b.vy||-1,b.vx||0);
     ctx.save();ctx.translate(b.x,b.y);ctx.rotate(ang);
     var bw2=b.w, bh2=b.h; // 弹体宽、长
-    ctx.shadowColor=col;ctx.shadowBlur=12;ctx.strokeStyle='#fff';ctx.lineWidth=1;
+    ctx.drawImage(glowSprite(col, Math.max(bw2,bh2)), -Math.max(bw2,bh2), -Math.max(bw2,bh2));
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;
     // 尾焰（向后，尖锐三角）
     ctx.fillStyle='rgba(255,190,50,0.95)';ctx.beginPath();ctx.moveTo(-bh2/2,0-bw2*0.45);ctx.lineTo(-bh2/2-7-Math.random()*4,0);ctx.lineTo(-bh2/2,0+bw2*0.45);ctx.closePath();ctx.fill();
     ctx.fillStyle='rgba(255,90,0,0.85)';ctx.beginPath();ctx.moveTo(-bh2/2,0-bw2*0.28);ctx.lineTo(-bh2/2-4,0);ctx.lineTo(-bh2/2,0+bw2*0.28);ctx.closePath();ctx.fill();
@@ -2237,7 +2244,6 @@ function draw(){
     // 追踪弹额外尾翼（更明显的棱角）
     if(b.homing){ctx.fillStyle='rgba(255,255,255,0.85)';ctx.beginPath();ctx.moveTo(-bh2/2,0-bw2*0.5);ctx.lineTo(-bh2/2-5,0-bw2*0.9);ctx.lineTo(-bh2/2+4,0-bw2*0.5);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(-bh2/2,0+bw2*0.5);ctx.lineTo(-bh2/2-5,0+bw2*0.9);ctx.lineTo(-bh2/2+4,0+bw2*0.5);ctx.closePath();ctx.fill();}
     ctx.restore();
-    ctx.shadowBlur=0;
   }
   for(var i=0;i<ens.length;i++){var e=ens[i];ctx.save();ctx.translate(e.x,e.y);
     if(e.type=='boss'){
@@ -2267,21 +2273,24 @@ function draw(){
       }
     }else if(e.type=='s'){
       var sc=[['#f44','#f88'],['#4cf','#9ff'],['#3c3','#7c7'],['#fc4','#fd9'],['#c4f','#e9f'],['#fa4','#fc9']][e.skin%6];
-      ctx.fillStyle=sc[0];ctx.shadowColor=sc[0];ctx.shadowBlur=10;
+      ctx.drawImage(glowSprite(sc[0],20),-20,-20);
+      ctx.fillStyle=sc[0];
       ctx.beginPath();ctx.moveTo(0,12);ctx.lineTo(-14,-8);ctx.lineTo(-7,-3);ctx.lineTo(0,-12);ctx.lineTo(7,-3);ctx.lineTo(14,-8);ctx.closePath();ctx.fill();
-      ctx.shadowBlur=0;ctx.fillStyle=sc[1];
+      ctx.fillStyle=sc[1];
       ctx.beginPath();ctx.moveTo(0,7);ctx.lineTo(-7,-5);ctx.lineTo(0,-7);ctx.lineTo(7,-5);ctx.closePath();ctx.fill();
     }else if(e.type=='m'){
       var mc=[['#f80','#fc0'],['#29f','#7cf'],['#2c2','#7e7'],['#e3e','#f9f'],['#f5a','#fcd'],['#0cf','#8ff']][e.skin%6];
-      ctx.fillStyle=mc[0];ctx.shadowColor=mc[0];ctx.shadowBlur=12;
+      ctx.drawImage(glowSprite(mc[0],24),-24,-24);
+      ctx.fillStyle=mc[0];
       ctx.beginPath();ctx.moveTo(0,16);ctx.lineTo(-18,-10);ctx.lineTo(-9,-5);ctx.lineTo(0,-16);ctx.lineTo(9,-5);ctx.lineTo(18,-10);ctx.closePath();ctx.fill();
-      ctx.shadowBlur=0;ctx.fillStyle=mc[1];
+      ctx.fillStyle=mc[1];
       ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(-9,-7);ctx.lineTo(0,-9);ctx.lineTo(9,-7);ctx.closePath();ctx.fill();
     }else{
       var lc=[['#f0f','#f6f','#faf'],['#f55','#f99','#fcc'],['#0ff','#8ff','#cff'],['#5d5','#9e9','#cfc'],['#fb4','#fd9','#ffc'],['#a6f','#cbf','#eef']][e.skin%6];
-      ctx.fillStyle=lc[0];ctx.shadowColor=lc[0];ctx.shadowBlur=15;
+      ctx.drawImage(glowSprite(lc[0],30),-30,-30);
+      ctx.fillStyle=lc[0];
       ctx.beginPath();ctx.moveTo(0,22);ctx.lineTo(-26,-14);ctx.lineTo(-13,-7);ctx.lineTo(0,-22);ctx.lineTo(13,-7);ctx.lineTo(26,-14);ctx.closePath();ctx.fill();
-      ctx.shadowBlur=0;ctx.fillStyle=lc[1];
+      ctx.fillStyle=lc[1];
       ctx.beginPath();ctx.moveTo(0,12);ctx.lineTo(-13,-9);ctx.lineTo(0,-12);ctx.lineTo(13,-9);ctx.closePath();ctx.fill();
       ctx.fillStyle=lc[2];ctx.beginPath();ctx.moveTo(0,5);ctx.lineTo(-5,-5);ctx.lineTo(0,-7);ctx.lineTo(5,-5);ctx.closePath();ctx.fill();
     }
@@ -2355,7 +2364,8 @@ function draw(){
     var col=b.cl||'#ff0';var r=b.w;
     var ang=Math.atan2(b.vy,b.vx);
     ctx.save();ctx.translate(b.x,b.y);ctx.rotate(ang+Math.PI/2);
-    ctx.shadowColor=col;ctx.shadowBlur=16;ctx.fillStyle=col;ctx.strokeStyle='#fff';ctx.lineWidth=1.2;
+    ctx.drawImage(glowSprite(col,r*1.6),-r*1.6,-r*1.6);
+    ctx.fillStyle=col;ctx.strokeStyle='#fff';ctx.lineWidth=1.2;
     if(b.homing){ // 追踪导弹：带尾焰的尖头弹
       if(b.turret){ // 炮台弧线追踪导弹：放大青色机身 + 发光光晕 + 拖尾 + 尾焰，确保清晰可见
         var R=r*1.7; // 放大绘制
@@ -2373,19 +2383,18 @@ function draw(){
             ctx.stroke();
           }
         }
-        // 外发光光晕
-        ctx.shadowColor='#00e5ff';ctx.shadowBlur=22;ctx.fillStyle='rgba(0,229,255,0.30)';
-        ctx.beginPath();ctx.arc(0,0,R*1.3,0,6.28);ctx.fill();
+        // 外发光光晕（预渲染精灵替代阴影）
+        ctx.drawImage(glowSprite('#00e5ff',R*1.3),-R*1.3,-R*1.3);
         // 机身
-        ctx.fillStyle='#00e5ff';ctx.strokeStyle='#cffaff';ctx.shadowBlur=18;ctx.lineWidth=2;
+        ctx.fillStyle='#00e5ff';ctx.strokeStyle='#cffaff';ctx.lineWidth=2;
         ctx.beginPath();ctx.moveTo(0,-R*1.5);ctx.lineTo(R*0.9,R);ctx.lineTo(0,R*0.5);ctx.lineTo(-R*0.9,R);ctx.closePath();ctx.fill();ctx.stroke();
         // 尾焰（更长更亮）
-        ctx.shadowBlur=14;ctx.fillStyle='#fff';
+        ctx.fillStyle='#fff';
         ctx.beginPath();ctx.moveTo(0,R*0.7);ctx.lineTo(R*0.45,R*2.0);ctx.lineTo(-R*0.45,R*2.0);ctx.closePath();ctx.fill();
         ctx.fillStyle='#bff7ff';ctx.beginPath();ctx.arc(0,-R*1.1,R*0.45,0,6.28);ctx.fill();
       }else{
         ctx.beginPath();ctx.moveTo(0,-r*1.4);ctx.lineTo(r*0.8,r);ctx.lineTo(0,r*0.4);ctx.lineTo(-r*0.8,r);ctx.closePath();ctx.fill();ctx.stroke();
-        ctx.shadowBlur=10;ctx.fillStyle='#ff0';ctx.beginPath();ctx.moveTo(0,r*0.6);ctx.lineTo(r*0.35,r*1.6);ctx.lineTo(-r*0.35,r*1.6);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#ff0';ctx.beginPath();ctx.moveTo(0,r*0.6);ctx.lineTo(r*0.35,r*1.6);ctx.lineTo(-r*0.35,r*1.6);ctx.closePath();ctx.fill();
       }
     }else if(b.shape==1){ // 菱形
       ctx.beginPath();ctx.moveTo(0,-r*1.3);ctx.lineTo(r*0.9,0);ctx.lineTo(0,r*1.3);ctx.lineTo(-r*0.9,0);ctx.closePath();ctx.fill();ctx.stroke();
@@ -2400,7 +2409,7 @@ function draw(){
     }else{ // 默认：小三角（不再用圆点）
       ctx.beginPath();ctx.moveTo(0,-r*1.4);ctx.lineTo(r*0.95,r);ctx.lineTo(-r*0.95,r);ctx.closePath();ctx.fill();ctx.stroke();
     }
-    ctx.restore();ctx.shadowBlur=0;
+    ctx.restore();
   }
   for(var i=0;i<pws.length;i++){var p=pws[i];ctx.save();var bob=Math.sin(p.t*0.1)*4;ctx.translate(p.x,p.y+bob);
     for(var j=0;j<pwTypes.length;j++)if(pwTypes[j].id==p.type){var pt2=pwTypes[j];ctx.shadowColor=pt2.color;ctx.shadowBlur=25;
