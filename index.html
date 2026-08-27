@@ -1520,7 +1520,7 @@ function drawRoundedRect(x,y,w,h,r){
   ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
 
-var _bgGrad=null;
+var _bgGrad=null,_bgNebulaTimer,_bgVg;
 function drawBackground(){
   if(!_bgGrad){_bgGrad=ctx.createLinearGradient(0,0,0,720);_bgGrad.addColorStop(0,'#05081a');_bgGrad.addColorStop(0.45,'#0a0e2e');_bgGrad.addColorStop(1,'#160a2e');}
   ctx.fillStyle=_bgGrad;ctx.fillRect(0,0,480,720);
