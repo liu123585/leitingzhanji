@@ -111,6 +111,32 @@ var PASSIVE_MISSILE_INTERVAL=300;   // 基础约5秒一发（随天赋缩短）
 var shieldRegenCd=0;                // P1 护盾再生倒计时（仅在没有护盾时计时）
 var p2shieldRegenCd=0;              // P2 护盾再生倒计时
 function shieldRegenDelay(){return Math.max(60, 420 - tl('shield')*60);} // 天赋越高再生越快
+// 护盾破损（裂纹破碎）动画状态：受击吸收伤害时触发，绘制放射状裂痕+爆闪环
+var SHIELD_BREAK_DUR=30;
+var p1BreakT=0,p2BreakT=0,p1BreakLines=null,p2BreakLines=null;
+function triggerShieldBreak(isP2){
+  var n=6+Math.floor(Math.random()*3), lines=[];
+  for(var i=0;i<n;i++){
+    var a=(i/n)*Math.PI*2+Math.random()*0.5, segs=[{x:0,y:0}];
+    var len=34+Math.random()*40, step=7+Math.random()*4, d=0, x=0, y=0;
+    while(d<len){x+=Math.cos(a)*step+(Math.random()-0.5)*9;y+=Math.sin(a)*step+(Math.random()-0.5)*9;segs.push({x:x,y:y});d+=step;}
+    lines.push(segs);
+  }
+  if(isP2){p2BreakT=SHIELD_BREAK_DUR;p2BreakLines=lines;}else{p1BreakT=SHIELD_BREAK_DUR;p1BreakLines=lines;}
+}
+function drawShieldBreakFx(isP2){
+  var T=isP2?p2BreakT:p1BreakT, L=isP2?p2BreakLines:p1BreakLines;
+  if(T<=0||!L)return;
+  var k=T/SHIELD_BREAK_DUR;
+  ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,k));
+  var r0=(1-k)*64+8;
+  ctx.lineWidth=2.5*k+0.5;ctx.strokeStyle='rgba(210,245,255,'+(0.85*k)+')';
+  ctx.shadowColor='#bfefff';ctx.shadowBlur=16*k;
+  ctx.beginPath();ctx.ellipse(0,-4,r0,r0*1.18,0,0,6.28);ctx.stroke();
+  ctx.shadowBlur=0;ctx.lineWidth=1.8*k+0.4;ctx.strokeStyle='rgba(240,250,255,'+(0.9*k)+')';
+  for(var i=0;i<L.length;i++){var s=L[i];ctx.beginPath();ctx.moveTo(s[0].x,s[0].y);for(var j=1;j<s.length;j++)ctx.lineTo(s[j].x,s[j].y);ctx.stroke();}
+  ctx.restore();
+}
 var talentScroll=0; // 天赋页纵向滚动偏移
 var touchMoved=false,touchStartY=0,buttonTouchId=-1; // 天赋页拖动滚动判定
 var sfxVolume=0.35,bgmVolume=0.95,sfxPack='default',bgmTrack='qifeng',bgmMuted=false;
@@ -1287,6 +1313,8 @@ function update(){
   // 护盾被动再生：护盾为"层数"，受击逐层消耗；无盾时才计时，到时自动补一层；有盾不计时
   if(wShield<=0){if(shieldRegenCd>0)shieldRegenCd--;else{wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(px,py,'#ff0',12);}}
   if(gameMode=='dual'){if(p2wShield<=0){if(p2shieldRegenCd>0)p2shieldRegenCd--;else{p2wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(p2x,p2y,'#ff0',12);}}}
+  if(p1BreakT>0)p1BreakT--;
+  if(gameMode=='dual'&&p2BreakT>0)p2BreakT--;
   if(wSlow>0)wSlow--;if(p2wSlow>0)p2wSlow--;
   // Player bullets hit enemies
   for(var i=bls.length-1;i>=0;i--){var b=bls[i];if(!b.pl)continue;
@@ -1332,8 +1360,8 @@ function update(){
   for(var i=ens.length-1;i>=0;i--){var e=ens[i];e.y+=e.vy;e.x+=e.vx||0;if(e.t>0)e.t--;e.fireTimer++;if(e.type!='boss'){if(e.x<20)e.x=20;if(e.x>460)e.x=460;}
     // 敌机身体撞击玩家（与子弹命中共用护盾/掉血逻辑）
     var ehw=e.w/2+12;
-    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');}}}}
-    if(gameMode=='dual'&&Math.abs(e.x-p2x)<ehw&&Math.abs(e.y-p2y)<(e.h/2+14)){if(p2Invuln<=0){if(p2wShield>0){p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);p2Invuln=30;}else{p2hp--;play('playerHit');applyHit(HIT_RAM);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}}}
+    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak(false);playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');}}}}
+    if(gameMode=='dual'&&Math.abs(e.x-p2x)<ehw&&Math.abs(e.y-p2y)<(e.h/2+14)){if(p2Invuln<=0){if(p2wShield>0){p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);triggerShieldBreak(true);p2Invuln=30;}else{p2hp--;play('playerHit');applyHit(HIT_RAM);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}}}
     if(state=='over')break;
     if(e.type=='boss'){
       if(e.phase===undefined)e.phase=1;
@@ -1374,8 +1402,8 @@ function update(){
     b.x+=(b.vx||0)*ebSpd2;b.y+=(b.vy||0)*ebSpd2;if(b.y>750||b.x<-20||b.x>500||b.y<-20){bls.splice(i,1);continue;}
     var hitP1=Math.abs(b.x-px)<14&&Math.abs(b.y-py)<16;
     var hitP2=gameMode=='dual'&&Math.abs(b.x-p2x)<14&&Math.abs(b.y-p2y)<16;
-    if(hitP1){bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#0ff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);}}
-    if(hitP2){bls.splice(i,1);if(p2Invuln>0){boom(p2x,p2y,'#0ff',6);}else if(p2wShield<=0){p2hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);p2pi=15;if(b.burn && !p2Invuln)p2BurnTimer=120;if(p2hp<=0){state='over';play('gameOver');break;}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);}}
+    if(hitP1){bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#0ff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak(false);}}
+    if(hitP2){bls.splice(i,1);if(p2Invuln>0){boom(p2x,p2y,'#0ff',6);}else if(p2wShield<=0){p2hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);p2pi=15;if(b.burn && !p2Invuln)p2BurnTimer=120;if(p2hp<=0){state='over';play('gameOver');break;}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);triggerShieldBreak(true);}}
   }
   // 激光束：每帧对穿过的敌人造成伤害
   for(var li=lasers.length-1;li>=0;li--){var L=lasers[li];L.life--;if(L.life<=0){lasers.splice(li,1);continue;}
@@ -1395,8 +1423,8 @@ function update(){
     if(L.hostile){ // 敌激光：判定是否命中玩家（机翼两侧粗蓝激光）
       var half=L.lw*0.5+8;
       var ddx=px-L.x,ddy=py-L.y;var tt=(ddx*Math.cos(L.ang)+ddy*Math.sin(L.ang));
-      if(tt>=0&&tt<=L.len){var qx=L.x+Math.cos(L.ang)*tt,qy=L.y+Math.sin(L.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);}}}}
-      if(gameMode=='dual'){var ddx2=p2x-L.x,ddy2=p2y-L.y;var tt2=(ddx2*Math.cos(L.ang)+ddy2*Math.sin(L.ang));if(tt2>=0&&tt2<=L.len){var qx2=L.x+Math.cos(L.ang)*tt2,qy2=L.y+Math.sin(L.ang)*tt2;if(Math.sqrt((p2x-qx2)*(p2x-qx2)+(p2y-qy2)*(p2y-qy2))<half){if(p2Invuln<=0){if(p2wShield<=0){p2hp--;play('playerHit');applyHit(HIT_LASER);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);}}}}}
+      if(tt>=0&&tt<=L.len){var qx=L.x+Math.cos(L.ang)*tt,qy=L.y+Math.sin(L.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak(false);}}}}
+      if(gameMode=='dual'){var ddx2=p2x-L.x,ddy2=p2y-L.y;var tt2=(ddx2*Math.cos(L.ang)+ddy2*Math.sin(L.ang));if(tt2>=0&&tt2<=L.len){var qx2=L.x+Math.cos(L.ang)*tt2,qy2=L.y+Math.sin(L.ang)*tt2;if(Math.sqrt((p2x-qx2)*(p2x-qx2)+(p2y-qy2)*(p2y-qy2))<half){if(p2Invuln<=0){if(p2wShield<=0){p2hp--;play('playerHit');applyHit(HIT_LASER);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);triggerShieldBreak(true);}}}}}
     }
   }
   // 持久机翼激光：跟随飞机制造光束，长且粗，持续判定
@@ -1425,8 +1453,8 @@ function update(){
       }else{ // 敌光束：命中玩家
         var half=W.w*0.5+8;
         var ddx=px-W.x,ddy=py-W.y;var tt=(ddx*Math.cos(W.ang)+ddy*Math.sin(W.ang));
-        if(tt>=0&&tt<=W.len){var qx=W.x+Math.cos(W.ang)*tt,qy=W.y+Math.sin(W.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);}}}}
-        if(gameMode=='dual'){var ddx2=p2x-W.x,ddy2=p2y-W.y;var tt2=(ddx2*Math.cos(W.ang)+ddy2*Math.sin(W.ang));if(tt2>=0&&tt2<=W.len){var qx2=W.x+Math.cos(W.ang)*tt2,qy2=W.y+Math.sin(W.ang)*tt2;if(Math.sqrt((p2x-qx2)*(p2x-qx2)+(p2y-qy2)*(p2y-qy2))<half){if(p2Invuln<=0){if(p2wShield<=0){p2hp--;play('playerHit');applyHit(HIT_LASER);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);}}}}}
+        if(tt>=0&&tt<=W.len){var qx=W.x+Math.cos(W.ang)*tt,qy=W.y+Math.sin(W.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak(false);}}}}
+        if(gameMode=='dual'){var ddx2=p2x-W.x,ddy2=p2y-W.y;var tt2=(ddx2*Math.cos(W.ang)+ddy2*Math.sin(W.ang));if(tt2>=0&&tt2<=W.len){var qx2=W.x+Math.cos(W.ang)*tt2,qy2=W.y+Math.sin(W.ang)*tt2;if(Math.sqrt((p2x-qx2)*(p2x-qx2)+(p2y-qy2)*(p2y-qy2))<half){if(p2Invuln<=0){if(p2wShield<=0){p2hp--;play('playerHit');applyHit(HIT_LASER);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);triggerShieldBreak(true);}}}}}
       }
     }
   }
@@ -1987,7 +2015,7 @@ function drawPlayerShip(x,y,isP2,flash){
   var sk=activeSkinColors();
   ctx.save();ctx.translate(x,y);
   if(flash){ctx.restore();return;}
-  if(sk.form>0){drawTurrets();drawFormShip(sk.form,isP2);drawShieldAura(isP2?p2wShield:wShield,isP2);ctx.restore();return;}
+  if(sk.form>0){drawTurrets();drawFormShip(sk.form,isP2);drawShieldAura(isP2?p2wShield:wShield,isP2);drawShieldBreakFx(isP2);ctx.restore();return;}
   var body=sk.body,wg=sk.wg,shape=sk.shape,eye=sk.eye;
   if(isP2){var t=body;body=wg;wg=t;}
   var glow=body;
@@ -2034,7 +2062,7 @@ function drawPlayerShip(x,y,isP2,flash){
   // 左右机翼炮台（常驻追踪导弹发射器）
   drawTurrets();
   // 护盾光罩（有护盾时在战机周围显示，正版雷霆战机风格）
-  drawShieldAura(isP2?p2wShield:wShield,isP2);
+  drawShieldAura(isP2?p2wShield:wShield,isP2);drawShieldBreakFx(isP2);
   ctx.restore();
 }
 // ===== 护盾光罩绘制（局部坐标，须在战机 translate 后、restore 前调用）=====
