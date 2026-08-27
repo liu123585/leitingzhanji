@@ -2759,11 +2759,17 @@ setTimeout(function(){tone(1047,0.2,'sine',0.05);},650);
   function removeDemoWatermark() {
     var all = document.querySelectorAll('*');
     for (var i = 0; i < all.length; i++) {
-      var t = all[i].textContent;
-      if (t && t.indexOf('For demonstration and testing purposes only') !== -1) {
-        var el = all[i];
-        while (el.parentElement && el.parentElement !== document.body) el = el.parentElement;
-        if (el.parentElement === document.body) { el.remove(); return true; }
+      var el = all[i];
+      var text = el.textContent || '';
+      if (text.indexOf('For demonstration and testing purposes only') !== -1) {
+        /* 只删除最内层（没有子元素也包含该文字）的水印元素，避免误删外层容器 */
+        var hasChildWithText = false;
+        for (var j = 0; j < el.children.length; j++) {
+          if ((el.children[j].textContent || '').indexOf('For demonstration and testing purposes only') !== -1) {
+            hasChildWithText = true; break;
+          }
+        }
+        if (!hasChildWithText) { el.remove(); return true; }
       }
     }
     return false;
