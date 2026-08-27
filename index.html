@@ -30,6 +30,16 @@ function glowSprite(col,r){if(r<1)r=1;var key=col+'|'+Math.round(r);var s=_glowC
 var state='menu',score=0,hs=0,combo=0,mcombo=0,gameMode='single';
 var hitstop=0;          // 命中定格（卡肉感）：>0 时本帧跳过部分更新
 var hitSndCd=0;          // 命中音效冷却（避免一梭子命中时单帧创建上百个音频节点导致卡顿）
+// === 界面缩放（大字/大按钮，可调）===
+var uiStep=0, uiScale=1;
+try{uiStep=parseInt(localStorage.getItem('tb_ui')||'0')||0;}catch(e){}
+if(uiStep<0)uiStep=0;if(uiStep>2)uiStep=2;
+uiScale=[1,1.12,1.26][uiStep];
+function UF(px){return Math.round(px*uiScale);}   // 字号缩放
+function UH(h){return Math.round(h*uiScale);}     // 高度缩放
+function UHW(w){return Math.round(w*uiScale/2);}  // 居中按钮半宽缩放
+function UWw(w){return Math.round(w*uiScale);}    // 宽度缩放
+function UWb(x,w){return Math.round(x+(w-w*uiScale)/2);} // 非居中按钮缩放后左缘
 var winFlash=0;         // 通关全屏金色闪光强度（0~1，逐帧衰减）
 var winShakeDone=false;
 // === 受击反馈：按攻击类型区分震屏强度 + 屏幕边缘受击氛围 ===
@@ -1039,17 +1049,17 @@ function handleClick(mx,my){try{
   if(mobileMsgTimer>0){mobileMsgTimer=0;return;}
   if(state=='menu'){
     // 继续游戏（自动续玩上次关卡）
-    if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels&&my>217&&my<267&&mx>110&&mx<370){
+    if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels&&my>217&&my<267&&mx>240-UHW(260)&&mx<240+UHW(260)){
       play('menuClick');selectedLevel=lastPlayedLevel;try{localStorage.setItem('tlp',lastPlayedLevel);}catch(e){}init(selectedLevel);return;
     }
     // 按钮中心=300+58*idx，半高≈26，偏移±2容差
     if(my>274&&my<326&&mx>180&&mx<360){play('menuClick');gameMode='single';try{localStorage.setItem('tgm','single');}catch(e){}gotoLevelSelect();}
-    else if(my>332&&my<384&&mx>140&&mx<340){play('menuClick');transitionTo('diy');}
+    else if(my>332&&my<384&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('diy');}
     else if(my>390&&my<442&&mx>140&&mx<340){play('menuClick');isBossRush=true;bossRushRound=0;bossRushTimer=0;init(1);}
-    else if(my>448&&my<500&&mx>140&&mx<340){play('menuClick');transitionTo('help');}
+    else if(my>448&&my<500&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('help');}
     else if(my>506&&my<558&&mx>140&&mx<340){play('menuClick');transitionTo('settings');}
-    else if(my>564&&my<616&&mx>140&&mx<340){play('menuClick');transitionTo('stats');}
-    else if(my>622&&my<674&&mx>110&&mx<370){play('menuClick');talentScroll=0;transitionTo('talent');}
+    else if(my>564&&my<616&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('stats');}
+    else if(my>622&&my<674&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');talentScroll=0;transitionTo('talent');}
   }else if(state=='levelSelect'){
     var totalPages=Math.ceil(TOTAL_LEVELS/20);
     // 翻页正方形按钮热区（60x60，y 628~688）
@@ -1058,7 +1068,7 @@ function handleClick(mx,my){try{
 
     var start=pageSel*20,end=Math.min(start+20,TOTAL_LEVELS);
     for(var i=start;i<end;i++){var col=(i-start)%4,row=Math.floor((i-start)/4),lx=97.5+col*95,ly=120+row*92;
-      if(mx>lx-36&&mx<lx+36&&my>ly-26&&my<ly+26){if(i+1<=unlockedLevels){selectedLevel=i+1;return;}}
+      if(mx>lx-UWw(72)/2&&mx<lx+UWw(72)/2&&my>ly-UH(52)/2&&my<ly+UH(52)/2){if(i+1<=unlockedLevels){selectedLevel=i+1;return;}}
     }
     if(selectedLevel>0&&my>540&&my<592){
       if(mx>130&&mx<220){play('menuClick');init(selectedLevel);return;}
@@ -1066,11 +1076,12 @@ function handleClick(mx,my){try{
     }
     if(my>656&&my<692&&mx>170&&mx<310){play('menuClick');tone(440,0.1,'sine',0.04);setTimeout(function(){tone(554,0.1,'sine',0.04);},120);setTimeout(function(){tone(659,0.15,'sine',0.04);},240);selectedLevel=0;transitionTo('menu');}
   }else if(state=='over'){
-    if(my>440&&my<470&&mx>140&&mx<340){play('menuClick');tone(440,0.1,'sine',0.04);setTimeout(function(){tone(554,0.1,'sine',0.04);},120);setTimeout(function(){tone(659,0.15,'sine',0.04);},240);if(isBossRush){isBossRush=false;selectedLevel=0;transitionTo('menu');}else{selectedLevel=0;gotoLevelSelect();}}
+    if(my>440&&my<470&&mx>140&&mx<340){play('menuClick');tone(440,0.1,'sine',0.04);setTimeout(function(){tone(554,0.1,'sine',0.04);},120);setTimeout(function(){tone(659,0.15,'sine',0.04);},240);if(isBossRush){isBossRush=false;selectedLevel=0;transitionTo('menu');}else{selectedLevel=0;state='menu';}}
   }
   else if(state=='pause'){
-    if(my>300&&my<350){play('menuClick');state='playing';}
-    else if(my>396&&my<436&&mx>150&&mx<330){play('menuClick');selectedLevel=0;gotoLevelSelect();}
+    if(my>240-UH(48)/2&&my<240+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');state='playing';}
+    else if(my>312-UH(48)/2&&my<312+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');init(currentLevel);}
+    else if(my>384-UH(48)/2&&my<384+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=0;state='menu';}
     // BGM 开关（媒体按钮）
     else if(my>450&&my<488&&mx>150&&mx<330){bgmMuted=!bgmMuted;try{localStorage.setItem('tbm',bgmMuted?'1':'0');}catch(e){}applyBgmMute();play('menuClick');return;}
     else if(my>508&&my<560&&mx>114&&mx<178){var tk=bgmPlayList;var i=tk.indexOf(bgmTrack);switchBGM(tk[(i-1+tk.length)%tk.length]);return;}
@@ -1091,6 +1102,7 @@ function handleClick(mx,my){try{
     if(my>372&&my<406&&mx>30&&mx<230){bgmMuted=!bgmMuted;try{localStorage.setItem('tbm',bgmMuted?'1':'0');}catch(e){}applyBgmMute();play('menuClick');return;}
     if(my>398&&my<454){if(mx>140&&mx<220){cyclePlayerSkin(-1);play('menuClick');}if(mx>280&&mx<360){cyclePlayerSkin(1);play('menuClick');}}
     if(my>432&&my<466&&mx>350&&mx<450){skinInfoOpen=true;play('menuClick');return;}
+    for(var uii=0;uii<3;uii++){var ubx=150+uii*100,uby=494,ubw=90,ubh=34;if(my>uby&&my<uby+ubh&&mx>ubx&&mx<ubx+ubw){uiStep=uii;uiScale=[1,1.12,1.26][uii];try{localStorage.setItem('tb_ui',String(uii));}catch(e){}play('menuClick');return;}}
     if(my>620&&my<660){play('menuClick');transitionTo('menu');}
   }else if(state=='diy'){
     function cyc(arr,cur,delta){for(var k=0;k<arr.length;k++)if(arr[k]==cur)return arr[(k+delta+arr.length)%arr.length];return arr[delta>0?0:arr.length-1];}
@@ -1559,7 +1571,8 @@ function drawRoundedRect(x,y,w,h,r){
 
 var _bgGrad=null,_bgVg;
 var _nebCanvas=document.createElement('canvas');_nebCanvas.width=480;_nebCanvas.height=720;var _nebCtx=_nebCanvas.getContext('2d');
-function drawNebula(){var c=_nebCtx;c.clearRect(0,0,480,720);for(var i=0;i<4;i++){var nx=80+i*120+Math.sin(nebulaTime+i)*50,ny=200+Math.sin(nebulaTime*0.7+i*2)*150;var ng=c.createRadialGradient(nx,ny,0,nx,ny,130);var rc=20+i*40,gc=40+i*30,bc=110+i*60;ng.addColorStop(0,'rgba('+rc+','+gc+','+bc+',0.07)');ng.addColorStop(1,'rgba(0,0,30,0)');c.fillStyle=ng;c.fillRect(0,0,480,720);}}
+var _nebDone=false;
+function drawNebula(){if(_nebDone)return;_nebDone=true;var c=_nebCtx;c.clearRect(0,0,480,720);for(var i=0;i<4;i++){var nx=80+i*120,ny=200+i*55;var ng=c.createRadialGradient(nx,ny,0,nx,ny,150);var rc=20+i*40,gc=40+i*30,bc=110+i*60;ng.addColorStop(0,'rgba('+rc+','+gc+','+bc+',0.07)');ng.addColorStop(1,'rgba(0,0,30,0)');c.fillStyle=ng;c.fillRect(0,0,480,720);}}
 function drawBackground(){
   if(!_bgGrad){_bgGrad=ctx.createLinearGradient(0,0,0,720);_bgGrad.addColorStop(0,'#05081a');_bgGrad.addColorStop(0.45,'#0a0e2e');_bgGrad.addColorStop(1,'#160a2e');}
   ctx.fillStyle=_bgGrad;ctx.fillRect(0,0,480,720);
@@ -1573,14 +1586,15 @@ function drawBackground(){
 function drawMenu(){
   ctx.textAlign='center';
   // 标题渐变发光
-  var tg=ctx.createLinearGradient(0,120,0,180);tg.addColorStop(0,'#9ef');tg.addColorStop(0.5,'#0af');tg.addColorStop(1,'#06c');
-  ctx.fillStyle=tg;ctx.font='bold 60px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=35;ctx.fillText('雷 霆 战 机',240,170);ctx.shadowBlur=0;
+  if(!_menuTitleGrad){_menuTitleGrad=ctx.createLinearGradient(0,120,0,180);_menuTitleGrad.addColorStop(0,'#9ef');_menuTitleGrad.addColorStop(0.5,'#0af');_menuTitleGrad.addColorStop(1,'#06c');}
+  var tg=_menuTitleGrad;
+  ctx.fillStyle=tg;ctx.font='bold '+UF(60)+'px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=35;ctx.fillText('雷 霆 战 机',240,170);ctx.shadowBlur=0;
   ctx.shadowColor='#0af';ctx.shadowBlur=8;ctx.fillStyle='#7cf';ctx.font='bold 15px Arial';ctx.fillText('— 经 典 飞 行 射 击 —',240,205);ctx.shadowBlur=0;
-  ctx.fillStyle='#9ab';ctx.font='17px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,235);
+  ctx.fillStyle='#9ab';ctx.font=UF(17)+'px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,235);
 
   // 胶囊按钮通用绘制（所有主菜单按钮统一尺寸：宽260 高50 圆角12）
-  function pill(x,y,w,h,fill,stroke,glow,label,lf){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.shadowColor=glow;ctx.shadowBlur=14;drawRoundedRect(x-w/2,y-h/2,w,h,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=lf;ctx.font='bold 22px Arial';ctx.fillText(label,x,y+8);}
-  var BW=260,BH=50,BY=300,BG=58; // 统一按钮宽/高/起始Y/间距
+  function pill(x,y,w,h,fill,stroke,glow,label,lf){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.shadowColor=glow;ctx.shadowBlur=14;drawRoundedRect(x-w/2,y-h/2,w,h,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=lf;ctx.font='bold '+UF(22)+'px Arial';ctx.fillText(label,x,y+8);}
+  var BW=UWw(260),BH=50,BY=300,BG=58; // 统一按钮宽/高/起始Y/间距（宽度随界面大小缩放）
   // 继续游戏（自动续玩上次关卡，仅当有过游玩记录时显示）
   if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels){
     ctx.save();
@@ -1588,7 +1602,7 @@ function drawMenu(){
     ctx.shadowColor='#ffd700';ctx.shadowBlur=18+10*pulse;
     ctx.fillStyle='rgba(210,150,0,'+(0.78+0.12*pulse)+')';ctx.strokeStyle='#ffd700';ctx.lineWidth=2.5;
     drawRoundedRect(240-BW/2,BY-58-BH/2,BW,BH,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-    ctx.fillStyle='#fff';ctx.font='bold 22px Arial';ctx.fillText('\u25B6 继续游戏 ('+lastPlayedLevel+'关)',240,BY-58+8);
+    ctx.fillStyle='#fff';ctx.font='bold '+UF(22)+'px Arial';ctx.fillText('\u25B6 继续游戏 ('+lastPlayedLevel+'关)',240,BY-58+8);
     ctx.restore();
   }
   pill(240,BY+BG*0,BW,BH,'rgba(0,120,200,0.85)','#0ff','#0ff','\u25B6 闯关模式','#fff');
@@ -1599,7 +1613,7 @@ function drawMenu(){
   pill(240,BY+BG*5,BW,BH,'rgba(30,30,55,0.85)','#0af','#0af','\u2139 属性介绍','#cdf');
   pill(240,BY+BG*6,BW,BH,'rgba(120,30,150,0.85)','#f6f','#f6f','\u272F 天赋 ('+talentPoints+'点)','#fcf');
   // 无尽模式最高分
-  if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font='16px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
+  if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font=UF(16)+'px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
 
   ctx.fillStyle='#556';ctx.font='16px Arial';ctx.fillText(gameMode=='dual'?'P1:WASD  P2:方向键 | 自动射击':'方向键/WASD/鼠标 | 自动射击',240,694);
   // 底部飞船
@@ -1613,9 +1627,10 @@ function drawMenu(){
 function drawLevelSelect(){
   ctx.textAlign='center';
   // 标题
-  var tg=ctx.createLinearGradient(0,20,0,50);tg.addColorStop(0,'#7df');tg.addColorStop(1,'#0af');
-  ctx.fillStyle=tg;ctx.font='bold 32px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=25;ctx.fillText('选 择 关 卡',240,42);ctx.shadowBlur=0;
-  ctx.fillStyle='#9ab';ctx.font='16px Arial';ctx.fillText('点击关卡选定，再点确认开始  |  共 '+TOTAL_LEVELS+' 关',240,68);
+  if(!_lsTitleGrad){_lsTitleGrad=ctx.createLinearGradient(0,20,0,50);_lsTitleGrad.addColorStop(0,'#7df');_lsTitleGrad.addColorStop(1,'#0af');}
+  var tg=_lsTitleGrad;
+  ctx.fillStyle=tg;ctx.font='bold '+UF(32)+'px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=25;ctx.fillText('选 择 关 卡',240,42);ctx.shadowBlur=0;
+  ctx.fillStyle='#9ab';ctx.font=UF(16)+'px Arial';ctx.fillText('点击关卡选定，再点确认开始  |  共 '+TOTAL_LEVELS+' 关',240,68);
 
   var totalPages=Math.ceil(TOTAL_LEVELS/20);
   if(pageSel>totalPages-1)pageSel=totalPages-1;
@@ -1636,11 +1651,11 @@ function drawLevelSelect(){
     ctx.shadowBlur=sel?18:(cur?12:6);ctx.lineWidth=sel?3:2;
     drawRoundedRect(bx,by,gw,gh,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
     // 关号
-    ctx.fillStyle=locked?'#666':'#fff';ctx.font='bold 22px Arial';
+    ctx.fillStyle=locked?'#666':'#fff';ctx.font='bold '+UF(22)+'px Arial';
     ctx.fillText((i+1)+'关',lx,ly-2);
     // 状态
     if(locked){ctx.fillStyle='#556';ctx.font='15px Arial';ctx.fillText('\uD83D\uDD12',lx,ly+20);}
-    else if(cur){ctx.fillStyle='#ff0';ctx.font='bold 16px Arial';ctx.fillText('\u2605 当前',lx,ly+20);}
+    else if(cur){ctx.fillStyle='#ff0';ctx.font='bold '+UF(16)+'px Arial';ctx.fillText('\u2605 当前',lx,ly+20);}
     else{var rk='-';try{rk=localStorage.getItem('trk_'+(i+1))||'-';}catch(e){}var rc={'S':'#ff0','A':'#0f0','B':'#0af','C':'#9ab','-':'#0f0'}[rk]||'#0f0';ctx.fillStyle='#0f0';ctx.font='16px Arial';ctx.fillText('\u2713 通关',lx,ly+20);ctx.fillStyle=rc;ctx.font='bold 15px Arial';ctx.fillText(rk,lx+30,ly+21);}
   }
 
@@ -1648,12 +1663,12 @@ function drawLevelSelect(){
   if(selectedLevel>0){
     ctx.lineWidth=2;ctx.shadowBlur=10;
     ctx.fillStyle='rgba(0,80,40,0.9)';ctx.strokeStyle='#0f0';ctx.shadowColor='#0f0';
-    drawRoundedRect(125,540,95,52,8);ctx.fill();ctx.stroke();
+    drawRoundedRect(125,540,UWw(95),UH(52),8);ctx.fill();ctx.stroke();
     ctx.fillStyle='rgba(120,20,40,0.9)';ctx.strokeStyle='#f55';ctx.shadowColor='#f55';
-    drawRoundedRect(260,540,95,52,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    drawRoundedRect(260,540,UWw(95),UH(52),8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
     ctx.fillStyle='#fff';ctx.font='bold 19px Arial';ctx.fillText('\u2714 确认',172,572);ctx.fillText('\u2716 取消',307,572);
   }else{
-    ctx.fillStyle='#456';ctx.font='17px Arial';ctx.fillText('请选择上方关卡',240,570);
+    ctx.fillStyle='#456';ctx.font=UF(17)+'px Arial';ctx.fillText('请选择上方关卡',240,570);
   }
 
   // 底部翻页栏
@@ -1667,7 +1682,7 @@ function drawLevelSelect(){
   ctx.fillStyle=pageSel<totalPages-1?'#fff':'#777';ctx.font='bold 28px Arial';ctx.fillText('\u25B6',422,sqY+40);
   ctx.shadowBlur=0;
   // 页码 + 返回菜单（翻页栏中间）
-  ctx.fillStyle='#ff0';ctx.font='bold 15px Arial';ctx.fillText('第 '+(pageSel+1)+'/'+totalPages+' 页',240,sqY+24);
+  ctx.fillStyle='#ff0';ctx.font='bold '+UF(15)+'px Arial';ctx.fillText('第 '+(pageSel+1)+'/'+totalPages+' 页',240,sqY+24);
   // 返回菜单（带方框按钮，明显可点）
   var rmbx=170,rmby=656,rmbw=140,rmbh=36;
   ctx.fillStyle='rgba(20,30,60,0.9)';ctx.strokeStyle='#0af';ctx.lineWidth=2;ctx.shadowColor='#0af';ctx.shadowBlur=8;
@@ -1746,6 +1761,11 @@ function drawSettings(){
   ctx.fillStyle='rgba(40,40,70,0.9)';ctx.strokeStyle='#88f';ctx.lineWidth=2;ctx.shadowColor='#88f';ctx.shadowBlur=6;
   drawRoundedRect(dbX,dbY,dbW,dbH,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
   ctx.fillStyle='#cdf';ctx.font='17px Arial';ctx.textAlign='center';ctx.fillText('\u2139 技能详情',dbX+dbW/2,dbY+22);
+  ctx.textAlign='center';
+  // 界面大小（大字 / 大按钮，可调）
+  ctx.fillStyle='#ccc';ctx.font=UF(18)+'px Arial';ctx.textAlign='left';ctx.fillText('界面大小:',30,512);
+  var uiLabels=['标准','大','超大'];
+  for(var uii=0;uii<3;uii++){var ubx=150+uii*100,uby=494,ubw=90,ubh=34;var uon=(uii==uiStep);ctx.fillStyle=uon?'rgba(0,120,200,0.9)':'rgba(40,40,70,0.9)';ctx.strokeStyle=uon?'#0ff':'#888';ctx.lineWidth=2;drawRoundedRect(ubx,uby,ubw,ubh,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold '+UF(16)+'px Arial';ctx.textAlign='center';ctx.fillText(uiLabels[uii],ubx+ubw/2,uby+23);}
   ctx.textAlign='center';
   ctx.fillStyle='#666';ctx.font='17px Arial';ctx.textAlign='center';ctx.fillText('\u2190 返回菜单',240,650);
   // 皮肤技能介绍弹窗
@@ -2584,14 +2604,12 @@ function draw(){
   // Pause
   if(state=='pause'){
     ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(0,0,480,720);
-    ctx.textAlign='center';ctx.fillStyle='#0af';ctx.font='bold 44px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=20;ctx.fillText('暂停',240,260);ctx.shadowBlur=0;
-    ctx.fillStyle='#fff';ctx.font='22px Arial';ctx.fillText('\u25B6 继续游戏',240,340);
-    // 选择关卡（带方框按钮 + 齿轮图标，明显可点）
-    var slbx=150,slby=396,slbw=180,slbh=40;
-    ctx.fillStyle='rgba(20,30,60,0.9)';ctx.strokeStyle='#0af';ctx.lineWidth=2;ctx.shadowColor='#0af';ctx.shadowBlur=8;
-    drawRoundedRect(slbx,slby,slbw,slbh,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-    ctx.fillStyle='#0af';ctx.font='22px Arial';ctx.textAlign='left';ctx.fillText('\u2699',slbx+18,slby+27);
-    ctx.fillStyle='#fff';ctx.font='20px Arial';ctx.textAlign='left';ctx.fillText('选择关卡',slbx+48,slby+26);
+    ctx.textAlign='center';ctx.fillStyle='#0af';ctx.font='bold '+UF(44)+'px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=20;ctx.fillText('暂停',240,170);ctx.shadowBlur=0;
+    // 暂停菜单按钮（继续 / 重新开始 / 返回主菜单，参照正版雷霆战机布局）
+    function pbtn(cx,cy,w,h,label,col){var x=cx-w/2,y=cy-h/2;ctx.fillStyle=col;ctx.strokeStyle='#0ff';ctx.lineWidth=2;ctx.shadowColor='#0ff';ctx.shadowBlur=8;drawRoundedRect(x,y,w,h,10);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='bold '+UF(22)+'px Arial';ctx.textAlign='center';ctx.fillText(label,cx,cy+8);}
+    pbtn(240,240,UWw(220),UH(48),'\u25B6 继续游戏','rgba(0,120,200,0.9)');
+    pbtn(240,312,UWw(220),UH(48),'\u21BB 重新开始','rgba(120,40,120,0.9)');
+    pbtn(240,384,UWw(220),UH(48),'\u2302 返回主菜单','rgba(180,20,20,0.9)');
     ctx.textAlign='center';
     // === 音乐控制区 ===
     // BGM 开关（媒体按钮：⏸暂停 / ▶播放）
@@ -2624,7 +2642,7 @@ function draw(){
     ctx.fillStyle='#0af';drawRoundedRect(130,632,Math.max(9,200*bgmVolume),18,9);ctx.fill();
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(130+200*bgmVolume,641,11,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#555';ctx.font='16px Arial';ctx.textAlign='center';
-    ctx.fillText('ESC 返回关卡 | '+(gameMode=='dual'?'P1:WASD  P2:方向键':'方向键/WASD/鼠标/触屏'),240,672);
+    ctx.fillText('ESC 继续游戏 | '+(gameMode=='dual'?'P1:WASD  P2:方向键':'方向键/WASD/鼠标/触屏'),240,672);
   }
   // Game Over（被打死结束）
   if(state=='over'){
@@ -2640,7 +2658,7 @@ function draw(){
       ctx.fillStyle='#a84';ctx.font='16px Arial';ctx.fillText('Boss\u6311\u6218\u6700\u9AD8\u5206: '+bossRushHighScore,240,345);
       if(score>bossRushHighScore){bossRushHighScore=score;try{localStorage.setItem('tbr',bossRushHighScore);}catch(e){}}
     }else{
-    ctx.fillStyle='#f44';ctx.font='bold 48px Arial';ctx.shadowColor='#f44';ctx.shadowBlur=30;ctx.fillText('游戏结束',240,200);ctx.shadowBlur=0;
+    ctx.fillStyle='#f44';ctx.font='bold '+UF(48)+'px Arial';ctx.shadowColor='#f44';ctx.shadowBlur=30;ctx.fillText('游戏结束',240,200);ctx.shadowBlur=0;
     // 明确说明这是"被打死"的情况
     ctx.fillStyle='#ff9a9a';ctx.font='bold 22px Arial';ctx.shadowColor='#f44';ctx.shadowBlur=12;
     ctx.fillText('—— 你的战机被击毁了 ——',240,242);ctx.shadowBlur=0;
@@ -2648,7 +2666,7 @@ function draw(){
     ctx.fillStyle='#aaa';ctx.font='18px Arial';ctx.fillText(getLv().name+' | 最高连击: x'+mcombo,240,330);
     ctx.fillStyle='#666';ctx.font='16px Arial';ctx.fillText('最高分: '+hs,240,368);
     }
-    ctx.fillStyle=isBossRush?'#fcc':'#aaa';ctx.font='20px Arial';ctx.fillText(isBossRush?'点击返回菜单':'点击选择关卡',240,455);
+    ctx.fillStyle=isBossRush?'#fcc':'#aaa';ctx.font=UF(20)+'px Arial';ctx.fillText('点击返回主菜单',240,455);
     ctx.save();ctx.translate(240,540);
     ctx.shadowColor=isBossRush?'#f44':'#f44';ctx.shadowBlur=15;ctx.fillStyle=isBossRush?'#f44':'#f44';
     ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(-12,12);ctx.lineTo(-5,9);ctx.lineTo(0,14);ctx.lineTo(5,9);ctx.lineTo(12,12);ctx.closePath();ctx.fill();
@@ -2666,7 +2684,7 @@ function draw(){
     _cg.addColorStop(0,'rgba(30,60,120,0)');_cg.addColorStop(0.5,'rgba(40,90,170,0.30)');_cg.addColorStop(1,'rgba(30,60,120,0)');
     ctx.fillStyle=_cg;ctx.fillRect(0,150,480,390);
     // 标题 ★ 通关 ★（金色大发光）
-    ctx.fillStyle='#ffd700';ctx.font='bold 46px Arial';ctx.shadowColor='#ff8c00';ctx.shadowBlur=28;
+    ctx.fillStyle='#ffd700';ctx.font='bold '+UF(46)+'px Arial';ctx.shadowColor='#ff8c00';ctx.shadowBlur=28;
     ctx.fillText('\u2605 通关 \u2605',240,188);ctx.shadowBlur=0;
     // 副标题（击败 BOSS / 全部通关）
     if(currentLevel<TOTAL_LEVELS){
@@ -2680,7 +2698,7 @@ function draw(){
     ctx.fillStyle='#cfe8ff';ctx.font='18px Arial';ctx.fillText(getLv().name,240,248);
     // ===== 得分主视觉（正版风格：居中超大金色发光数字 + SCORE 标签）=====
     ctx.fillStyle='#9fd0ff';ctx.font='bold 16px Arial';ctx.fillText('本 关 得 分    SCORE',240,292);
-    ctx.font='bold 52px Arial';ctx.shadowColor='#ffcf00';ctx.shadowBlur=24;
+    ctx.font='bold '+UF(52)+'px Arial';ctx.shadowColor='#ffcf00';ctx.shadowBlur=24;
     ctx.fillStyle='#ffd700';ctx.strokeStyle='#7a4b00';ctx.lineWidth=4;
     ctx.strokeText(String(score),240,352);ctx.fillText(String(score),240,352);ctx.shadowBlur=0;
     // 分隔线
@@ -2694,7 +2712,7 @@ function draw(){
     ctx.fillStyle='#aaa';ctx.strokeStyle='#888';ctx.lineWidth=2;
     var cx=currentLevel<TOTAL_LEVELS?300:240,bw=currentLevel<TOTAL_LEVELS?80:120;
     drawRoundedRect(cx-bw,430,bw*2,50,6);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#fff';ctx.font='bold 18px Arial';
+    ctx.fillStyle='#fff';ctx.font='bold '+UF(18)+'px Arial';
     if(currentLevel<TOTAL_LEVELS)ctx.fillText('\u25B6 下一关',180,462);
     ctx.fillText('\u2699 选择关卡',cx,462);
     // 按钮下方提示
