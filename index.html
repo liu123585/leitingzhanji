@@ -35,10 +35,10 @@ var hitFxColor='255,0,0'; // 当前受击氛围颜色（rgb 字符串）
 var HIT_BULLET=0,HIT_RAM=1,HIT_LASER=2,HIT_BOSS=3;
 function applyHit(type){
   var sh=0,mag=0,fx=0,col='255,0,0';
-  if(type==HIT_RAM){sh=16;mag=12;fx=0.9;col='255,40,40';}        // 敌机撞击：强震+强烈红边
-  else if(type==HIT_LASER){sh=10;mag=7;fx=0.55;col='180,60,255';} // 敌方激光：中震+紫边
-  else if(type==HIT_BOSS){sh=12;mag=8;fx=0.6;col='255,140,40';}  // Boss弹幕：中震+橙边
-  else{sh=6;mag=4;fx=0.4;col='255,0,0';}                          // 普通子弹：轻震+红边
+  if(type==HIT_RAM){sh=4;mag=3;fx=0.7;col='255,40,40';play('hitRam');}        // 敌机撞击：微震+撞击音效
+  else if(type==HIT_LASER){sh=3;mag=2;fx=0.45;col='180,60,255';play('hitLaser');} // 敌方激光：微震+激光音效
+  else if(type==HIT_BOSS){sh=4;mag=3;fx=0.5;col='255,140,40';play('hitBoss');}  // Boss弹幕：微震+重击音效
+  else{sh=2;mag=1;fx=0.3;col='255,0,0';play('hitBullet');}                          // 普通子弹：极微震+轻击音效
   if(sh>shake){shake=sh;shakeMag=mag;}
   if(fx>=hitFx)hitFx=fx;   // 氛围强度取较大值
   hitFxColor=col;          // 颜色始终反映"最近一次"受击的攻击类型
@@ -75,7 +75,7 @@ function spawnBossRushBoss(){
   var bossHP=Math.max(500,Math.round(lv.bossHp*bb.hpMul*hpScale));
   var e={x:240,y:-60,vx:0,vy:1.0,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:0,phase:1,abilities:bb};
   if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;  ens.push(e);
-  shake=20;shakeMag=12;for(var _ri=0;_ri<26;_ri++){var _ra=_ri/26*6.283;pts.push({x:240,y:140,vx:Math.cos(_ra)*6,vy:Math.sin(_ra)*6,life:32,cl:'#ff8c00',sz:3+Math.random()*3});}
+  shake=10;shakeMag=6;for(var _ri=0;_ri<26;_ri++){var _ra=_ri/26*6.283;pts.push({x:240,y:140,vx:Math.cos(_ra)*6,vy:Math.sin(_ra)*6,life:32,cl:'#ff8c00',sz:3+Math.random()*3});}
   wShield=1+tl('shield');play('shield');bossRushTimer=0;
   // 给玩家补满基础火力（Boss Rush没有小兵捡道具）
   wPower=Math.max(wPower,5);wLevel=Math.max(wLevel,2);wMissile=Math.max(wMissile,2);
@@ -392,6 +392,11 @@ sfx.powerUp=function(){var s=[523,659,784,1047];for(var i=0;i<s.length;i++)setTi
 sfx.airdrop=function(){var s=[392,523,659,784];for(var i=0;i<s.length;i++)setTimeout(function(n){tone(s[n],0.12,'triangle',0.05);}(i),i*60);};
 sfx.menuClick=function(){tone(660,0.05,'sine',0.04);tone(990,0.04,'sine',0.02);};
 sfx.playerHit=function(){tone(160,0.14,'sawtooth',0.07);noise(0.12,0.06);tone(80,0.18,'square',0.05);};
+// === 受击音效（替代强震屏，作为主要反馈手段）===
+sfx.hitBullet=function(){tone(180,0.06,'square',0.04);noise(0.03,0.03);};                    // 普通子弹：短促轻击
+sfx.hitLaser=function(){tone(2200,0.08,'sawtooth',0.04);tone(1800,0.06,'sine',0.03);};       // 激光：尖锐滋滋声
+sfx.hitBoss=function(){tone(110,0.12,'sawtooth',0.07);noise(0.08,0.05);tone(70,0.1,'square',0.05);}; // Boss弹幕：沉重低音
+sfx.hitRam=function(){noise(0.1,0.08);tone(90,0.14,'sawtooth',0.08);tone(140,0.08,'square',0.05);}; // 撞击：金属撞击
 sfx.shield=function(){tone(880,0.1,'sine',0.06);tone(1320,0.08,'sine',0.04);setTimeout(function(){tone(1760,0.06,'sine',0.03);},60);};
 sfx.waveStart=function(){var s=[440,554,659,880];for(var i=0;i<s.length;i++)setTimeout(function(n){tone(s[n],0.1,'triangle',0.05);}(i),i*70);};
 sfx.bossWarning=function(){var s=[330,440,554,659];for(var i=0;i<s.length;i++)setTimeout(function(n){tone(s[n],0.16,'square',0.06);}(i),i*150);};
@@ -661,7 +666,7 @@ function init(lvl){
 }
 function useBomb(){
   if(state!='playing'||bombs<=0)return;
-  bombs--;bombFx=1;shake=20;shakeMag=14;play('bossKill');
+  bombs--;bombFx=1;shake=10;shakeMag=7;play('bossKill');
   // 清空所有敌弹
   for(var i=bls.length-1;i>=0;i--){if(!bls[i].pl){boom(bls[i].x,bls[i].y,'#fff',4);bls.splice(i,1);}}
   // 伤害全部敌人（小兵与小型Boss秒杀，大Boss扣血，天赋加伤）
@@ -1299,7 +1304,7 @@ function update(){
           boom(e.x,e.y,'#fff',Math.round(6*mul));
           boom(e.x,e.y,'#ff0',Math.round(10*mul));
           boom(e.x,e.y,'#f80',Math.round(14*mul));
-          if(shake<8){shake=8;shakeMag=7*mul;} // 小怪也来点震
+          if(shake<5){shake=5;shakeMag=4*mul;} // 小怪轻震
           killFlash=Math.max(killFlash,0.5);
           hitstop=Math.max(hitstop,(e.type=='l'?5:e.type=='m'?3:2));
           onKillHeal();vcComboKill();
@@ -1478,7 +1483,7 @@ function update(){
       // 发放天赋点（每次通关都给，难度越高越多；首次打通全40关正好点满）
       var tpGain=getTpReward(currentLevel);talentPoints+=tpGain;lastTpGain=tpGain;saveTalents();
       // 通关强烈反馈：金闪 + 大屏震 + 上扬音效
-      winFlash=1;shake=18;shakeMag=13;
+      winFlash=1;shake=10;shakeMag=7;
       play('levelComplete');
     }
   }
