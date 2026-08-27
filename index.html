@@ -60,6 +60,7 @@ function applyHit(type){
 // 纯展示连击系统（不影响任何伤害/分数/激光/导弹）
 var vcCombo=0,vcComboTimer=0,vcComboPop=0;
 var bombs=0,maxBombs=3,bombFx=0;
+var weaponMode=0,scoreMultTimer=0,homingTimer=0,uiDragLock=0; // 武器形态(0散射/1集中/2追踪)、双倍得分计时、限时追踪buff、UI点击拖拽锁
 var novaFx=0;           // 必杀·星爆 视觉强度（0~1，逐帧缓慢衰减，持续约2.5s）
 var novaRing=0;         // 环形冲击波半径
 var novaRingLast=0;     // 上一帧环形冲击波半径（用于碰撞检测）
@@ -719,7 +720,7 @@ function init(lvl){
   tone(80,0.3,'sawtooth',0.25);
   // 清空上局残留实体与波次状态（关键：必须重置 wave，否则上一关结束时的 wave 会带入新关卡，导致进第二关直接判定胜利）
   bls.length=0;ens.length=0;pws.length=0;pts.length=0;drs.length=0;
-  wave=0;waveEnemies=0;waveMax=0;spawnTimer=0;bossWarningTimer=0;dropTimer=0;enterMsgTimer=0;countdownTimer=0;bossRushTimer=0;
+  wave=0;waveEnemies=0;waveMax=0;spawnTimer=0;bossWarningTimer=0;dropTimer=0;enterMsgTimer=0;countdownTimer=0;bossRushTimer=0;weaponMode=0;scoreMultTimer=0;homingTimer=0;
   // 直接进入游戏（去掉开场倒计时黑屏，开局有短无敌保护）
   state='playing';
 }
@@ -759,7 +760,7 @@ function firePassiveMissiles(){
   var md=P1*(1+0.3*ml);                   // 伤害随天赋提升
   var spread=0.18;                        // 同侧多枚扇形展开角度
   function emit(cx,cy,fromP1){
-    var dropBonus=(fromP1?wHoming:p2wHoming)>0?2:0; // 掉落"自动追踪"额外加量
+    var dropBonus=homingTimer>0?2:0; // 限时追踪期间，炮台导弹额外加量
     var n=perSide+dropBonus;
     for(var s=-1;s<=1;s+=2){
       for(var k=0;k<n;k++){
@@ -800,12 +801,13 @@ var pwTypes=[
   {id:'W',disp:'散',color:'#0ff'},{id:'M',disp:'导',color:'#f80'},
   {id:'P',disp:'火',color:'#f44'},{id:'H',disp:'回',color:'#0f0'},
   {id:'S',disp:'盾',color:'#ff0'},{id:'D',disp:'缓',color:'#aaf'},
+  {id:'T',disp:'追',color:'#0ff'},{id:'B',disp:'后',color:'#0ff'},{id:'X',disp:'倍',color:'#ff0'},
 ];
 function spawnDrop(x,y,etype){
   var rates={s:0.4,m:0.6,l:0.8};
   if(Math.random()>(rates[etype]||0.4))return;
   var roll=Math.random(),type;
-  if(roll<0.10)type='W';else if(roll<0.20)type='P';else if(roll<0.30)type='M';else if(roll<0.50)type='H';else if(roll<0.68)type='S';else if(roll<0.84)type='D';else if(roll<0.92)type='T';else type='B';
+  if(roll<0.10)type='W';else if(roll<0.20)type='P';else if(roll<0.30)type='M';else if(roll<0.50)type='H';else if(roll<0.68)type='S';else if(roll<0.84)type='D';else if(roll<0.86)type='T';else if(roll<0.93)type='X';else type='B';
   pws.push({x:x,y:y,vy:3.5,type:type,t:0});
 }
 // === 赛博朋克敌弹样式 ===
@@ -882,8 +884,9 @@ function collectDropFor(i,isP1){
   else if(p.type=='H'){hpv=Math.min(mhpv,hpv+2);if(isP1)hp=hpv;else p2hp=hpv;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'+2 血',cl:'#0f0'});}
   else if(p.type=='S'){if(isP1)wShield=Math.min(3,wShield+1);else p2wShield=Math.min(3,p2wShield+1);pts.push({x:x,y:y,vy:-1.5,life:30,txt:'护盾+1!',cl:'#ff0'});}
       else if(p.type=='D'){if(isP1)wSlow=300;else p2wSlow=300;}
-  else if(p.type=='T'){if(isP1)wHoming=1;else p2wHoming=1;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'自动追踪!',cl:'#0ff'});}
+  else if(p.type=='T'){homingTimer=600;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'自动追踪 10s!',cl:'#0ff'});}
   else if(p.type=='B'){if(isP1)wBack=1;else p2wBack=1;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'向后射击!',cl:'#0ff'});}
+  else if(p.type=='X'){scoreMultTimer=600;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'双倍得分 10s!',cl:'#ff0'});}
   boom(x,y,'#fff',10);pws.splice(i,1);
 }
 function spawnAirdrop(){drs.push({x:40+Math.random()*400,y:-40,vy:0.6,hp:3,opened:false,t:0,boxW:30,boxH:30,sway:Math.random()*6.28});}
@@ -896,7 +899,7 @@ function applyAirdropTo(x,y,tp){
   else if(r<0.56){hpv=Math.min(mhpv,hpv+3);txt='\u2605 +3 血 '+(tp?'P1':'P2');}
   else if(r<0.71){wSh=300;txt='\u2605 护盾 '+(tp?'P1':'P2');}
   else if(r<0.84){wSl=300;txt='\u2605 减速 '+(tp?'P1':'P2');}
-  else if(r<0.92){wH=1;wHoming=wH;txt='\u2605 自动追踪 '+(tp?'P1':'P2');}
+  else if(r<0.92){wH=1;homingTimer=600;txt='\u2605 自动追踪 '+(tp?'P1':'P2');}
   else{wB=1;wBack=wB;txt='\u2605 向后射击 '+(tp?'P1':'P2');}
   if(tp){wLevel=wL;wMissile=wMis;wPower=wPow;wShield=wSh;wSlow=wSl;wHoming=wHoming;wBack=wBack;hp=hpv;}
   else{p2wLevel=wL;p2wMissile=wMis;p2wPower=wPow;p2wShield=wSh;p2wSlow=wSl;p2wHoming=wHoming;p2wBack=wBack;p2hp=hpv;}
@@ -911,19 +914,18 @@ function openAirdrop(i,fromP1){
 }
 function fireBullets(x,y,wLv,wMis,wPow,wSl,wHom,wBk,fromP1){
   play('shoot');var dmg=wPow,spread=wLv,fm=fromP1?1:2;
-  // 原子弹（保持原有前向射击效果，不改成追踪）
-  var main={x:x,y:y-18,vx:0,vy:-8,d:dmg,w:4,h:14,pl:true,from:fm};
-  bls.push(main);
-  if(spread>=1){bls.push({x:x-7,y:y-14,vx:-0.4,vy:-7.2,d:dmg,w:3,h:11,pl:true,from:fm});bls.push({x:x+7,y:y-14,vx:0.4,vy:-7.2,d:dmg,w:3,h:11,pl:true,from:fm});}
-  if(spread>=2){bls.push({x:x-10,y:y-12,vx:-0.8,vy:-6.5,d:dmg,w:3,h:10,pl:true,from:fm});bls.push({x:x+10,y:y-12,vx:0.8,vy:-6.5,d:dmg,w:3,h:10,pl:true,from:fm});}
-  if(spread>=3){bls.push({x:x-13,y:y-10,vx:-1.2,vy:-5.8,d:dmg,w:3,h:9,pl:true,from:fm});bls.push({x:x+13,y:y-10,vx:1.2,vy:-5.8,d:dmg,w:3,h:9,pl:true,from:fm});}
-  if(wMis>=1){bls.push({x:x-18,y:y-6,vx:-0.5,vy:-6,d:dmg*2,w:5,h:12,cl:'#f80',pl:true,from:fm});bls.push({x:x+18,y:y-6,vx:0.5,vy:-6,d:dmg*2,w:5,h:12,cl:'#f80',pl:true,from:fm});}
-  if(wMis>=2){bls.push({x:x-24,y:y-2,vx:-0.8,vy:-5.5,d:dmg*2,w:5,h:12,cl:'#f80',pl:true,from:fm});bls.push({x:x+24,y:y-2,vx:0.8,vy:-5.5,d:dmg*2,w:5,h:12,cl:'#f80',pl:true,from:fm});}
+  // wHom=true 时子弹自动追踪最近敌人（武器“追踪”形态）
+  function add(o){if(wHom){o.homing=true;o.turn=0.14;o.life=220;}bls.push(o);}
+  var main={x:x,y:y-18,vx:0,vy:-8,d:dmg,w:4,h:14,pl:true,from:fm};add(main);
+  if(spread>=1){add({x:x-7,y:y-14,vx:-0.4,vy:-7.2,d:dmg,w:3,h:11,pl:true,from:fm});add({x:x+7,y:y-14,vx:0.4,vy:-7.2,d:dmg,w:3,h:11,pl:true,from:fm});}
+  if(spread>=2){add({x:x-10,y:y-12,vx:-0.8,vy:-6.5,d:dmg,w:3,h:10,pl:true,from:fm});add({x:x+10,y:y-12,vx:0.8,vy:-6.5,d:dmg,w:3,h:10,pl:true,from:fm});}
+  if(spread>=3){add({x:x-13,y:y-10,vx:-1.2,vy:-5.8,d:dmg,w:3,h:9,pl:true,from:fm});add({x:x+13,y:y-10,vx:1.2,vy:-5.8,d:dmg,w:3,h:9,pl:true,from:fm});}
+  if(wMis>=1){add({x:x-18,y:y-6,vx:-0.5,vy:-6,d:dmg*2,w:5,h:12,cl:'#f80',pl:true,from:fm});add({x:x+18,y:y-6,vx:0.5,vy:-6,d:dmg*2,w:5,h:12,cl:'#f80',pl:true,from:fm});}
+  if(wMis>=2){add({x:x-24,y:y-2,vx:-0.8,vy:-5.5,d:dmg*2,w:5,h:12,cl:'#f80',pl:true,from:fm});add({x:x+24,y:y-2,vx:0.8,vy:-5.5,d:dmg*2,w:5,h:12,cl:'#f80',pl:true,from:fm});}
   // 向后射击：从机身下方发射朝下子弹（攻击追尾的敌人）
   if(wBk>0){
-    var back={x:x,y:y+14,vx:0,vy:8,d:dmg,w:4,h:14,pl:true,from:fm,back:true};
-    bls.push(back);
-    if(spread>=1){bls.push({x:x-7,y:y+12,vx:-0.4,vy:7.2,d:dmg,w:3,h:11,pl:true,from:fm,back:true});bls.push({x:x+7,y:y+12,vx:0.4,vy:7.2,d:dmg,w:3,h:11,pl:true,from:fm,back:true});}
+    var back={x:x,y:y+14,vx:0,vy:8,d:dmg,w:4,h:14,pl:true,from:fm,back:true};add(back);
+    if(spread>=1){add({x:x-7,y:y+12,vx:-0.4,vy:7.2,d:dmg,w:3,h:11,pl:true,from:fm,back:true});add({x:x+7,y:y+12,vx:0.4,vy:7.2,d:dmg,w:3,h:11,pl:true,from:fm,back:true});}
   }
 }
 
@@ -946,14 +948,15 @@ function transitionTo(s){
 }
 
 // === INPUT ===
-document.onkeydown=function(e){keys[e.key]=true;if(e.key==' '||e.key=='Spacebar'){useBomb();e.preventDefault();}  if(e.key=='q'||e.key=='Q'){useNova();}if(e.key=='Escape'){if(state=='playing'){state='pause';saveBgmPos();}else if(state=='pause'){selectedLevel=0;gotoLevelSelect();}else if(state=='levelComplete'){selectedLevel=0;gotoLevelSelect();}else{state='menu';}}};
+document.onkeydown=function(e){keys[e.key]=true;if(e.key==' '||e.key=='Spacebar'){useBomb();e.preventDefault();}  if(e.key=='q'||e.key=='Q'){useNova();}if(e.key=='z'||e.key=='Z'){if(state=='playing'){weaponMode=(weaponMode+1)%3;play('menuClick');pts.push({x:px,y:py-30,vy:-1.5,life:40,txt:'武器: '+['\u6563\u5c04','\u96c6\u4e2d','\u8ffd\u8e2a'][weaponMode],cl:'#0ff'});}}if(e.key=='Escape'){if(state=='playing'){state='pause';saveBgmPos();}else if(state=='pause'){selectedLevel=0;gotoLevelSelect();}else if(state=='levelComplete'){selectedLevel=0;gotoLevelSelect();}else{state='menu';}}};
 document.onkeyup=function(e){keys[e.key]=false;};
 
 c.onclick=function(e){var r=c.getBoundingClientRect();handleClick((e.clientX-r.left)*480/r.width,(e.clientY-r.top)*720/r.height);};
 var volDrag=0; // 0=无 1=音效 2=BGM（暂停界面拖动滑块）
 function setVolFromX(which,mx){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;if(which==1){sfxVolume=p;localStorage.setItem('tsv',p);tone(660,0.04,'sine',0.04);}else{bgmVolume=p;applyBgmVolume();localStorage.setItem('tbv',p);}}
-c.onmousedown=function(e){var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>596&&y<618&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>630&&y<652&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();return;}}};
-c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(state=='playing'&&gameMode!='dual'&&bossWarningTimer<=0){px=Math.round((e.clientX-r.left)*480/r.width);py=Math.round((e.clientY-r.top)*720/r.height);}};
+c.onmousedown=function(e){var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>596&&y<618&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>630&&y<652&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();uiDragLock=1;return;}}};
+c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(uiDragLock)return;if(state=='playing'&&gameMode!='dual'&&bossWarningTimer<=0){px=Math.round((e.clientX-r.left)*480/r.width);py=Math.round((e.clientY-r.top)*720/r.height);}};
+window.onmouseup=function(){uiDragLock=0;};
 c.onwheel=function(e){if(state!='talent')return;e.preventDefault();talentScroll+=e.deltaY*0.5;var maxS=Math.max(0,120+TALENTS.length*72+64-640);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;};
 window.onmouseup=function(){volDrag=0;};
 
@@ -964,6 +967,8 @@ function handleGameButton(mx,my){
   if(bossWarningTimer>0){spawnBoss();return true;}
   // 暂停按钮
   if(my>6&&my<50&&mx>428&&mx<472){state='pause';play('menuClick');return true;}
+  // 武器形态切换按钮（底部中央）
+  if(my>679&&my<709&&mx>170&&mx<310){weaponMode=(weaponMode+1)%3;play('menuClick');pts.push({x:px,y:py-30,vy:-1.5,life:40,txt:'武器: '+['\u6563\u5c04','\u96c6\u4e2d','\u8ffd\u8e2a'][weaponMode],cl:'#0ff'});return true;}
   // 炸弹
   if(my>640&&my<710&&mx>400&&mx<470){useBomb();return true;}
   // 必杀
@@ -1081,7 +1086,8 @@ function handleClick(mx,my){try{
   else if(state=='pause'){
     if(my>240-UH(48)/2&&my<240+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');state='playing';}
     else if(my>312-UH(48)/2&&my<312+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');init(currentLevel);}
-    else if(my>384-UH(48)/2&&my<384+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=0;state='menu';}
+    else if(my>384-UH(48)/2&&my<384+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=unlockedLevels;pageSel=Math.floor((unlockedLevels-1)/20);state='levelSelect';}
+    else if(my>456-UH(48)/2&&my<456+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=0;state='menu';}
     // BGM 开关（媒体按钮）
     else if(my>450&&my<488&&mx>150&&mx<330){bgmMuted=!bgmMuted;try{localStorage.setItem('tbm',bgmMuted?'1':'0');}catch(e){}applyBgmMute();play('menuClick');return;}
     else if(my>508&&my<560&&mx>114&&mx<178){var tk=bgmPlayList;var i=tk.indexOf(bgmTrack);switchBGM(tk[(i-1+tk.length)%tk.length]);return;}
@@ -1313,14 +1319,14 @@ function update(){
     if(keys['ArrowLeft']){p2x-=spd2;}if(keys['ArrowRight']){p2x+=spd2;}
     if(keys['ArrowUp']){p2y-=spd2;}if(keys['ArrowDown']){p2y+=spd2;}
     p2x=Math.max(20,Math.min(460,p2x));p2y=Math.max(30,Math.min(700,p2y));
-    if(p2pt<=0){fireBullets(p2x,p2y,p2wLevel,p2wMissile,p2wPower,p2wSlow,false);p2pt=7;}else p2pt--;
+    if(p2pt<=0){var wp2=weaponMode==1?[0,0,Math.min(5,p2wPower*2),p2wBack,false]:weaponMode==2?[Math.min(3,p2wLevel),p2wMissile,p2wPower,p2wBack,true]:[p2wLevel,p2wMissile,p2wPower,p2wBack,false];if(homingTimer>0)wp2[4]=true;fireBullets(p2x,p2y,wp2[0],wp2[1],wp2[2],p2wSlow,wp2[4],wp2[3]);p2pt=7;}else p2pt--;
   }else{
     var spd=4.5;
     if(keys['ArrowLeft']||keys['a']){px-=spd;}if(keys['ArrowRight']||keys['d']){px+=spd;}
     if(keys['ArrowUp']||keys['w']){py-=spd;}if(keys['ArrowDown']||keys['s']){py+=spd;}
     px=Math.max(20,Math.min(460,px));py=Math.max(30,Math.min(700,py));
   }
-  if(pt<=0){fireBullets(px,py,wLevel,wMissile,wPower,wSlow,true);var od=hp/mhp<0.3?0.5:1;pt=Math.max(1,Math.round((wSlow>0?1:Math.max(1,3-tl('spd')))*od));}else pt--;
+  if(pt<=0){var wp=weaponMode==1?[0,0,Math.min(5,wPower*2),wBack,false]:weaponMode==2?[Math.min(3,wLevel),wMissile,wPower,wBack,true]:[wLevel,wMissile,wPower,wBack,false];if(homingTimer>0)wp[4]=true;fireBullets(px,py,wp[0],wp[1],wp[2],wSlow,wp[4],wp[3]);var od=hp/mhp<0.3?0.5:1;pt=Math.max(1,Math.round((wSlow>0?1:Math.max(1,3-tl('spd')))*od));}else pt--;
   for(var si=0;si<skillCds.length;si++)if(skillCds[si]>0)skillCds[si]--;if(playerInvuln>0)playerInvuln--;if(p2Invuln>0)p2Invuln--;
   if(passiveLaserCd>0)passiveLaserCd--;else{passiveLaserCd=PASSIVE_LASER_INTERVAL;useSkinSkill();}
   // 导弹被动：由天赋等级驱动，间隔随天赋缩短
@@ -1336,7 +1342,7 @@ function update(){
   if(gameMode=='dual'){if(p2wShield<=0){if(p2shieldRegenCd>0)p2shieldRegenCd--;else{p2wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(p2x,p2y,'#ff0',12);}}}
   if(p1BreakT>0)p1BreakT--;
   if(gameMode=='dual'&&p2BreakT>0)p2BreakT--;
-  if(wSlow>0)wSlow--;if(p2wSlow>0)p2wSlow--;
+  if(wSlow>0)wSlow--;if(p2wSlow>0)p2wSlow--;if(scoreMultTimer>0)scoreMultTimer--;if(homingTimer>0)homingTimer--;
   // Player bullets hit enemies
   for(var i=bls.length-1;i>=0;i--){var b=bls[i];if(!b.pl)continue;
     if(b.homing){ // 追踪导弹：快速转向最近敌人
@@ -1361,7 +1367,7 @@ function update(){
         if(e.type=='boss'){onBossDefeated(e,e.x,e.y,e.isBig,dd>1?50:0);}
         else{
           play(e.type=='s'?'killS':e.type=='m'?'killM':'killL');
-          score+=10*Math.min(combo+1,10);combo++;if(combo>mcombo)mcombo=combo;
+          var scMul=(1+Math.min(2,Math.floor(combo/10)))*(scoreMultTimer>0?2:1);score+=Math.round(10*Math.min(combo+1,10)*scMul);combo++;if(combo>mcombo)mcombo=combo;
           // 强打击感：多段爆炸 + 屏震 + 击杀白闪 + 命中定格（卡肉）+ 连击弹字
           var mul=e.type=='l'?1.6:e.type=='m'?1.25:1;
           boom(e.x,e.y,'#fff',Math.round(6*mul));
@@ -1371,8 +1377,8 @@ function update(){
           if(e.type!='s')hitstop=Math.max(hitstop,(e.type=='l'?4:2));
           onKillHeal();vcComboKill();
           // 击杀飘字（分数+连击）
-          var vargain=10*Math.min(combo,10);
-          pts.push({x:e.x,y:e.y-10,vy:-2.2,life:40,cl:combo>=10?'#ffd700':'#fff',sz:combo>=10?2.6:2,txt:'+'+vargain+(combo>1?'  x'+combo:'')});
+          var vargain=Math.round(10*Math.min(combo,10)*(scoreMultTimer>0?2:1));
+          pts.push({x:e.x,y:e.y-10,vy:-2.2,life:40,cl:combo>=10?'#ffd700':'#fff',sz:combo>=10?2.6:2,txt:'+'+vargain+(combo>1?'  x'+combo:'')+(scoreMultTimer>0?' x2':'')});
         }
         var sz=e.type=='s'?'s':e.type=='m'?'m':'l';spawnDrop(e.x,e.y,sz);ens.splice(j,1);break;}
       else{if(hitSndCd<=0){play('enemyHit');hitSndCd=4;}}}
@@ -1696,7 +1702,7 @@ function drawLevelSelect(){
 function drawHelp(){
   ctx.textAlign='center';ctx.fillStyle='#0af';ctx.font='bold 32px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=15;ctx.fillText('操作说明',240,120);ctx.shadowBlur=0;
   ctx.fillStyle='#ccc';ctx.font='16px Arial';ctx.textAlign='left';
-  var ls=['\u25B6 单人: 方向键/WASD/鼠标  双人: P1=WASD  P2=方向键','\u25B6 射击: 自动连续射击','\u25B6 暂停: ESC','\u25B6 道具: 击杀敌人随机掉落','\u25B6 空投: \uD83D\uDCE6 定时出现','\u25B6 关卡: 每关多波次 + BOSS 战'];
+  var ls=['\u25B6 单人: 方向键/WASD/鼠标  双人: P1=WASD  P2=方向键','\u25B6 射击: 自动连续射击','\u25B6 武器: 点底部[武器]按钮或按 Z 切换 散射/集中/追踪','\u25B6 暂停: ESC（可“选择关卡”随时换关）','\u25B6 道具: 击杀敌人随机掉落（散/导/火/盾/缓/追/后/倍分）','\u25B6 空投: \uD83D\uDCE6 定时出现','\u25B6 关卡: 每关多波次 + BOSS 战'];
   for(var i=0;i<ls.length;i++)ctx.fillText(ls[i],100,190+i*40);
   ctx.textAlign='center';ctx.fillStyle='#666';ctx.font='17px Arial';ctx.fillText('点击返回菜单',240,650);
 }
@@ -1847,7 +1853,7 @@ function drawHUD(){
   if(gameMode=='dual'){ctx.fillStyle='#039';ctx.fillRect(bx,by,bw,bh);hc=hr>0.5?'#0af':hr>0.25?'#f80':'#f00';}
   ctx.shadowColor=hc;ctx.shadowBlur=12;ctx.fillStyle=hc;ctx.fillRect(bx+2,by+2,(bw-4)*hr,bh-4);ctx.shadowBlur=0;
   ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(bx,by,bw,bh);
-  ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
+  ctx.fillStyle='#fff';ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
   ctx.fillText('\u2764 '+(gameMode=='dual'?'P1 ':'')+hp+'/'+mhp,bx+bw/2,by+bh-5);ctx.shadowBlur=0;
   if(gameMode=='dual'){
     ctx.fillStyle='#030';ctx.fillRect(200,82,120,20);var h2r=p2hp/p2mhp,hc2=h2r>0.5?'#0f0':h2r>0.25?'#fa0':'#f00';
@@ -1858,7 +1864,7 @@ function drawHUD(){
   }
   // 天赋属性面板（左上角，HP下方）
   var sy=gameMode=='dual'?174:124;
-  ctx.font='bold 16px Arial';ctx.textAlign='left';
+  ctx.font='bold 18px Arial';ctx.textAlign='left';
   ctx.fillStyle='#fbb';ctx.fillText('\u2694 攻击 '+(1+tl('atk')*0.5).toFixed(1),10,sy);
   ctx.fillStyle='#9f9';ctx.fillText('\u2764 上限 '+mhp,120,sy);
   ctx.fillStyle='#9cf';ctx.fillText('\u26A1 射速 Lv'+tl('spd'),220,sy);
@@ -1878,11 +1884,11 @@ function drawHUD(){
     if(p2wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+p2wPower,wx,wy);wx+=38;}
     if(p2wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+p2wShield,wx,wy);wx+=62;}
   }
-  ctx.fillStyle='#ffec3d';ctx.font='bold 20px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('\u5206\u6570 '+score,10,26);
-  ctx.fillStyle='#7fd0ff';ctx.font='bold 15px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText(getLv().name,10,46);
-  ctx.fillStyle='#e8e8e8';ctx.font='bold 16px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('连击 x'+combo,10,66);
+  ctx.fillStyle='#ffec3d';ctx.font='bold 24px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('\u5206\u6570 '+score,10,28);
+  ctx.fillStyle='#7fd0ff';ctx.font='bold 18px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText(getLv().name,10,48);
+  ctx.fillStyle='#e8e8e8';ctx.font='bold 19px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('连击 x'+combo,10,68);
   if(vcCombo>=5){var cd=1+Math.min(0.5,Math.floor(vcCombo/5)*0.1);var cp=0.6+0.4*Math.sin(frameCount*0.12);
-    ctx.fillStyle='rgba(255,225,60,'+Math.min(1,cp+0.3)+')';ctx.font='bold 15px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.textAlign='left';
+    ctx.fillStyle='rgba(255,225,60,'+Math.min(1,cp+0.3)+')';ctx.font='bold 18px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.textAlign='left';
     ctx.fillText('\u26A1 \u4F24\u5BB3 x'+cd.toFixed(1),145,66);ctx.textAlign='left';}
   if(isBossRush){
     // 显示当前Boss名字和血量（挪到顶部Boss血条下方避免重叠）
@@ -1939,6 +1945,14 @@ function drawHUD(){
   ctx.fillStyle='rgba(30,30,55,0.85)';ctx.strokeStyle='#0af';ctx.lineWidth=2;ctx.shadowColor='#0af';ctx.shadowBlur=8;
   drawRoundedRect(pbx,pby,pbw,pbh,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
   ctx.fillStyle='#0af';ctx.fillRect(pbx+15,pby+13,6,18);ctx.fillRect(pbx+25,pby+13,6,18);
+  // 武器形态切换按钮（底部中央，点击或按 Z 切换：散射/集中/追踪）
+  var wmbw=140,wmby=694;var wmCol=['#0af','#f80','#0f0'][weaponMode];
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(15,22,45,0.85)';ctx.strokeStyle=wmCol;ctx.lineWidth=2;ctx.shadowColor=wmCol;ctx.shadowBlur=8;
+  drawRoundedRect(240-wmbw/2,wmby-15,wmbw,30,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+  ctx.fillStyle='#fff';ctx.font='bold 17px Arial';ctx.fillText('\u6b66\u5668 \u25b8 '+['\u6563\u5c04','\u96c6\u4e2d','\u8ffd\u8e2a'][weaponMode]+' (Z)',240,wmby+6);
+  // 双倍得分提示
+  if(scoreMultTimer>0){ctx.textAlign='right';ctx.fillStyle='#ff0';ctx.font='bold 16px Arial';ctx.fillText('\u00d72 \u5f97\u5206!',470,28);ctx.textAlign='left';}
   // 炸弹/技能全屏闪光（已移除，保留bombFx逻辑仅用于数值效果）
 }
 
@@ -2610,7 +2624,8 @@ function draw(){
     function pbtn(cx,cy,w,h,label,col){var x=cx-w/2,y=cy-h/2;ctx.fillStyle=col;ctx.strokeStyle='#0ff';ctx.lineWidth=2;ctx.shadowColor='#0ff';ctx.shadowBlur=8;drawRoundedRect(x,y,w,h,10);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='bold '+UF(22)+'px Arial';ctx.textAlign='center';ctx.fillText(label,cx,cy+8);}
     pbtn(240,240,UWw(220),UH(48),'\u25B6 继续游戏','rgba(0,120,200,0.9)');
     pbtn(240,312,UWw(220),UH(48),'\u21BB 重新开始','rgba(120,40,120,0.9)');
-    pbtn(240,384,UWw(220),UH(48),'\u2302 返回主菜单','rgba(180,20,20,0.9)');
+    pbtn(240,384,UWw(220),UH(48),'\u2630 选择关卡','rgba(0,160,120,0.9)');
+    pbtn(240,456,UWw(220),UH(48),'\u2302 返回主菜单','rgba(180,20,20,0.9)');
     ctx.textAlign='center';
     // === 音乐控制区 ===
     // BGM 开关（媒体按钮：⏸暂停 / ▶播放）
