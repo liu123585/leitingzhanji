@@ -75,10 +75,10 @@ var bls=[],ens=[],pts=[],pws=[],drs=[],stars=[],lasers=[],wingLasers=[],et=0,df=
 var wave=0,waveEnemies=0,waveMax=0,spawnTimer=0,bossWarningTimer=0;
 // === 整体节奏加速参数（一处调全局）===
 var PBULLET_SPEED=2.0;  // 玩家子弹移动速度倍率（保持较快离场，避免滞留堆积卡顿）
-var EBULLET_SPEED=0.72;// 敌人子弹移动速度倍率（明显放慢，更好躲）
-var ENEMY_SPD_MUL=0.8;  // 敌机下落速度倍率（更慢，反应时间更长）
-var SPAWN_MUL=0.9;      // 刷怪间隔倍率（越大越稀疏，降低密度）
-var ENEMY_FIRE_MUL=1.4; // 敌机开火间隔倍率（>1=开火更慢，整体节奏更舒缓）
+var EBULLET_SPEED=0.6;  // 敌人子弹移动速度倍率（进一步放慢，更好躲）
+var ENEMY_SPD_MUL=0.7;  // 敌机下落速度倍率（更慢，反应时间更长）
+var SPAWN_MUL=1.1;      // 刷怪间隔倍率（越大越稀疏，降低密度）
+var ENEMY_FIRE_MUL=2.0; // 敌机开火间隔倍率（>1=开火更慢，整体节奏更舒缓）
 // 立即生成大 Boss（预警期间玩家点击/触摸时调用，或倒计时归零时自动调用）
 function spawnBoss(){if(bossWarningTimer<=0&&state!='playing')return;bossWarningTimer=0;var lv=getLv();var count=currentLevel>=30?4:currentLevel>=20?3:currentLevel>=10?2:1;for(var i=0;i<count;i++){var bb=BIGBOSSES[((currentLevel-1)+i)%BIGBOSSES.length];var bossHP=Math.round(lv.bossHp*bb.hpMul);var e={x:240+(i-(count-1)/2)*60,y:-60-i*30,vx:0,vy:1.2,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:i*10,phase:1,abilities:bb};if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;ens.push(e);}wShield=1+tl('shield');if(gameMode=='dual')p2wShield=1+tl('shield');play('shield');var fn=BIGBOSSES[(currentLevel-1)%BIGBOSSES.length].name;if(count>=3)speakText('大 boss 集群降临！',0.9,1.3);else if(count==2)speakText('两名大 boss 降临！',0.9,1.3);else speakBossArrival(fn,true);}
 // BOSS挑战：直接生成一个Boss（跳过小兵）
