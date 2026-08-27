@@ -646,7 +646,7 @@ function init(lvl){
   tone(80,0.3,'sawtooth',0.25);
   // 清空上局残留实体与波次状态（关键：必须重置 wave，否则上一关结束时的 wave 会带入新关卡，导致进第二关直接判定胜利）
   bls.length=0;ens.length=0;pws.length=0;pts.length=0;drs.length=0;
-  wave=0;waveEnemies=0;waveMax=0;spawnTimer=0;bossWarningTimer=0;dropTimer=0;enterMsgTimer=0;
+  wave=0;waveEnemies=0;waveMax=0;spawnTimer=0;bossWarningTimer=0;dropTimer=0;enterMsgTimer=0;countdownTimer=0;bossRushTimer=0;
   // 直接进入游戏（去掉开场倒计时黑屏，开局有短无敌保护）
   state='playing';
 }
