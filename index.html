@@ -24,6 +24,10 @@ ctx.scale(DPR,DPR);
 // 全局限制 shadowBlur 上限（Canvas 阴影模糊是 GPU 最大开销）
 try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(_sd&&_sd.set){Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,enumerable:true,get:function(){return _sd.get.call(this);},set:function(v){_sd.set.call(this,Math.min(v,6));}});}}catch(e){}
 var state='menu',score=0,hs=0,combo=0,mcombo=0,shake=0,shakeMag=0,gameMode='single';
+var hitstop=0;          // 命中定格（卡肉感）：>0 时本帧跳过部分更新
+var killFlash=0;        // 击杀白闪强度（0~1，逐帧衰减）
+var winFlash=0;         // 通关全屏金色闪光强度（0~1，逐帧衰减）
+var winShakeDone=false; // 通关震动是否已触发（避免每帧重复震）
 // === 受击反馈：按攻击类型区分震屏强度 + 屏幕边缘受击氛围 ===
 var hitFx=0;            // 边缘受击氛围强度（0~1，逐帧衰减）
 var hitFxColor='255,0,0'; // 当前受击氛围颜色（rgb 字符串）
@@ -78,7 +82,7 @@ function spawnBossRushBoss(){
   if(bossRushRound%10==0)speakText('Boss '+bb.name+' 降临！',0.9,1.3);
   else speakBossArrival(bb.name,true);
 }
-var currentLevel=1,unlockedLevels=1,dropTimer=0,selectedLevel=0,pageSel=0;
+var currentLevel=1,unlockedLevels=1,dropTimer=0,selectedLevel=0,pageSel=0,lastPlayedLevel=0;
 // === 存档版本：旧档自动重置进度（天赋/关卡/通关记录），保留皮肤与音量偏好 ===
 (function(){
   try{
@@ -208,6 +212,8 @@ try{
   unlockedLevels=+(localStorage.getItem('tul'))||1;
   if(unlockedLevels<1)unlockedLevels=1;
   if(unlockedLevels>TOTAL_LEVELS)unlockedLevels=TOTAL_LEVELS;
+  lastPlayedLevel=+(localStorage.getItem('tlp'))||0; // 上次游玩的关卡，0 表示无记录
+  if(lastPlayedLevel<1||lastPlayedLevel>unlockedLevels)lastPlayedLevel=0;
   gameMode=localStorage.getItem('tgm')||'single';
   sfxVolume=+(localStorage.getItem('tsv')||0.35);
   bgmVolume=+(localStorage.getItem('tbv')||0.95);
@@ -378,9 +384,9 @@ sfx.enemyHit=function(){noise(0.04,0.05);tone(300,0.03,'square',0.02);};
 // 三种敌人不同击杀音效
 sfx.killS=function(){tone(880,0.06,'triangle',0.05);setTimeout(function(){tone(1320,0.05,'triangle',0.04);},35);};
 sfx.killM=function(){tone(523,0.07,'square',0.05);setTimeout(function(){tone(784,0.06,'square',0.04);},40);setTimeout(function(){tone(392,0.05,'sawtooth',0.03);},80);};
-sfx.killL=function(){tone(262,0.1,'sawtooth',0.06);setTimeout(function(){tone(392,0.09,'square',0.05);},50);setTimeout(function(){tone(196,0.12,'triangle',0.04);},100);};
-sfx.bossKill=function(){noise(0.4,0.14);tone(70,0.5,'sawtooth',0.1);tone(110,0.35,'square',0.07);setTimeout(function(){tone(160,0.25,'triangle',0.06);},120);setTimeout(function(){tone(220,0.2,'square',0.05);},260);};
-sfx.levelComplete=function(){var s=[523,659,784,1047];for(var i=0;i<s.length;i++)setTimeout(function(n){tone(s[n],0.22,'triangle',0.07);tone(s[n]/2,0.22,'sine',0.04);}(i),i*140);};
+sfx.killL=function(){noise(0.07,0.07);tone(140,0.12,'sawtooth',0.09);setTimeout(function(){tone(262,0.1,'sawtooth',0.06);},20);setTimeout(function(){tone(392,0.09,'square',0.05);},50);setTimeout(function(){tone(196,0.12,'triangle',0.04);},100);};
+sfx.bossKill=function(){noise(0.5,0.18);tone(55,0.6,'sawtooth',0.13);tone(82,0.45,'square',0.09);setTimeout(function(){tone(110,0.3,'sawtooth',0.07);},60);setTimeout(function(){tone(160,0.25,'triangle',0.06);},120);setTimeout(function(){tone(220,0.2,'square',0.05);},260);};
+sfx.levelComplete=function(){noise(0.25,0.12);var s=[523,659,784,1047];for(var i=0;i<s.length;i++)setTimeout(function(n){tone(s[n],0.24,'triangle',0.08);tone(s[n]/2,0.24,'sine',0.05);}(i),i*130);setTimeout(function(){tone(1318,0.5,'triangle',0.07);},560);};
 sfx.gameOver=function(){var s=[392,330,262,196];for(var i=0;i<s.length;i++)setTimeout(function(n){tone(s[n],0.3,'sawtooth',0.06);}(i),i*180);};
 sfx.powerUp=function(){var s=[523,659,784,1047];for(var i=0;i<s.length;i++)setTimeout(function(n){tone(s[n],0.09,'sine',0.05);}(i),i*45);};
 sfx.airdrop=function(){var s=[392,523,659,784];for(var i=0;i<s.length;i++)setTimeout(function(n){tone(s[n],0.12,'triangle',0.05);}(i),i*60);};
@@ -437,8 +443,11 @@ function speakBossDown(name,isBig){
 }
 // 统一的 Boss 被击败处理：音效 + 爆炸特效 + 连击 + 语音播报（三处击杀共用，避免重复触发）
 function onBossDefeated(e,x,y,isBig,bonus){
-  play('bossKill');shake=15;shakeMag=12;
+  play('bossKill');shake=22;shakeMag=16;winFlash=1; // 强烈屏震 + 金闪
   boom(x,y,'#f0f',40);boom(x,y,'#ff0',30);boom(x,y,'#fff',20);
+  // 额外冲击波粒子环（打击感拉满）
+  for(var _ri=0;_ri<40;_ri++){var _a=_ri/40*6.283,_sp=2+Math.random()*6;pts.push({x:x,y:y,vx:Math.cos(_a)*_sp,vy:Math.sin(_a)*_sp,life:30+Math.random()*30,cl:['#ff0','#f0f','#fff','#0ff'][Math.floor(Math.random()*4)],sz:1+Math.random()*3});}
+  hitstop=isBig?14:9; // Boss 倒下时明显卡肉
   score+=200+(bonus>0?50:0);vcComboKill();
   speakBossDown(e.name,isBig); // 大小 boss 都播报语音
 }
@@ -975,6 +984,10 @@ function handleClick(mx,my){try{
   ensureAudio();   // 任意首次点击（菜单/关卡/游戏内）都在此手势里解锁音频并启动 BGM
   if(mobileMsgTimer>0){mobileMsgTimer=0;return;}
   if(state=='menu'){
+    // 继续游戏（自动续玩上次关卡）
+    if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels&&my>217&&my<267&&mx>110&&mx<370){
+      play('menuClick');selectedLevel=lastPlayedLevel;try{localStorage.setItem('tlp',lastPlayedLevel);}catch(e){}init(selectedLevel);return;
+    }
     // 按钮中心=300+58*idx，半高≈26，偏移±2容差
     if(my>274&&my<326&&mx>180&&mx<360){play('menuClick');gameMode='single';try{localStorage.setItem('tgm','single');}catch(e){}gotoLevelSelect();}
     else if(my>332&&my<384&&mx>140&&mx<340){play('menuClick');transitionTo('diy');}
@@ -1105,6 +1118,14 @@ function update(){
   if(shake>0){shakeMag*=0.85;shake--;if(shake<=0)shakeMag=0;}
   if(hitFx>0)hitFx-=0.04;if(hitFx<0)hitFx=0;
   if(bombFx>0)bombFx-=0.04;if(bombFx<0)bombFx=0;
+  if(killFlash>0)killFlash-=0.08;if(killFlash<0)killFlash=0;
+  if(winFlash>0&&state!=='levelComplete')winFlash-=0.03;if(winFlash<0)winFlash=0;
+  // 命中定格（卡肉感）：本帧冻结敌人移动与射击，让打击更有重量
+  if(hitstop>0){hitstop--;
+    // 仍衰减屏幕特效，但跳过敌人/子弹推进，制造短暂"卡肉"
+    if(shake>0){shakeMag*=0.85;shake--;if(shake<=0)shakeMag=0;}
+    return;
+  }
   // novaStars cleanup (particles from any skill type)
   for(var ni=novaStars.length-1;ni>=0;ni--){var ns=novaStars[ni];ns.x+=ns.vx;ns.y+=ns.vy;ns.life--;if(ns.life<=0)novaStars.splice(ni,1);}
   // ---- 必杀动画更新（视觉效果+持续效果） ----
@@ -1270,7 +1291,22 @@ function update(){
         // Boss 重生：复活一次，不回满
         if(e.type=='boss'&&e.revive&&!e._revived){e.hp=e.maxHp*0.4;e.t=20;e._revived=true;play('bossWarning');pts.push({x:e.x,y:e.y-30,vy:-1,life:60,txt:'REVIVE!',cl:'#f44'});for(var ri=0;ri<30;ri++){var ra=Math.random()*6.2832,rs=1+Math.random()*5;pts.push({x:e.x,y:e.y,vx:Math.cos(ra)*rs,vy:Math.sin(ra)*rs-2,life:30+Math.random()*20,cl:['#f44','#f80','#ff0'][Math.floor(Math.random()*3)],sz:1+Math.random()*3});}break;}
         if(e.type=='boss'){onBossDefeated(e,e.x,e.y,e.isBig,dd>1?50:0);}
-        else{play(e.type=='s'?'killS':e.type=='m'?'killM':'killL');score+=10*Math.min(combo+1,10);combo++;if(combo>mcombo)mcombo=combo;boom(e.x,e.y,'#f80',10);boom(e.x,e.y,'#ff0',5);onKillHeal();vcComboKill();}
+        else{
+          play(e.type=='s'?'killS':e.type=='m'?'killM':'killL');
+          score+=10*Math.min(combo+1,10);combo++;if(combo>mcombo)mcombo=combo;
+          // 强打击感：多段爆炸 + 屏震 + 击杀白闪 + 命中定格（卡肉）+ 连击弹字
+          var mul=e.type=='l'?1.6:e.type=='m'?1.25:1;
+          boom(e.x,e.y,'#fff',Math.round(6*mul));
+          boom(e.x,e.y,'#ff0',Math.round(10*mul));
+          boom(e.x,e.y,'#f80',Math.round(14*mul));
+          if(shake<8){shake=8;shakeMag=7*mul;} // 小怪也来点震
+          killFlash=Math.max(killFlash,0.5);
+          hitstop=Math.max(hitstop,(e.type=='l'?5:e.type=='m'?3:2));
+          onKillHeal();vcComboKill();
+          // 击杀飘字（分数+连击）
+          var vargain=10*Math.min(combo,10);
+          pts.push({x:e.x,y:e.y-10,vy:-2.2,life:40,cl:combo>=10?'#ffd700':'#fff',sz:combo>=10?2.6:2,txt:'+'+vargain+(combo>1?'  x'+combo:'')});
+        }
         var sz=e.type=='s'?'s':e.type=='m'?'m':'l';spawnDrop(e.x,e.y,sz);ens.splice(j,1);break;}
       else{play('enemyHit');}}
   }}
@@ -1278,7 +1314,7 @@ function update(){
   for(var i=ens.length-1;i>=0;i--){var e=ens[i];e.y+=e.vy;e.x+=e.vx||0;if(e.t>0)e.t--;e.fireTimer++;if(e.type!='boss'){if(e.x<20)e.x=20;if(e.x>460)e.x=460;}
     // 敌机身体撞击玩家（与子弹命中共用护盾/掉血逻辑）
     var ehw=e.w/2+12;
-    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;if(hp<=0){state='over';play('gameOver');}}}}
+    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;shake=Math.max(shake,8);shakeMag=Math.max(shakeMag,7);hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');}}}}
     if(gameMode=='dual'&&Math.abs(e.x-p2x)<ehw&&Math.abs(e.y-p2y)<(e.h/2+14)){if(p2Invuln<=0){if(p2wShield>0){p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);p2Invuln=30;}else{p2hp--;play('playerHit');applyHit(HIT_RAM);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}}}
     if(state=='over')break;
     if(e.type=='boss'){
@@ -1437,8 +1473,12 @@ function update(){
       try{var key='trk_'+currentLevel;var prev=localStorage.getItem(key)||'D';var order={'S':4,'A':3,'B':2,'C':1,'D':0};if((order[rk]||0)>(order[prev]||0))localStorage.setItem(key,rk);}catch(e){}
       if(currentLevel>=unlockedLevels&&currentLevel<TOTAL_LEVELS){unlockedLevels=currentLevel+1;try{localStorage.setItem('tul',unlockedLevels);}catch(e){}}
       if(score>hs){hs=score;try{localStorage.setItem('ths',hs);}catch(e){}}
+      // 记录"上次游玩关卡"，下次同一设备自动续玩（最后一关或已通过的关）
+      try{lastPlayedLevel=Math.min(currentLevel+1,unlockedLevels);localStorage.setItem('tlp',lastPlayedLevel);}catch(e){}
       // 发放天赋点（每次通关都给，难度越高越多；首次打通全40关正好点满）
       var tpGain=getTpReward(currentLevel);talentPoints+=tpGain;lastTpGain=tpGain;saveTalents();
+      // 通关强烈反馈：金闪 + 大屏震 + 上扬音效
+      winFlash=1;shake=18;shakeMag=13;
       play('levelComplete');
     }
   }
@@ -1483,6 +1523,16 @@ function drawMenu(){
   // 胶囊按钮通用绘制（所有主菜单按钮统一尺寸：宽260 高50 圆角12）
   function pill(x,y,w,h,fill,stroke,glow,label,lf){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.shadowColor=glow;ctx.shadowBlur=14;drawRoundedRect(x-w/2,y-h/2,w,h,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=lf;ctx.font='bold 22px Arial';ctx.fillText(label,x,y+8);}
   var BW=260,BH=50,BY=300,BG=58; // 统一按钮宽/高/起始Y/间距
+  // 继续游戏（自动续玩上次关卡，仅当有过游玩记录时显示）
+  if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels){
+    ctx.save();
+    var pulse=0.5+0.5*Math.sin(nebulaTime*4);
+    ctx.shadowColor='#ffd700';ctx.shadowBlur=18+10*pulse;
+    ctx.fillStyle='rgba(210,150,0,'+(0.78+0.12*pulse)+')';ctx.strokeStyle='#ffd700';ctx.lineWidth=2.5;
+    drawRoundedRect(240-BW/2,BY-58-BH/2,BW,BH,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle='#fff';ctx.font='bold 22px Arial';ctx.fillText('\u25B6 继续游戏 ('+lastPlayedLevel+'关)',240,BY-58+8);
+    ctx.restore();
+  }
   pill(240,BY+BG*0,BW,BH,'rgba(0,120,200,0.85)','#0ff','#0ff','\u25B6 闯关模式','#fff');
   pill(240,BY+BG*1,BW,BH,'rgba(120,40,120,0.85)','#f0f','#f0f','\u2708 战机DIY','#fcf');
   pill(240,BY+BG*2,BW,BH,'rgba(180,20,20,0.85)','#f44','#f44','\u2620 BOSS挑战','#fcc');
@@ -2654,6 +2704,14 @@ function draw(){
   }
   // Fade overlay
   if(fadeAlpha>0){ctx.fillStyle='rgba(0,0,0,'+fadeAlpha+')';ctx.fillRect(0,0,480,720);}
+  // 击杀白闪（命中定格同时触发的屏幕反馈，强化打击感）
+  if(killFlash>0&&state=='playing'){
+    ctx.fillStyle='rgba(255,255,255,'+(killFlash*0.35)+')';ctx.fillRect(0,0,480,720);
+  }
+  // 通关金色全屏闪光
+  if(winFlash>0&&(state=='levelComplete')){
+    ctx.fillStyle='rgba(255,210,80,'+(winFlash*0.5)+')';ctx.fillRect(0,0,480,720);
+  }
   ctx.restore();
 }
 
