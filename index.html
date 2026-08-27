@@ -1613,8 +1613,8 @@ function drawMenu(){
   if(!_menuTitleGrad){_menuTitleGrad=ctx.createLinearGradient(0,120,0,180);_menuTitleGrad.addColorStop(0,'#9ef');_menuTitleGrad.addColorStop(0.5,'#0af');_menuTitleGrad.addColorStop(1,'#06c');}
   var tg=_menuTitleGrad;
   ctx.fillStyle=tg;ctx.font='bold '+UF(60)+'px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=35;ctx.fillText('雷 霆 战 机',240,170);ctx.shadowBlur=0;
-  ctx.shadowColor='#0af';ctx.shadowBlur=8;ctx.fillStyle='#7cf';ctx.font='bold 15px Arial';ctx.fillText('— 经 典 飞 行 射 击 —',240,205);ctx.shadowBlur=0;
-  ctx.fillStyle='#9ab';ctx.font=UF(17)+'px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,235);
+  ctx.shadowColor='#0af';ctx.shadowBlur=8;ctx.fillStyle='#7cf';ctx.font='bold 15px Arial';ctx.fillText('— 经 典 飞 行 射 击 —',240,192);ctx.shadowBlur=0;
+  ctx.fillStyle='#9ab';ctx.font=UF(17)+'px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,212);
 
   // 胶囊按钮通用绘制（所有主菜单按钮统一尺寸：宽260 高50 圆角12）
   function pill(x,y,w,h,fill,stroke,glow,label,lf){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.shadowColor=glow;ctx.shadowBlur=14;drawRoundedRect(x-w/2,y-h/2,w,h,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=lf;ctx.font='bold '+UF(22)+'px Arial';ctx.fillText(label,x,y+8);}
