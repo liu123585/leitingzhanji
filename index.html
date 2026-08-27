@@ -70,7 +70,7 @@ var needStart=false;
 var countdownTimer=0; // 开场倒计时帧数（240=4秒，0=未激活）
 var tutTimer=0; // 开局教程遮罩自动消失计时（帧数）
 var px,py,hp,mhp,pt,pi,playerInvuln=0,playerBurnTimer=0;
-var p2x,p2y,p2hp,p2mhp,p2pt,p2pi,p2Invuln=0,p2BurnTimer=0;
+
 var bls=[],ens=[],pts=[],pws=[],drs=[],stars=[],lasers=[],wingLasers=[],et=0,df=1,keys={};
 var wave=0,waveEnemies=0,waveMax=0,spawnTimer=0,bossWarningTimer=0;
 // === 整体节奏加速参数（一处调全局）===
@@ -80,7 +80,7 @@ var ENEMY_SPD_MUL=0.7;  // 敌机下落速度倍率（更慢，反应时间更�
 var SPAWN_MUL=1.1;      // 刷怪间隔倍率（越大越稀疏，降低密度）
 var ENEMY_FIRE_MUL=2.0; // 敌机开火间隔倍率（>1=开火更慢，整体节奏更舒缓）
 // 立即生成大 Boss（预警期间玩家点击/触摸时调用，或倒计时归零时自动调用）
-function spawnBoss(){if(bossWarningTimer<=0&&state!='playing')return;bossWarningTimer=0;var lv=getLv();var count=currentLevel>=30?4:currentLevel>=20?3:currentLevel>=10?2:1;for(var i=0;i<count;i++){var bb=BIGBOSSES[((currentLevel-1)+i)%BIGBOSSES.length];var bossHP=Math.round(lv.bossHp*bb.hpMul);var e={x:240+(i-(count-1)/2)*60,y:-60-i*30,vx:0,vy:1.2,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:i*10,phase:1,abilities:bb};if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;ens.push(e);}wShield=1+tl('shield');if(gameMode=='dual')p2wShield=1+tl('shield');play('shield');var fn=BIGBOSSES[(currentLevel-1)%BIGBOSSES.length].name;if(count>=3)speakText('大 boss 集群降临！',0.9,1.3);else if(count==2)speakText('两名大 boss 降临！',0.9,1.3);else speakBossArrival(fn,true);}
+function spawnBoss(){if(bossWarningTimer<=0&&state!='playing')return;bossWarningTimer=0;var lv=getLv();var count=currentLevel>=30?4:currentLevel>=20?3:currentLevel>=10?2:1;for(var i=0;i<count;i++){var bb=BIGBOSSES[((currentLevel-1)+i)%BIGBOSSES.length];var bossHP=Math.round(lv.bossHp*bb.hpMul);var e={x:240+(i-(count-1)/2)*60,y:-60-i*30,vx:0,vy:1.2,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:i*10,phase:1,abilities:bb};if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;ens.push(e);}wShield=1+tl('shield');play('shield');var fn=BIGBOSSES[(currentLevel-1)%BIGBOSSES.length].name;if(count>=3)speakText('大 boss 集群降临！',0.9,1.3);else if(count==2)speakText('两名大 boss 降临！',0.9,1.3);else speakBossArrival(fn,true);}
 // BOSS挑战：直接生成一个Boss（跳过小兵）
 function spawnBossRushBoss(){
   if(state!='playing')return;
@@ -113,25 +113,25 @@ var currentLevel=1,unlockedLevels=1,dropTimer=0,selectedLevel=0,pageSel=0,lastPl
   }catch(e){}
 })();
 var TOTAL_LEVELS=40;
-// 无尽模式专用
+// Boss Rush 专用
 var isBossRush=false,bossRushRound=0,bossRushHighScore=0,bossRushTimer=0,bossRushBossIdx=0;
-var wLevel=0,wMissile=0,wPower=1,wShield=0,wSlow=0,wHoming=0,wBack=0;
-var p2wLevel=0,p2wMissile=0,p2wPower=1,p2wShield=0,p2wSlow=0,p2wHoming=0,p2wBack=0;
+var wLevel=0,wMissile=0,wPower=1,wShield=0,wSlow=0,wHoming=0;
+
 // 战机两侧炮台：常驻独立武器，发射弧线追踪导弹（不依赖掉落属性）
 var turretCd=0;            // P1 炮台发射冷却
 var TURRET_INTERVAL=75;    // 约1.25秒一发
-var p2turretCd=0;          // P2 炮台发射冷却
+
 // 炮台基点（相对战机中心，左右机翼外侧，明显外移避免被机翼激光盖住）
 var TURRET_DX=48, TURRET_DY=-4;
 // 导弹被动冷却 + 护盾被动再生（受击掉盾后延迟自动补盾，有盾不刷新）
 var missileCd=0;
 var PASSIVE_MISSILE_INTERVAL=300;   // 基础约5秒一发（随天赋缩短）
 var shieldRegenCd=0;                // P1 护盾再生倒计时（仅在没有护盾时计时）
-var p2shieldRegenCd=0;              // P2 护盾再生倒计时
+
 function shieldRegenDelay(){return Math.max(60, 420 - tl('shield')*60);} // 天赋越高再生越快
 // 护盾破损（裂纹破碎）动画状态：受击吸收伤害时触发，绘制放射状裂痕+爆闪环
 var SHIELD_BREAK_DUR=30;
-var p1BreakT=0,p2BreakT=0,p1BreakLines=null,p2BreakLines=null;
+var p1BreakT=0,p1BreakLines=null;
 function triggerShieldBreak(isP2){
   var n=6+Math.floor(Math.random()*3), lines=[];
   for(var i=0;i<n;i++){
@@ -140,10 +140,10 @@ function triggerShieldBreak(isP2){
     while(d<len){x+=Math.cos(a)*step+(Math.random()-0.5)*9;y+=Math.sin(a)*step+(Math.random()-0.5)*9;segs.push({x:x,y:y});d+=step;}
     lines.push(segs);
   }
-  if(isP2){p2BreakT=SHIELD_BREAK_DUR;p2BreakLines=lines;}else{p1BreakT=SHIELD_BREAK_DUR;p1BreakLines=lines;}
+  p1BreakT=SHIELD_BREAK_DUR;p1BreakLines=lines;
 }
 function drawShieldBreakFx(isP2){
-  var T=isP2?p2BreakT:p1BreakT, L=isP2?p2BreakLines:p1BreakLines;
+  var T=p1BreakT, L=p1BreakLines;
   if(T<=0||!L)return;
   var k=T/SHIELD_BREAK_DUR;
   ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,k));
@@ -270,7 +270,7 @@ try{
   if(unlockedLevels>TOTAL_LEVELS)unlockedLevels=TOTAL_LEVELS;
   lastPlayedLevel=+(localStorage.getItem('tlp'))||0; // 上次游玩的关卡，0 表示无记录
   if(lastPlayedLevel<1||lastPlayedLevel>unlockedLevels)lastPlayedLevel=0;
-  gameMode=localStorage.getItem('tgm')||'single';
+  gameMode='single';
   sfxVolume=+(localStorage.getItem('tsv')||0.35);
   bgmVolume=+(localStorage.getItem('tbv')||0.95);
   sfxPack=localStorage.getItem('tsp')||'default';
@@ -704,19 +704,19 @@ function getLv(){return levelData[currentLevel-1];}
 function init(lvl){
   currentLevel=lvl||1;px=240;py=640;
   var tHp=12+tl('hp')*2;
-  mhp=tHp;hp=mhp;p2mhp=tHp;p2hp=tHp;
+  mhp=tHp;hp=mhp;
   maxBombs=3;bombs=maxBombs;
-  pt=0;pi=0;playerBurnTimer=0;p2x=240;p2y=680;p2pt=0;p2pi=0;p2BurnTimer=0;
-  wLevel=0;wMissile=0;wPower=2;wShield=0;wSlow=0;wHoming=0;wBack=0;
-  p2wLevel=0;p2wMissile=0;p2wPower=3;p2wShield=0;p2wSlow=0;p2wHoming=0;p2wBack=0;
+  pt=0;pi=0;playerBurnTimer=0;
+  wLevel=0;wMissile=0;wPower=2;wShield=0;wSlow=0;wHoming=0;
+
   // 护盾被动：开局即有一层护盾（层数由天赋决定），再生倒计时就绪
-  wShield=Math.min(3,1+Math.floor(tl('shield')/2));p2wShield=Math.min(3,1+Math.floor(tl('shield')/2));shieldRegenCd=0;p2shieldRegenCd=0;
-  novaUnlocked=tl('nova')>0;skillCds=new Array(ULT_SKILLS.length).fill(0);skinSkillCd=0;passiveLaserCd=0;skinSkillName=activeSkinSkill().name;turretCd=0;p2turretCd=0;missileCd=0;
+  wShield=Math.min(3,1+Math.floor(tl('shield')/2));shieldRegenCd=0;
+  novaUnlocked=tl('nova')>0;skillCds=new Array(ULT_SKILLS.length).fill(0);skinSkillCd=0;passiveLaserCd=0;skinSkillName=activeSkinSkill().name;turretCd=0;missileCd=0;
   // 重置必杀动画
  ultActive=false;burstTimer=0;slowTimer=0;vortexTimer=0;vortexPhase=0;slashTimer=0;slashPhase=0;empTimer=0;ultCracks=[];ultVortex=0;
  ultCloneActive=false;ultCloneTimer=0;ultClones=[];
   // 无敌
-  playerInvuln=150;if(gameMode=='dual')p2Invuln=150;
+  playerInvuln=150;
   // 通用音效基础
   noise(0.3,0.2);
   tone(80,0.3,'sawtooth',0.25);
@@ -750,7 +750,7 @@ function useSkinSkill(){
   var llife=WING_LASER_DUR*(1+0.2*ll);
   spawnWingLaser({owner:'p1',ref:null,side:-1,ang:-Math.PI/2,hostile:false,dmg:ld,life:llife,w:lw});
   spawnWingLaser({owner:'p1',ref:null,side:1,ang:-Math.PI/2,hostile:false,dmg:ld,life:llife,w:lw});
-  if(gameMode=='dual'){spawnWingLaser({owner:'p2',ref:null,side:-1,ang:-Math.PI/2,hostile:false,dmg:ld,life:llife,w:lw});spawnWingLaser({owner:'p2',ref:null,side:1,ang:-Math.PI/2,hostile:false,dmg:ld,life:llife,w:lw});}
+
   play('bossKill');
 }
 // 导弹被动：由天赋等级驱动（数量/伤害/间隔），始终触发，不依赖掉落
@@ -774,7 +774,6 @@ function firePassiveMissiles(){
     }
   }
   emit(px,py,true);
-  if(gameMode=='dual')emit(p2x,p2y,false);
 }
 function startWave(){
   wave++;var lv=getLv();
@@ -877,15 +876,15 @@ var MINIBOSSES=[
    fire:function(e){for(var k=-2;k<=2;k++){var a=-1.57+k*0.2;enemyBullet(e.x,e.y+10,Math.cos(a)*2.7,Math.sin(a)*2.7,4,1,false,true);}var al=Math.atan2(py-e.y,px-e.x);enemyBullet(e.x,e.y+10,Math.cos(al)*3.8,Math.sin(al)*3.8,4,1,false,true);}}
 ];
 function collectDropFor(i,isP1){
-  play('powerUp');var p=pws[i];var x=isP1?px:p2x,y=isP1?py:p2y;
-  var wL=isP1?wLevel:p2wLevel,wMis=isP1?wMissile:p2wMissile,wPow=isP1?wPower:p2wPower;
-  var wSh=isP1?wShield:p2wShield,wSl=isP1?wSlow:p2wSlow,hpv=isP1?hp:p2hp,mhpv=isP1?mhp:p2mhp;
-  if(p.type=='W'){wL=Math.min(3,wL+1);if(isP1)wLevel=wL;else p2wLevel=wL;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'散 Lv.'+wL,cl:'#0ff'});}
-  else if(p.type=='M'){wMis=Math.min(2,wMis+1);if(isP1)wMissile=wMis;else p2wMissile=wMis;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'导 Lv.'+wMis,cl:'#f80'});}
-  else if(p.type=='P'){wPow=Math.min(5,wPow+1);if(isP1)wPower=wPow;else p2wPower=wPow;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'火 Lv.'+wPow,cl:'#f44'});}
-  else if(p.type=='H'){hpv=Math.min(mhpv,hpv+2);if(isP1)hp=hpv;else p2hp=hpv;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'+2 血',cl:'#0f0'});}
-  else if(p.type=='S'){if(isP1)wShield=Math.min(3,wShield+1);else p2wShield=Math.min(3,p2wShield+1);pts.push({x:x,y:y,vy:-1.5,life:30,txt:'护盾+1!',cl:'#ff0'});}
-      else if(p.type=='D'){if(isP1)wSlow=300;else p2wSlow=300;}
+  play('powerUp');var p=pws[i];var x=px,y=py;
+  var wL=wLevel,wMis=wMissile,wPow=wPower;
+  var wSh=wShield,wSl=wSlow,hpv=hp,mhpv=mhp;
+  if(p.type=='W'){wL=Math.min(3,wL+1);wLevel=wL;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'散 Lv.'+wL,cl:'#0ff'});}
+  else if(p.type=='M'){wMis=Math.min(2,wMis+1);wMissile=wMis;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'导 Lv.'+wMis,cl:'#f80'});}
+  else if(p.type=='P'){wPow=Math.min(5,wPow+1);wPower=wPow;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'火 Lv.'+wPow,cl:'#f44'});}
+  else if(p.type=='H'){hpv=Math.min(mhpv,hpv+2);hp=hpv;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'+2 血',cl:'#0f0'});}
+  else if(p.type=='S'){wShield=Math.min(3,wShield+1);pts.push({x:x,y:y,vy:-1.5,life:30,txt:'护盾+1!',cl:'#ff0'});}
+      else if(p.type=='D'){wSlow=300;}
   else if(p.type=='T'){homingTimer=600;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'自动追踪 10s!',cl:'#0ff'});}
   else if(p.type=='B'){clearEnemyBullets('#0ff');pts.push({x:x,y:y,vy:-1.5,life:30,txt:'清屏!',cl:'#0ff'});}
   else if(p.type=='X'){scoreMultTimer=600;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'双倍得分 10s!',cl:'#ff0'});}
@@ -893,28 +892,27 @@ function collectDropFor(i,isP1){
 }
 function spawnAirdrop(){drs.push({x:40+Math.random()*400,y:-40,vy:0.6,hp:3,opened:false,t:0,boxW:30,boxH:30,sway:Math.random()*6.28});}
 function applyAirdropTo(x,y,tp){
-  var wL=tp?wLevel:p2wLevel,wMis=tp?wMissile:p2wMissile,wPow=tp?wPower:p2wPower,wSh=tp?wShield:p2wShield,wSl=tp?wSlow:p2wSlow,hpv=tp?hp:p2hp,mhpv=tp?mhp:p2mhp;
+  var wL=wLevel,wMis=wMissile,wPow=wPower,wSh=wShield,wSl=wSlow,hpv=hp,mhpv=mhp;
   var r=Math.random(),txt;
-  if(r<0.14){wL=Math.min(3,wL+1);txt='\u2605 散射+1 '+(tp?'P1':'P2');}
-  else if(r<0.27){wMis=Math.min(2,wMis+1);txt='\u2605 导弹+1 '+(tp?'P1':'P2');}
-  else if(r<0.40){wPow=Math.min(5,wPow+1);txt='\u2605 火力+1 '+(tp?'P1':'P2');}
-  else if(r<0.56){hpv=Math.min(mhpv,hpv+3);txt='\u2605 +3 血 '+(tp?'P1':'P2');}
-  else if(r<0.71){wSh=300;txt='\u2605 护盾 '+(tp?'P1':'P2');}
-  else if(r<0.84){wSl=300;txt='\u2605 减速 '+(tp?'P1':'P2');}
-  else if(r<0.92){wH=1;homingTimer=600;txt='\u2605 自动追踪 '+(tp?'P1':'P2');}
-  else{clearEnemyBullets('#fa0');txt='\u2605 清屏 '+(tp?'P1':'P2');}
-  if(tp){wLevel=wL;wMissile=wMis;wPower=wPow;wShield=wSh;wSlow=wSl;wHoming=wHoming;wBack=wBack;hp=hpv;}
-  else{p2wLevel=wL;p2wMissile=wMis;p2wPower=wPow;p2wShield=wSh;p2wSlow=wSl;p2wHoming=wHoming;p2wBack=wBack;p2hp=hpv;}
+  if(r<0.14){wL=Math.min(3,wL+1);txt='\u2605 散射+1';}
+  else if(r<0.27){wMis=Math.min(2,wMis+1);txt='\u2605 导弹+1';}
+  else if(r<0.40){wPow=Math.min(5,wPow+1);txt='\u2605 火力+1';}
+  else if(r<0.56){hpv=Math.min(mhpv,hpv+3);txt='\u2605 +3 血';}
+  else if(r<0.71){wSh=300;txt='\u2605 护盾';}
+  else if(r<0.84){wSl=300;txt='\u2605 减速';}
+  else if(r<0.92){homingTimer=600;txt='\u2605 自动追踪';}
+  else{clearEnemyBullets('#fa0');txt='\u2605 清屏';}
+  wLevel=wL;wMissile=wMis;wPower=wPow;wShield=wSh;wSlow=wSl;hp=hpv;
   pts.push({x:x,y:y,vy:-1.5,life:40,txt:txt,cl:'#fa0'});
 }
 function openAirdrop(i,fromP1){
   var d=drs[i];if(d.opened)return;play('airdrop');d.opened=true;
   boom(d.x,d.y,'#fa0',20);boom(d.x,d.y,'#fff',10);
-  if(gameMode=='dual'){applyAirdropTo(d.x,d.y,true);applyAirdropTo(d.x,d.y,false);}else{applyAirdropTo(d.x,d.y,true);}
+  applyAirdropTo(d.x,d.y,true);
   boom(d.x,d.y,'#0f0',15);
   setTimeout(function(){for(var j=0;j<drs.length;j++){if(drs[j]===d){drs.splice(j,1);break;}}},200);
 }
-function fireBullets(x,y,wLv,wMis,wPow,wSl,wHom,wBk,wSide,fromP1){
+function fireBullets(x,y,wLv,wMis,wPow,wSl,wHom,wSide,fromP1){
   play('shoot');var dmg=wPow,spread=wLv,fm=fromP1?1:2;
   // wHom=true 时子弹自动追踪最近敌人（限时追踪buff或高火力武器）
   function add(o){if(wHom){o.homing=true;o.turn=0.14;o.life=220;}bls.push(o);}
@@ -958,7 +956,7 @@ c.onclick=function(e){var r=c.getBoundingClientRect();handleClick((e.clientX-r.l
 var volDrag=0; // 0=无 1=音效 2=BGM（暂停界面拖动滑块）
 function setVolFromX(which,mx){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;if(which==1){sfxVolume=p;localStorage.setItem('tsv',p);tone(660,0.04,'sine',0.04);}else{bgmVolume=p;applyBgmVolume();localStorage.setItem('tbv',p);}}
 c.onmousedown=function(e){var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>628&&y<646&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>662&&y<680&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();uiDragLock=1;return;}}};
-c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(uiDragLock)return;if(state=='playing'&&gameMode!='dual'&&bossWarningTimer<=0){px=Math.round((e.clientX-r.left)*480/r.width);py=Math.round((e.clientY-r.top)*720/r.height);}};
+c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(uiDragLock)return;if(state=='playing'&&bossWarningTimer<=0){px=Math.round((e.clientX-r.left)*480/r.width);py=Math.round((e.clientY-r.top)*720/r.height);}};
 window.onmouseup=function(){uiDragLock=0;};
 c.onwheel=function(e){if(state!='talent')return;e.preventDefault();talentScroll+=e.deltaY*0.5;var maxS=Math.max(0,120+TALENTS.length*72+64-640);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;};
 window.onmouseup=function(){volDrag=0;};
@@ -1008,7 +1006,7 @@ c.ontouchstart=function(e){
     // 先检查游戏按钮
     if(handleGameButton(tx,ty)){buttonTouchId=t.identifier;continue;}
     // 直接触控移动玩家
-    if(gameMode!='dual'&&bossWarningTimer<=0){px=Math.round(tx);py=Math.round(ty);}
+    if(bossWarningTimer<=0){px=Math.round(tx);py=Math.round(ty);}
   }
 };
 c.ontouchmove=function(e){
@@ -1024,7 +1022,7 @@ c.ontouchmove=function(e){
       if(Math.abs(dy)>8){touchMoved=true;talentScroll-=dy*0.6;var maxS=Math.max(0,120+TALENTS.length*72+64-636);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;touchStartY=t.clientY;}
       continue;
     }
-    if(state!='playing'||gameMode=='dual'||bossWarningTimer>0)continue;
+    if(state!='playing'||bossWarningTimer>0)continue;
     // 直接触控移动玩家
     if(t.identifier!==buttonTouchId){
       px=Math.round(tx);py=Math.round(ty);
@@ -1312,54 +1310,35 @@ function update(){
     ens.push({x:40+Math.random()*400,y:-30,vx:(Math.random()-0.5)*0.5,vy:eSpd,hp:eHP,maxHp:eHP,type:eType,kind:ek,skin:(currentLevel+Math.floor(Math.random()*3))%6,w:eType=='s'?24:eType=='m'?32:40,h:eType=='s'?20:eType=='m'?28:36,t:0,fireTimer:Math.floor(Math.random()*30),mgBurst:0});
     waveEnemies++;spawnTimer=Math.max(7,Math.floor(lv.spawnSpeed*SPAWN_MUL)+Math.floor(Math.random()*14-7));
   }
-  if(gameMode=='dual'){
-    var spd1=4.5;
-    if(keys['a']){px-=spd1;}if(keys['d']){px+=spd1;}if(keys['w']){py-=spd1;}if(keys['s']){py+=spd1;}
-    px=Math.max(20,Math.min(460,px));py=Math.max(30,Math.min(700,py));
-    var spd2=4.5;
-    if(keys['ArrowLeft']){p2x-=spd2;}if(keys['ArrowRight']){p2x+=spd2;}
-    if(keys['ArrowUp']){p2y-=spd2;}if(keys['ArrowDown']){p2y+=spd2;}
-    p2x=Math.max(20,Math.min(460,p2x));p2y=Math.max(30,Math.min(700,p2y));
-    if(p2pt<=0){
-      var wL=p2wLevel;
-      var wMisN=p2wMissile+(wL>=2?1:0)+(wL>=4?1:0);
-      var wBkN=((p2wBack>0)||(wL>=4))?1:0;
-      var wSideN=(wL>=3?1:0)+(wL>=5?1:0);
-      var wHomN=(homingTimer>0)||(p2wPower>=4);
-      fireBullets(p2x,p2y,wL,wMisN,p2wPower,p2wSlow,wHomN,wBkN,wSideN);
-      p2pt=Math.max(3,5-wL);
-    }else p2pt--;
-  }else{
-    var spd=4.5;
-    if(keys['ArrowLeft']||keys['a']){px-=spd;}if(keys['ArrowRight']||keys['d']){px+=spd;}
-    if(keys['ArrowUp']||keys['w']){py-=spd;}if(keys['ArrowDown']||keys['s']){py+=spd;}
-    px=Math.max(20,Math.min(460,px));py=Math.max(30,Math.min(700,py));
-  }
+  var spd=4.5;
+  if(keys['ArrowLeft']||keys['a']){px-=spd;}if(keys['ArrowRight']||keys['d']){px+=spd;}
+  if(keys['ArrowUp']||keys['w']){py-=spd;}if(keys['ArrowDown']||keys['s']){py+=spd;}
+  px=Math.max(20,Math.min(460,px));py=Math.max(30,Math.min(700,py));
   if(pt<=0){
     var wL=wLevel;
     var wMisN=wMissile+(wL>=2?1:0)+(wL>=4?1:0);
-    var wBkN=((wBack>0)||(wL>=4))?1:0;
+    var wBkN=(wL>=4)?1:0;
     var wSideN=(wL>=3?1:0)+(wL>=5?1:0);
     var wHomN=(homingTimer>0)||(wPower>=4);
-    fireBullets(px,py,wL,wMisN,wPower,wSlow,wHomN,wBkN,wSideN);
+    fireBullets(px,py,wL,wMisN,wPower,wSlow,wHomN,wSideN);
     var baseCd=Math.max(3,5-wL);var cd=wSlow>0?1:Math.max(1,baseCd-tl('spd'));var od=hp/mhp<0.3?0.5:1;pt=Math.max(1,Math.round(cd*od));
   }else pt--;
-  for(var si=0;si<skillCds.length;si++)if(skillCds[si]>0)skillCds[si]--;if(playerInvuln>0)playerInvuln--;if(p2Invuln>0)p2Invuln--;
+  for(var si=0;si<skillCds.length;si++)if(skillCds[si]>0)skillCds[si]--;if(playerInvuln>0)playerInvuln--;
   if(passiveLaserCd>0)passiveLaserCd--;else{passiveLaserCd=PASSIVE_LASER_INTERVAL;useSkinSkill();}
   // 导弹被动：由天赋等级驱动，间隔随天赋缩短
   if(missileCd>0)missileCd--;else{var mi=Math.max(120,PASSIVE_MISSILE_INTERVAL-tl('missile')*30);missileCd=mi;firePassiveMissiles();}
   // 战机两侧炮台：每隔固定帧从左右机翼外侧发射弧线追踪导弹
   if(turretCd>0)turretCd--;else{turretCd=TURRET_INTERVAL;fireTurretMissile(px-TURRET_DX,py+TURRET_DY,-1,wPower,true);fireTurretMissile(px+TURRET_DX,py+TURRET_DY,1,wPower,true);}
-  if(gameMode=='dual'){if(p2turretCd>0)p2turretCd--;else{p2turretCd=TURRET_INTERVAL;fireTurretMissile(p2x-TURRET_DX,p2y+TURRET_DY,-1,wPower,false);fireTurretMissile(p2x+TURRET_DX,p2y+TURRET_DY,1,wPower,false);}}
+
   if(vcComboTimer>0){vcComboTimer--;if(vcComboTimer<=0)vcCombo=0;}
   if(vcComboPop>0)vcComboPop=Math.max(0,vcComboPop-0.07);
   if(bossRushTimer>0)bossRushTimer--;
   // 护盾被动再生：护盾为"层数"，受击逐层消耗；无盾时才计时，到时自动补一层；有盾不计时
   if(wShield<=0){if(shieldRegenCd>0)shieldRegenCd--;else{wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(px,py,'#ff0',12);}}
-  if(gameMode=='dual'){if(p2wShield<=0){if(p2shieldRegenCd>0)p2shieldRegenCd--;else{p2wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(p2x,p2y,'#ff0',12);}}}
+
   if(p1BreakT>0)p1BreakT--;
-  if(gameMode=='dual'&&p2BreakT>0)p2BreakT--;
-  if(wSlow>0)wSlow--;if(p2wSlow>0)p2wSlow--;if(scoreMultTimer>0)scoreMultTimer--;if(homingTimer>0)homingTimer--;
+
+  if(wSlow>0)wSlow--;if(scoreMultTimer>0)scoreMultTimer--;if(homingTimer>0)homingTimer--;
   // Player bullets hit enemies
   for(var i=bls.length-1;i>=0;i--){var b=bls[i];if(!b.pl)continue;
     if(b.homing){ // 追踪导弹：快速转向最近敌人
@@ -1405,7 +1384,7 @@ function update(){
     // 敌机身体撞击玩家（与子弹命中共用护盾/掉血逻辑）
     var ehw=e.w/2+12;
     if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak(false);playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');}}}}
-    if(gameMode=='dual'&&Math.abs(e.x-p2x)<ehw&&Math.abs(e.y-p2y)<(e.h/2+14)){if(p2Invuln<=0){if(p2wShield>0){p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);triggerShieldBreak(true);p2Invuln=30;}else{p2hp--;play('playerHit');applyHit(HIT_RAM);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}}}
+
     if(state=='over')break;
     if(e.type=='boss'){
       if(e.phase===undefined)e.phase=1;
@@ -1445,9 +1424,9 @@ function update(){
     var ebSpd2=b.pl?PBULLET_SPEED:(EBULLET_SPEED*(wSlow>0?0.5:1));
     b.x+=(b.vx||0)*ebSpd2;b.y+=(b.vy||0)*ebSpd2;if(b.y>750||b.x<-20||b.x>500||b.y<-20){bls.splice(i,1);continue;}
     var hitP1=Math.abs(b.x-px)<14&&Math.abs(b.y-py)<16;
-    var hitP2=gameMode=='dual'&&Math.abs(b.x-p2x)<14&&Math.abs(b.y-p2y)<16;
+
     if(hitP1){bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#0ff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak(false);}}
-    if(hitP2){bls.splice(i,1);if(p2Invuln>0){boom(p2x,p2y,'#0ff',6);}else if(p2wShield<=0){p2hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);p2pi=15;if(b.burn && !p2Invuln)p2BurnTimer=120;if(p2hp<=0){state='over';play('gameOver');break;}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);triggerShieldBreak(true);}}
+
   }
   // 激光束：每帧对穿过的敌人造成伤害
   for(var li=lasers.length-1;li>=0;li--){var L=lasers[li];L.life--;if(L.life<=0){lasers.splice(li,1);continue;}
@@ -1468,7 +1447,6 @@ function update(){
       var half=L.lw*0.5+8;
       var ddx=px-L.x,ddy=py-L.y;var tt=(ddx*Math.cos(L.ang)+ddy*Math.sin(L.ang));
       if(tt>=0&&tt<=L.len){var qx=L.x+Math.cos(L.ang)*tt,qy=L.y+Math.sin(L.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak(false);}}}}
-      if(gameMode=='dual'){var ddx2=p2x-L.x,ddy2=p2y-L.y;var tt2=(ddx2*Math.cos(L.ang)+ddy2*Math.sin(L.ang));if(tt2>=0&&tt2<=L.len){var qx2=L.x+Math.cos(L.ang)*tt2,qy2=L.y+Math.sin(L.ang)*tt2;if(Math.sqrt((p2x-qx2)*(p2x-qx2)+(p2y-qy2)*(p2y-qy2))<half){if(p2Invuln<=0){if(p2wShield<=0){p2hp--;play('playerHit');applyHit(HIT_LASER);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);triggerShieldBreak(true);}}}}}
     }
   }
   // 持久机翼激光：跟随飞机制造光束，长且粗，持续判定
@@ -1476,7 +1454,7 @@ function update(){
     if(W.owner!='enemy')W.life--;
     if(W.life<=0){wingLasers.splice(wi,1);continue;}
     if(W.owner=='p1'){W.x=px+W.side*18;W.y=py-10;}
-    else if(W.owner=='p2'){W.x=p2x+W.side*18;W.y=p2y-10;}
+
     else { // enemy：跟随其飞机；飞机已消失则移除
       var er=W.ref;var alive=false;for(var ei=0;ei<ens.length;ei++){if(ens[ei]===er){alive=true;break;}}
       if(!alive){wingLasers.splice(wi,1);continue;}
@@ -1498,7 +1476,7 @@ function update(){
         var half=W.w*0.5+8;
         var ddx=px-W.x,ddy=py-W.y;var tt=(ddx*Math.cos(W.ang)+ddy*Math.sin(W.ang));
         if(tt>=0&&tt<=W.len){var qx=W.x+Math.cos(W.ang)*tt,qy=W.y+Math.sin(W.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak(false);}}}}
-        if(gameMode=='dual'){var ddx2=p2x-W.x,ddy2=p2y-W.y;var tt2=(ddx2*Math.cos(W.ang)+ddy2*Math.sin(W.ang));if(tt2>=0&&tt2<=W.len){var qx2=W.x+Math.cos(W.ang)*tt2,qy2=W.y+Math.sin(W.ang)*tt2;if(Math.sqrt((p2x-qx2)*(p2x-qx2)+(p2y-qy2)*(p2y-qy2))<half){if(p2Invuln<=0){if(p2wShield<=0){p2hp--;play('playerHit');applyHit(HIT_LASER);p2pi=15;if(p2hp<=0){state='over';play('gameOver');}}else{p2wShield--;if(p2wShield<=0)p2shieldRegenCd=shieldRegenDelay();play('shield');boom(p2x,p2y,'#ff0',15);triggerShieldBreak(true);}}}}}
+
       }
     }
   }
@@ -1532,7 +1510,7 @@ function update(){
   // Power-ups（增强版：扩大吸引范围 + 增强吸引力，更容易捡到属性）
   for(var i=pws.length-1;i>=0;i--){var p=pws[i];p.t++;
     var tx=px,ty=py,tr=48;
-    if(gameMode=='dual'){var d1=Math.abs(p2x-p.x)+Math.abs(p2y-p.y);var d0=Math.abs(px-p.x)+Math.abs(py-p.y);if(d1<d0){tx=p2x;ty=p2y;}}
+
     if(p.y>200){var dx=tx-p.x,dy=ty-p.y,dl=Math.sqrt(dx*dx+dy*dy)||1;var sp=Math.min(6.5,1.8+dl*0.06);p.x+=dx/dl*sp;p.y+=dy/dl*sp;p.vy=0;}
     else {p.y+=p.vy; if(Math.abs(p.x-tx)>30){p.x+=(p.x>tx?-0.4:0.4);}}
     if(p.y>740){pws.splice(i,1);continue;}
@@ -1541,7 +1519,7 @@ function update(){
   // Airdrops（降落伞缓慢下落 + 轻微左右飘摆）
   for(var i=drs.length-1;i>=0;i--){var d=drs[i];d.y+=d.vy;d.t++;d.sway+=0.02;d.x+=Math.sin(d.sway)*0.4;if(d.x<20)d.x=20;if(d.x>460)d.x=460;if(d.y>730){drs.splice(i,1);continue;}
     if(Math.abs(d.x-px)<(d.boxW+20)/2&&Math.abs(d.y-py)<(d.boxH+20)/2){openAirdrop(i,true);continue;}
-    if(gameMode=='dual'&&Math.abs(d.x-p2x)<(d.boxW+20)/2&&Math.abs(d.y-p2y)<(d.boxH+20)/2){openAirdrop(i,false);}
+
   }
   // Particles
   for(var i=pts.length-1;i>=0;i--){var p=pts[i];p.life--;if(p.life<=0){pts.splice(i,1);continue;}if(p.vx!==void 0){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;}else p.y+=p.vy;}
@@ -1559,7 +1537,7 @@ function update(){
       if(hpRate>=0.8&&bombs>=maxBombs-1)rk='S';
       else if(hpRate>=0.5)rk='A';
       else if(hpRate>=0.25)rk='B';
-      if(gameMode=='dual'){var hp2=p2hp/p2mhp;hpRate=Math.min(hpRate,hp2);if(hpRate>=0.8&&bombs>=maxBombs-1)rk='S';else if(hpRate>=0.5)rk='A';else if(hpRate>=0.25)rk='B';}
+
       try{var key='trk_'+currentLevel;var prev=localStorage.getItem(key)||'D';var order={'S':4,'A':3,'B':2,'C':1,'D':0};if((order[rk]||0)>(order[prev]||0))localStorage.setItem(key,rk);}catch(e){}
       if(currentLevel>=unlockedLevels&&currentLevel<TOTAL_LEVELS){unlockedLevels=currentLevel+1;try{localStorage.setItem('tul',unlockedLevels);}catch(e){}}
       if(score>hs){hs=score;try{localStorage.setItem('ths',hs);}catch(e){}}
@@ -1579,8 +1557,8 @@ function update(){
   }
   // 玩家燃烧 DoT（被 boss 燃烧子弹击中后的持续掉血）
   if(playerBurnTimer>0){playerBurnTimer--;if(playerBurnTimer%20==0&&playerBurnTimer>0){hp--;play('playerHit');boom(px,py,'#f80',3);if(hp<=0){state='over';play('gameOver');}}}
-  if(p2BurnTimer>0){p2BurnTimer--;if(p2BurnTimer%20==0&&p2BurnTimer>0){p2hp--;play('playerHit');boom(p2x,p2y,'#f80',3);if(p2hp<=0){state='over';play('gameOver');}}}
-  if(pi>0)pi--;if(p2pi>0)p2pi--;
+
+  if(pi>0)pi--;
 }
 
 // === DRAW HELPERS ===
@@ -1639,7 +1617,7 @@ function drawMenu(){
   // 无尽模式最高分
   if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font=UF(16)+'px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
 
-  ctx.fillStyle='#556';ctx.font='16px Arial';ctx.fillText(gameMode=='dual'?'P1:WASD  P2:方向键 | 自动射击':'方向键/WASD/鼠标 | 自动射击',240,694);
+  ctx.fillStyle='#556';ctx.font='16px Arial';ctx.fillText('方向键/WASD/鼠标 | 自动射击',240,694);
   // 底部飞船
   ctx.save();ctx.translate(240,706);var sc=0.9+0.05*Math.sin(nebulaTime*3);ctx.scale(sc,sc);
   ctx.shadowColor='#0af';ctx.shadowBlur=10;ctx.fillStyle='#0af';
@@ -1865,22 +1843,15 @@ function drawHUD(){
     ctx.fillText('\u2620 '+(e.isBig?'\u5927 ':'')+(e.name||'BOSS')+'   '+Math.max(0,Math.ceil(e.hp))+' / '+e.maxHp,220,by+16);ctx.shadowBlur=0;bIdx++;
   }
   ctx.textAlign='left';
-  var bx=10,by=82,bw=gameMode=='dual'?120:160,bh=20;
+  var bx=10,by=82,bw=160,bh=20;
   ctx.fillStyle='#300';ctx.fillRect(bx,by,bw,bh);var hr=hp/mhp,hc=hr>0.5?'#0f0':hr>0.25?'#fa0':'#f00';
-  if(gameMode=='dual'){ctx.fillStyle='#039';ctx.fillRect(bx,by,bw,bh);hc=hr>0.5?'#0af':hr>0.25?'#f80':'#f00';}
+
   ctx.shadowColor=hc;ctx.shadowBlur=12;ctx.fillStyle=hc;ctx.fillRect(bx+2,by+2,(bw-4)*hr,bh-4);ctx.shadowBlur=0;
   ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(bx,by,bw,bh);
   ctx.fillStyle='#fff';ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
-  ctx.fillText('\u2764 '+(gameMode=='dual'?'P1 ':'')+hp+'/'+mhp,bx+bw/2,by+bh-5);ctx.shadowBlur=0;
-  if(gameMode=='dual'){
-    ctx.fillStyle='#030';ctx.fillRect(200,82,120,20);var h2r=p2hp/p2mhp,hc2=h2r>0.5?'#0f0':h2r>0.25?'#fa0':'#f00';
-    ctx.shadowColor=hc2;ctx.shadowBlur=12;ctx.fillStyle=hc2;ctx.fillRect(202,84,116*h2r,16);ctx.shadowBlur=0;
-    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(200,82,120,20);
-    ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
-    ctx.fillText('\u2764 P2 '+p2hp+'/'+p2mhp,260,97);ctx.shadowBlur=0;
-  }
+  ctx.fillText('\u2764 '+hp+'/'+mhp,bx+bw/2,by+bh-5);ctx.shadowBlur=0;
   // 天赋属性面板（左上角，HP下方）
-  var sy=gameMode=='dual'?174:124;
+  var sy=124;
   ctx.font='bold 18px Arial';ctx.textAlign='left';
   ctx.fillStyle='#fbb';ctx.fillText('\u2694 攻击 '+(1+tl('atk')*0.5).toFixed(1),10,sy);
   ctx.fillStyle='#9f9';ctx.fillText('\u2764 上限 '+mhp,120,sy);
@@ -1889,18 +1860,13 @@ function drawHUD(){
   ctx.fillStyle='#f9f';ctx.fillText('\u2728 吸血 Lv'+tl('leech'),110,sy+18);
   ctx.fillStyle='#ff9';ctx.fillText('\u25A3 护盾 Lv'+tl('shield'),210,sy+18);
   ctx.font='bold 17px Arial';var wx=10,wy=sy+38;
-  if(gameMode=='dual'){ctx.fillStyle='#0af';ctx.font='bold 15px Arial';ctx.fillText('P1',wx,wy);wx+=22;ctx.font='bold 17px Arial';}
+
   if(wLevel>0){ctx.fillStyle='#0ff';ctx.fillText('\u25A0 散'+wLevel,wx,wy);wx+=38;}
   if(wMissile>0){ctx.fillStyle='#f80';ctx.fillText('\u25A0 导'+wMissile,wx,wy);wx+=38;}
   if(wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+wPower,wx,wy);wx+=38;}
   if(wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+wShield,wx,wy);wx+=62;}
   // 减速效果不显示HUD提示
-  if(gameMode=='dual'){wx=10;wy=145;ctx.fillStyle='#0f0';ctx.font='bold 15px Arial';ctx.fillText('P2',wx,wy);wx+=22;ctx.font='bold 17px Arial';
-    if(p2wLevel>0){ctx.fillStyle='#0ff';ctx.fillText('\u25A0 散'+p2wLevel,wx,wy);wx+=38;}
-    if(p2wMissile>0){ctx.fillStyle='#f80';ctx.fillText('\u25A0 导'+p2wMissile,wx,wy);wx+=38;}
-    if(p2wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+p2wPower,wx,wy);wx+=38;}
-    if(p2wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+p2wShield,wx,wy);wx+=62;}
-  }
+
   ctx.fillStyle='#ffec3d';ctx.font='bold 24px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('\u5206\u6570 '+score,10,28);
   ctx.fillStyle='#7fd0ff';ctx.font='bold 18px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText(getLv().name,10,48);
   ctx.fillStyle='#e8e8e8';ctx.font='bold 19px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('连击 x'+combo,10,68);
@@ -2081,7 +2047,7 @@ function drawPlayerShip(x,y,isP2,flash){
   var sk=activeSkinColors();
   ctx.save();ctx.translate(x,y);
   if(flash){ctx.restore();return;}
-  if(sk.form>0){drawTurrets();drawFormShip(sk.form,isP2);drawShieldAura(isP2?p2wShield:wShield,isP2);drawShieldBreakFx(isP2);ctx.restore();return;}
+  if(sk.form>0){drawTurrets();drawFormShip(sk.form,isP2);drawShieldAura(wShield,isP2);drawShieldBreakFx(isP2);ctx.restore();return;}
   var body=sk.body,wg=sk.wg,shape=sk.shape,eye=sk.eye;
   if(isP2){var t=body;body=wg;wg=t;}
   var glow=body;
@@ -2128,13 +2094,13 @@ function drawPlayerShip(x,y,isP2,flash){
   // 左右机翼炮台（常驻追踪导弹发射器）
   drawTurrets();
   // 护盾光罩（有护盾时在战机周围显示，正版雷霆战机风格）
-  drawShieldAura(isP2?p2wShield:wShield,isP2);drawShieldBreakFx(isP2);
+  drawShieldAura(wShield,isP2);drawShieldBreakFx(isP2);
   ctx.restore();
 }
 // ===== 护盾光罩绘制（局部坐标，须在战机 translate 后、restore 前调用）=====
 function drawShieldAura(sh,isP2){
   if(!sh||sh<=0)return;               // 只按传入的护盾层数绘制
-  var _inv=isP2?p2Invuln:playerInvuln;
+  var _inv=playerInvuln;
   var _pulse=0.5+0.5*Math.sin(frameCount*0.12);            // 呼吸脉动
   var _hit=(_inv>0)?Math.min(1,_inv/30):0;                 // 受击/刚挡下时更亮
   var _rx=42+sh*3,_ry=54+sh*3;                             // 层数越多罩越大
@@ -2510,8 +2476,8 @@ function draw(){
   // 玩家燃烧视觉效果
   if(playerBurnTimer>0){var pba=0.4+0.3*Math.sin(frameCount*0.3);ctx.fillStyle='rgba(255,60,0,'+(pba*0.3)+')';ctx.beginPath();ctx.arc(px,py,22,0,6.28);ctx.fill();ctx.shadowColor='#f80';ctx.shadowBlur=20;ctx.fillStyle='rgba(255,120,0,0)';ctx.beginPath();ctx.arc(px,py,18,0,6.28);ctx.fill();ctx.shadowBlur=0;if(frameCount%3==0){var fa=Math.random()*6.2832,fs=0.3+Math.random()*1;pts.push({x:px+Math.cos(fa)*16,y:py+Math.sin(fa)*16-5,vx:Math.cos(fa)*fs*0.3,vy:-0.5-Math.random()*0.8,cl:['#f80','#ff0','#f44'][Math.floor(Math.random()*3)],life:8+Math.random()*6,sz:0.8+Math.random()*1.5});}}
   // Player 2
-  if(gameMode=='dual'){drawPlayerShip(p2x,p2y,true,(p2pi>0&&Math.floor(p2pi/3)%2==0));}
-  if(p2BurnTimer>0){var pba2=0.4+0.3*Math.sin(frameCount*0.3+1);ctx.fillStyle='rgba(255,60,0,'+(pba2*0.3)+')';ctx.beginPath();ctx.arc(p2x,p2y,22,0,6.28);ctx.fill();ctx.shadowColor='#f80';ctx.shadowBlur=20;ctx.fillStyle='rgba(255,120,0,0)';ctx.beginPath();ctx.arc(p2x,p2y,18,0,6.28);ctx.fill();ctx.shadowBlur=0;if(frameCount%3==0){var fa2=Math.random()*6.2832,fs2=0.3+Math.random()*1;pts.push({x:p2x+Math.cos(fa2)*16,y:p2y+Math.sin(fa2)*16-5,vx:Math.cos(fa2)*fs2*0.3,vy:-0.5-Math.random()*0.8,cl:['#f80','#ff0','#f44'][Math.floor(Math.random()*3)],life:8+Math.random()*6,sz:0.8+Math.random()*1.5});}}
+
+
   // Particles
   for(var i=0;i<pts.length;i++){var p=pts[i];
     if(p.txt){ctx.fillStyle=p.cl||'#fff';ctx.globalAlpha=p.life/30;ctx.font='bold 17px Arial';ctx.textAlign='center';ctx.fillText(p.txt,p.x,p.y);ctx.globalAlpha=1;continue;}
@@ -2680,7 +2646,7 @@ function draw(){
     ctx.fillStyle='#0af';drawRoundedRect(130,662,Math.max(9,200*bgmVolume),18,9);ctx.fill();
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(130+200*bgmVolume,671,11,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#555';ctx.font='16px Arial';ctx.textAlign='center';
-    ctx.fillText('ESC 继续游戏 | '+(gameMode=='dual'?'P1:WASD  P2:方向键':'方向键/WASD/鼠标/触屏'),240,700);
+    ctx.fillText('ESC 继续游戏 | 方向键/WASD/鼠标/触屏',240,700);
   }
   // Game Over（被打死结束）
   if(state=='over'){
