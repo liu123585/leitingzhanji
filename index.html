@@ -29,6 +29,7 @@ function _glowRGB(c){if(c&&c[0]=='#'){var h=c.slice(1);if(h.length==3)h=h[0]+h[0
 function glowSprite(col,r){if(r<1)r=1;var key=col+'|'+Math.round(r);var s=_glowCache[key];if(s)return s;var c=document.createElement('canvas');c.width=c.height=Math.ceil(r*2);var g=c.getContext('2d');var rgb=_glowRGB(col),cx=r;var rg=g.createRadialGradient(cx,cx,0,cx,cx,cx);rg.addColorStop(0,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.85)');rg.addColorStop(0.45,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.35)');rg.addColorStop(1,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0)');g.fillStyle=rg;g.beginPath();g.arc(cx,cx,cx,0,6.28);g.fill();_glowCache[key]=c;return c;}
 var state='menu',score=0,hs=0,combo=0,mcombo=0,gameMode='single';
 var hitstop=0;          // 命中定格（卡肉感）：>0 时本帧跳过部分更新
+var hitSndCd=0;          // 命中音效冷却（避免一梭子命中时单帧创建上百个音频节点导致卡顿）
 var winFlash=0;         // 通关全屏金色闪光强度（0~1，逐帧衰减）
 var winShakeDone=false;
 // === 受击反馈：按攻击类型区分震屏强度 + 屏幕边缘受击氛围 ===
@@ -1172,6 +1173,7 @@ function update(){
   if(state=='playing'){if(!tutorialSeen){tutTimer++;if(tutTimer>300){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}tutTimer=0;}}else tutTimer=0;}
   if(hitFx>0)hitFx-=0.04;if(hitFx<0)hitFx=0;
   if(bombFx>0)bombFx-=0.04;if(bombFx<0)bombFx=0;
+  if(hitSndCd>0)hitSndCd--;
   if(winFlash>0&&state!=='levelComplete')winFlash-=0.03;if(winFlash<0)winFlash=0;
   // 命中定格（卡肉感）：本帧冻结敌人移动与射击，让打击更有重量
   if(hitstop>0){hitstop--;
@@ -1353,15 +1355,15 @@ function update(){
           boom(e.x,e.y,'#fff',Math.round(6*mul));
           boom(e.x,e.y,'#ff0',Math.round(10*mul));
           boom(e.x,e.y,'#f80',Math.round(14*mul));
-          // 小怪震屏已禁用
-          hitstop=Math.max(hitstop,(e.type=='l'?5:e.type=='m'?3:2));
+          // 小怪震屏已禁用（小怪击杀不再定格，避免清怪群时一卡一卡；保留中/大/Boss 的打击感）
+          if(e.type!='s')hitstop=Math.max(hitstop,(e.type=='l'?4:2));
           onKillHeal();vcComboKill();
           // 击杀飘字（分数+连击）
           var vargain=10*Math.min(combo,10);
           pts.push({x:e.x,y:e.y-10,vy:-2.2,life:40,cl:combo>=10?'#ffd700':'#fff',sz:combo>=10?2.6:2,txt:'+'+vargain+(combo>1?'  x'+combo:'')});
         }
         var sz=e.type=='s'?'s':e.type=='m'?'m':'l';spawnDrop(e.x,e.y,sz);ens.splice(j,1);break;}
-      else{play('enemyHit');}}
+      else{if(hitSndCd<=0){play('enemyHit');hitSndCd=4;}}}
   }}
   // Enemy update
   for(var i=ens.length-1;i>=0;i--){var e=ens[i];e.y+=e.vy;e.x+=e.vx||0;if(e.t>0)e.t--;e.fireTimer++;if(e.type!='boss'){if(e.x<20)e.x=20;if(e.x>460)e.x=460;}
