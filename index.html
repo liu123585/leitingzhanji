@@ -22,7 +22,7 @@ function resizeCanvas(){var ww=window.innerWidth,wh=window.innerHeight;var ar=48
 resizeCanvas();window.addEventListener('resize',resizeCanvas);
 ctx.scale(DPR,DPR);
 // 全局限制 shadowBlur 上限（Canvas 阴影模糊是 GPU 最大开销）
-try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(_sd&&_sd.set){Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,enumerable:true,get:function(){return _sd.get.call(this);},set:function(v){_sd.set.call(this,Math.min(v,6));}});}}catch(e){}
+try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(_sd&&_sd.set){Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,enumerable:true,get:function(){return _sd.get.call(this);},set:function(v){_sd.set.call(this,0);}});}}catch(e){}
 // 预渲染发光精灵缓存：用 drawImage 替代实体上的 shadowBlur（shadowBlur 是 canvas 最大性能杀手）
 var _glowCache={};
 function _glowRGB(c){if(c&&c[0]=='#'){var h=c.slice(1);if(h.length==3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];var n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];}return [200,230,255];}
@@ -56,6 +56,7 @@ var novaRingAlpha=0;    // 环形冲击波透明度
 var novaStars=[];       // 星爆粒子数组
 var needStart=false;
 var countdownTimer=0; // 开场倒计时帧数（240=4秒，0=未激活）
+var tutTimer=0; // 开局教程遮罩自动消失计时（帧数）
 var px,py,hp,mhp,pt,pi,playerInvuln=0,playerBurnTimer=0;
 var p2x,p2y,p2hp,p2mhp,p2pt,p2pi,p2Invuln=0,p2BurnTimer=0;
 var bls=[],ens=[],pts=[],pws=[],drs=[],stars=[],lasers=[],wingLasers=[],et=0,df=1,keys={};
@@ -1134,6 +1135,7 @@ function handleClick(mx,my){try{
   }
   }
   if(state=='playing'){
+    if(!tutorialSeen){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}return;}
     // Boss 预警期间：任意点击/触摸立即出 Boss（不点则等倒计时自动出）
     if(bossWarningTimer>0){spawnBoss();return;}
     // 暂停按钮（右上角）
@@ -1167,6 +1169,7 @@ function update(){
   frameCount++;nebulaTime+=0.002;
   for(var i=0;i<stars.length;i++){var s=stars[i];s.y+=s.v;if(s.y>720){s.y=0;s.x=Math.random()*480;s.ph=Math.random()*6.28;}s.ph+=0.05;s.twinkle=0.5+0.5*Math.sin(s.ph);}
   if(fadeDir>0){fadeAlpha+=0.03;if(fadeAlpha>=1){if(!tutorialSeen){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}}fadeDir=-1;}}else if(fadeDir<0){fadeAlpha-=0.03;if(fadeAlpha<=0){fadeDir=0;fadeAlpha=0;}}
+  if(state=='playing'){if(!tutorialSeen){tutTimer++;if(tutTimer>300){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}tutTimer=0;}}else tutTimer=0;}
   if(hitFx>0)hitFx-=0.04;if(hitFx<0)hitFx=0;
   if(bombFx>0)bombFx-=0.04;if(bombFx<0)bombFx=0;
   if(winFlash>0&&state!=='levelComplete')winFlash-=0.03;if(winFlash<0)winFlash=0;
