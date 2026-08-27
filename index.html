@@ -74,10 +74,10 @@ var p2x,p2y,p2hp,p2mhp,p2pt,p2pi,p2Invuln=0,p2BurnTimer=0;
 var bls=[],ens=[],pts=[],pws=[],drs=[],stars=[],lasers=[],wingLasers=[],et=0,df=1,keys={};
 var wave=0,waveEnemies=0,waveMax=0,spawnTimer=0,bossWarningTimer=0;
 // === 整体节奏加速参数（一处调全局）===
-var PBULLET_SPEED=1.6;  // 玩家子弹移动速度倍率（降低，避免画面过花）
-var EBULLET_SPEED=0.85; // 敌人子弹移动速度倍率（减慢，更易看清）
-var ENEMY_SPD_MUL=0.85; // 敌机下落速度倍率（整体节奏放缓）
-var SPAWN_MUL=0.85;     // 刷怪间隔倍率（越大越稀疏，减少密度）
+var PBULLET_SPEED=2.0;  // 玩家子弹移动速度倍率（适中：能看清，又不因停留过久而卡）
+var EBULLET_SPEED=1.0;  // 敌人子弹移动速度倍率（适中：更快离场，减少同屏子弹数）
+var ENEMY_SPD_MUL=0.95; // 敌机下落速度倍率（略放缓，保留反应时间）
+var SPAWN_MUL=0.78;     // 刷怪间隔倍率（越大越稀疏）
 // 立即生成大 Boss（预警期间玩家点击/触摸时调用，或倒计时归零时自动调用）
 function spawnBoss(){if(bossWarningTimer<=0&&state!='playing')return;bossWarningTimer=0;var lv=getLv();var count=currentLevel>=30?4:currentLevel>=20?3:currentLevel>=10?2:1;for(var i=0;i<count;i++){var bb=BIGBOSSES[((currentLevel-1)+i)%BIGBOSSES.length];var bossHP=Math.round(lv.bossHp*bb.hpMul);var e={x:240+(i-(count-1)/2)*60,y:-60-i*30,vx:0,vy:1.2,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:i*10,phase:1,abilities:bb};if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;ens.push(e);}wShield=1+tl('shield');if(gameMode=='dual')p2wShield=1+tl('shield');play('shield');var fn=BIGBOSSES[(currentLevel-1)%BIGBOSSES.length].name;if(count>=3)speakText('大 boss 集群降临！',0.9,1.3);else if(count==2)speakText('两名大 boss 降临！',0.9,1.3);else speakBossArrival(fn,true);}
 // BOSS挑战：直接生成一个Boss（跳过小兵）
@@ -795,7 +795,7 @@ function startWave(){
   if(wave!=lv.waveCount&&wave%5!=0)waveEnemies=0;
   spawnTimer=wave==1?15:35;
 }
-function boom(x,y,c,n){n=Math.min(n,25);for(var i=0;i<n;i++){var a=Math.random()*6.28,s=Math.random()*3+1;pts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:25+Math.random()*20,cl:c,sz:0.5+Math.random()*3});}}
+function boom(x,y,c,n){n=Math.min(n,14);for(var i=0;i<n;i++){var a=Math.random()*6.28,s=Math.random()*3+1;pts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:25+Math.random()*20,cl:c,sz:0.5+Math.random()*3});}}
 
 var pwTypes=[
   {id:'W',disp:'散',color:'#0ff'},{id:'M',disp:'导',color:'#f80'},
@@ -885,7 +885,7 @@ function collectDropFor(i,isP1){
   else if(p.type=='S'){if(isP1)wShield=Math.min(3,wShield+1);else p2wShield=Math.min(3,p2wShield+1);pts.push({x:x,y:y,vy:-1.5,life:30,txt:'护盾+1!',cl:'#ff0'});}
       else if(p.type=='D'){if(isP1)wSlow=300;else p2wSlow=300;}
   else if(p.type=='T'){homingTimer=600;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'自动追踪 10s!',cl:'#0ff'});}
-  else if(p.type=='B'){if(isP1)wBack=1;else p2wBack=1;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'向后射击!',cl:'#0ff'});}
+  else if(p.type=='B'){clearEnemyBullets('#0ff');pts.push({x:x,y:y,vy:-1.5,life:30,txt:'清屏!',cl:'#0ff'});}
   else if(p.type=='X'){scoreMultTimer=600;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'双倍得分 10s!',cl:'#ff0'});}
   boom(x,y,'#fff',10);pws.splice(i,1);
 }
@@ -900,7 +900,7 @@ function applyAirdropTo(x,y,tp){
   else if(r<0.71){wSh=300;txt='\u2605 护盾 '+(tp?'P1':'P2');}
   else if(r<0.84){wSl=300;txt='\u2605 减速 '+(tp?'P1':'P2');}
   else if(r<0.92){wH=1;homingTimer=600;txt='\u2605 自动追踪 '+(tp?'P1':'P2');}
-  else{wB=1;wBack=wB;txt='\u2605 向后射击 '+(tp?'P1':'P2');}
+  else{clearEnemyBullets('#fa0');txt='\u2605 清屏 '+(tp?'P1':'P2');}
   if(tp){wLevel=wL;wMissile=wMis;wPower=wPow;wShield=wSh;wSlow=wSl;wHoming=wHoming;wBack=wBack;hp=hpv;}
   else{p2wLevel=wL;p2wMissile=wMis;p2wPower=wPow;p2wShield=wSh;p2wSlow=wSl;p2wHoming=wHoming;p2wBack=wBack;p2hp=hpv;}
   pts.push({x:x,y:y,vy:-1.5,life:40,txt:txt,cl:'#fa0'});
@@ -925,12 +925,10 @@ function fireBullets(x,y,wLv,wMis,wPow,wSl,wHom,wBk,wSide,fromP1){
   // 侧射：高武器等级解锁，向左右横向扫射
   if(wSide>=1){add({x:x-22,y:y,vx:-6,vy:-1,d:dmg,w:3,h:10,pl:true,from:fm});add({x:x+22,y:y,vx:6,vy:-1,d:dmg,w:3,h:10,pl:true,from:fm});}
   if(wSide>=2){add({x:x-30,y:y-4,vx:-7,vy:-2,d:dmg,w:3,h:10,pl:true,from:fm});add({x:x+30,y:y-4,vx:7,vy:-2,d:dmg,w:3,h:10,pl:true,from:fm});}
-  // 向后射击：从机身下方发射朝下子弹（攻击追尾的敌人/高等级自动带）
-  if(wBk>0){
-    var back={x:x,y:y+14,vx:0,vy:8,d:dmg,w:4,h:14,pl:true,from:fm,back:true};add(back);
-    if(spread>=1){add({x:x-7,y:y+12,vx:-0.4,vy:7.2,d:dmg,w:3,h:11,pl:true,from:fm,back:true});add({x:x+7,y:y+12,vx:0.4,vy:7.2,d:dmg,w:3,h:11,pl:true,from:fm,back:true});}
-  }
 }
+
+// 清屏：清除全屏敌弹（"清屏"道具/空投效果，替代原先滑稽的尾部后射）
+function clearEnemyBullets(c){for(var i=bls.length-1;i>=0;i--){if(!bls[i].pl){boom(bls[i].x,bls[i].y,c||'#fff',4);bls.splice(i,1);}}}
 
 // === 关卡选择辅助 ===
 function gotoLevelSelect(){selectedLevel=unlockedLevels;pageSel=Math.floor((unlockedLevels-1)/20);state='levelSelect';}
@@ -1546,8 +1544,8 @@ function update(){
   // Particles
   for(var i=pts.length-1;i>=0;i--){var p=pts[i];p.life--;if(p.life<=0){pts.splice(i,1);continue;}if(p.vx!==void 0){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;}else p.y+=p.vy;}
   // 数组上限保护：防止粒子/子弹爆炸导致卡顿
-  if(pts.length>300)pts.splice(0,pts.length-300);
-  if(bls.length>500)bls.splice(0,bls.length-500);
+  if(pts.length>220)pts.splice(0,pts.length-220);
+  if(bls.length>360)bls.splice(0,bls.length-360);
   // Wave complete check
   var alive=0,hasBoss=false;
   for(var i=0;i<ens.length;i++){if(ens[i].type=='boss')hasBoss=true;else alive++;}
@@ -1967,7 +1965,6 @@ function drawHUD(){
   if(wl>=1)wActive.push('\u6563');
   if(wMissile>0||wl>=2)wActive.push('\u5bfc');
   if(wl>=3)wActive.push('\u4fa7');
-  if(wBack>0||wl>=4)wActive.push('\u540e');
   if(homingTimer>0||wPower>=4)wActive.push('\u8ffd');
   ctx.textAlign='center';
   ctx.fillStyle='rgba(15,22,45,0.8)';ctx.strokeStyle='#0af';ctx.lineWidth=2;
