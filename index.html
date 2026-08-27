@@ -2753,38 +2753,7 @@ setTimeout(function(){tone(659,0.1,'sine',0.04);},350);
 setTimeout(function(){tone(784,0.1,'sine',0.04);},500);
 setTimeout(function(){tone(1047,0.2,'sine',0.05);},650);
 </script>
-<script>
-/* 移除 EdgeOne 部署时自动注入的演示水印("For demonstration and testing purposes only") */
-(function () {
-  function removeDemoWatermark() {
-    var all = document.querySelectorAll('*');
-    for (var i = 0; i < all.length; i++) {
-      var el = all[i];
-      var text = el.textContent || '';
-      if (text.indexOf('For demonstration and testing purposes only') !== -1) {
-        /* 只删除最内层（没有子元素也包含该文字）的水印元素，避免误删外层容器 */
-        var hasChildWithText = false;
-        for (var j = 0; j < el.children.length; j++) {
-          if ((el.children[j].textContent || '').indexOf('For demonstration and testing purposes only') !== -1) {
-            hasChildWithText = true; break;
-          }
-        }
-        if (!hasChildWithText) { el.remove(); return true; }
-      }
-    }
-    return false;
-  }
-  removeDemoWatermark();
-  if (typeof MutationObserver !== 'undefined') {
-    var mo = new MutationObserver(function (ms) {
-      for (var i = 0; i < ms.length; i++) {
-        if (ms[i].addedNodes.length && removeDemoWatermark()) break;
-      }
-    });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  }
-})();
-</script>
+
 </body>
 </html>
 
