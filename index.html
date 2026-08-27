@@ -448,7 +448,7 @@ function speakBossDown(name,isBig){
 }
 // 统一的 Boss 被击败处理：音效 + 爆炸特效 + 连击 + 语音播报（三处击杀共用，避免重复触发）
 function onBossDefeated(e,x,y,isBig,bonus){
-  play('bossKill');shake=22;shakeMag=16;winFlash=1; // 强烈屏震 + 金闪
+  play('bossKill');shake=12;shakeMag=8;winFlash=1; // 中等屏震 + 金闪
   boom(x,y,'#f0f',40);boom(x,y,'#ff0',30);boom(x,y,'#fff',20);
   // 额外冲击波粒子环（打击感拉满）
   for(var _ri=0;_ri<40;_ri++){var _a=_ri/40*6.283,_sp=2+Math.random()*6;pts.push({x:x,y:y,vx:Math.cos(_a)*_sp,vy:Math.sin(_a)*_sp,life:30+Math.random()*30,cl:['#ff0','#f0f','#fff','#0ff'][Math.floor(Math.random()*4)],sz:1+Math.random()*3});}
@@ -656,7 +656,7 @@ function init(lvl){
   // 无敌
   playerInvuln=150;if(gameMode=='dual')p2Invuln=150;
   // 通用音效基础
-  noise(0.3,0.2);shake=30;shakeMag=18;
+  noise(0.3,0.2);shake=15;shakeMag=9;
   tone(80,0.3,'sawtooth',0.25);
   // 清空上局残留实体与波次状态（关键：必须重置 wave，否则上一关结束时的 wave 会带入新关卡，导致进第二关直接判定胜利）
   bls.length=0;ens.length=0;pws.length=0;pts.length=0;drs.length=0;
