@@ -1081,8 +1081,8 @@ c.ontouchstart=function(e){
     }
     // 先检查游戏按钮
     if(handleGameButton(tx,ty)){buttonTouchId=t.identifier;continue;}
-    // 直接触控移动玩家
-    if(bossWarningTimer<=0){px=Math.round(tx);py=Math.round(ty);}
+    // 直接触控移动玩家（Boss预警期间也允许移动，避免点不动）
+    px=Math.round(tx);py=Math.round(ty);
   }
 };
 c.ontouchmove=function(e){
@@ -1098,7 +1098,7 @@ c.ontouchmove=function(e){
       if(Math.abs(dy)>8){touchMoved=true;talentScroll-=dy*1.8;var maxS=Math.max(0,120+TALENTS.length*72+64-636);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;touchStartY=t.clientY;}
       continue;
     }
-    if(state!='playing'||bossWarningTimer>0)continue;
+    if(state!='playing')continue;
     // 直接触控移动玩家
     if(t.identifier!==buttonTouchId){
       px=Math.round(tx);py=Math.round(ty);
@@ -1518,7 +1518,7 @@ function update(){
         var dist=Math.sqrt((le.x-px2)*(le.x-px2)+(le.y-py2)*(le.y-py2));
           if(dist<(le.w/2+10)){var dd=playerDmg(L.d);le.hp-=dd;le.t=5;boom(le.x,le.y,L.cl,5);le.burnTimer=90;le.burnAccum=0;if(le.hp<=0){
             if(le.type=='boss'&&le.revive&&!le._revived){le.hp=le.maxHp*0.4;le.t=20;le._revived=true;play('bossWarning');pts.push({x:le.x,y:le.y-30,vy:-1,life:60,txt:'REVIVE!',cl:'#f44'});for(var ri=0;ri<30;ri++){var ra=Math.random()*6.2832,rs=1+Math.random()*5;pts.push({x:le.x,y:le.y,vx:Math.cos(ra)*rs,vy:Math.sin(ra)*rs-2,life:30+Math.random()*20,cl:['#f44','#f80','#ff0'][Math.floor(Math.random()*3)],sz:1+Math.random()*3});}continue;}
-            if(le.type=='boss'){onBossDefeated(le,le.x,le.y,le.isBig,dd>1?50:0);}else{score+=10;play('enemyHit');onKillHeal();vcComboKill();}var sz=le.type=='s'?'s':le.type=='m'?'m':'l';spawnDrop(le.x,le.y,sz);ens.splice(lj,1);}}
+            if(le.type=='boss'){score+=Math.max(1,Math.round(dd));onBossDefeated(le,le.x,le.y,le.isBig,dd>1?50:0);}else{score+=10;play('enemyHit');onKillHeal();vcComboKill();}var sz=le.type=='s'?'s':le.type=='m'?'m':'l';spawnDrop(le.x,le.y,sz);ens.splice(lj,1);}}
       }
     }
     if(L.hostile){ // 敌激光：判定是否命中玩家（机翼两侧粗蓝激光）
@@ -1548,7 +1548,7 @@ function update(){
           var dist=Math.sqrt((le.x-pxw)*(le.x-pxw)+(le.y-pyw)*(le.y-pyw));
           if(dist<(le.w/2+10)){var dd=playerDmg(W.dmg);le.hp-=dd;le.t=5;boom(le.x,le.y,W.cl,5);le.burnTimer=90;le.burnAccum=0;if(le.hp<=0){
             if(le.type=='boss'&&le.revive&&!le._revived){le.hp=le.maxHp*0.4;le.t=20;le._revived=true;play('bossWarning');pts.push({x:le.x,y:le.y-30,vy:-1,life:60,txt:'REVIVE!',cl:'#f44'});for(var ri=0;ri<30;ri++){var ra=Math.random()*6.2832,rs=1+Math.random()*5;pts.push({x:le.x,y:le.y,vx:Math.cos(ra)*rs,vy:Math.sin(ra)*rs-2,life:30+Math.random()*20,cl:['#f44','#f80','#ff0'][Math.floor(Math.random()*3)],sz:1+Math.random()*3});}continue;}
-            if(le.type=='boss'){onBossDefeated(le,le.x,le.y,le.isBig,dd>1?50:0);}else{score+=10;play('enemyHit');onKillHeal();vcComboKill();}var sz=le.type=='s'?'s':le.type=='m'?'m':'l';spawnDrop(le.x,le.y,sz);ens.splice(lj,1);}}
+            if(le.type=='boss'){score+=Math.max(1,Math.round(dd));onBossDefeated(le,le.x,le.y,le.isBig,dd>1?50:0);}else{score+=10;play('enemyHit');onKillHeal();vcComboKill();}var sz=le.type=='s'?'s':le.type=='m'?'m':'l';spawnDrop(le.x,le.y,sz);ens.splice(lj,1);}}
         }
       }else{ // 敌光束：命中玩家
         var half=W.w*0.5+8;
@@ -1574,7 +1574,7 @@ function update(){
         }
         if(be.hp<=0){
           if(be.type=='boss'&&be.revive&&!be._revived){be.hp=be.maxHp*0.4;be.burnTimer=0;be._revived=true;play('bossWarning');pts.push({x:be.x,y:be.y-30,vy:-1,life:60,txt:'REVIVE!',cl:'#f44'});for(var ri=0;ri<30;ri++){var ra=Math.random()*6.2832,rs=1+Math.random()*5;pts.push({x:be.x,y:be.y,vx:Math.cos(ra)*rs,vy:Math.sin(ra)*rs-2,life:30+Math.random()*20,cl:['#f44','#f80','#ff0'][Math.floor(Math.random()*3)],sz:1+Math.random()*3});}continue;}
-          if(be.type=='boss'){onBossDefeated(be,be.x,be.y,be.isBig,10);}else{score+=8;play('enemyHit');onKillHeal();vcComboKill();}
+          if(be.type=='boss'){score+=10;onBossDefeated(be,be.x,be.y,be.isBig,10);}else{score+=8;play('enemyHit');onKillHeal();vcComboKill();}
           var sz=be.type=='s'?'s':be.type=='m'?'m':'l';spawnDrop(be.x,be.y,sz);
           // 死亡大火焰
           for(var fpi2=0;fpi2<10;fpi2++){var fa2=Math.random()*6.2832;var fs2=1+Math.random()*3;
