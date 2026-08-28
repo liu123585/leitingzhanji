@@ -532,7 +532,9 @@ if('speechSynthesis' in window){window.speechSynthesis.onvoiceschanged=function(
 // 通用语音播报（用 Web Speech API 合成中文）
 function speakText(txt,rate,pitch){
   if(!('speechSynthesis' in window))return;
-  try{window.speechSynthesis.cancel();}catch(e){}
+  if(!txt)return;
+  // Safari/iOS 已知坑：cancel() 紧跟 speak() 会丢弃新语句，故不再预 cancel；先 resume 防止处于 paused
+  try{ if(window.speechSynthesis.paused)window.speechSynthesis.resume(); }catch(e){}
   var u=new SpeechSynthesisUtterance(txt);
   u.lang='zh-CN';u.voice=pickBossVoice();
   u.rate=rate||0.95;u.pitch=pitch||1.5;u.volume=1;
@@ -550,7 +552,8 @@ function speakBossDown(name,isBig){
     u.lang='zh-CN';
     u.voice=pickBossVoice();
     u.rate=0.98;u.pitch=1.25;u.volume=1; // 稍慢、偏高，更清亮好听
-    window.speechSynthesis.cancel();window.speechSynthesis.speak(u);
+    try{ if(window.speechSynthesis.paused)window.speechSynthesis.resume(); }catch(e){}
+    window.speechSynthesis.speak(u);
   }catch(e){}
 }
 // 统一的 Boss 被击败处理：音效 + 爆炸特效 + 连击 + 语音播报（三处击杀共用，避免重复触发）
@@ -2920,7 +2923,7 @@ var _started=false;
 function doStart(){
   // 首次用户手势内：解锁 AudioContext 并启动 BGM（移动端 iOS/微信/QQ 必需）
   window.__userTouched=true;
-  try{ if('speechSynthesis' in window){ var _sw=window.speechSynthesis; if(_sw.paused)_sw.resume(); if(!window.__spkPrimed){ window.__spkPrimed=true; var _su=new SpeechSynthesisUtterance(' '); _su.volume=0; _sw.speak(_su); } } }catch(e){}
+  try{ if('speechSynthesis' in window){ var _sw=window.speechSynthesis; _sw.resume(); if(!window.__spkPrimed){ window.__spkPrimed=true; var _su=new SpeechSynthesisUtterance('啊'); _su.volume=0.01; _su.lang='zh-CN'; _sw.speak(_su); } } }catch(e){}
   try{
     var c=ac();
     if(c&&c.state==='suspended'){c.resume();}
