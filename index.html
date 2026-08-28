@@ -47,6 +47,7 @@ try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'
 var _glowCache={};
 // 对象池：复用子弹/粒子对象，避免每帧大量分配触发移动端 GC 长卡顿（完全不影响画面与玩法，且清空字段保证无残留）
 var blsPool=[],ptsPool=[];
+var BLS_MAX=160; // 子弹（玩家弹+敌弹）硬上限：超过即回收 oldest 回对象池。160 足够呈现弹幕且不会因数量失控导致渲染/碰撞开销剧变而掉帧
 // 稳健关闭阴影：在主渲染上下文实例上强制 shadowBlur 为 0（不依赖原型覆写，防止部分手机内核原型覆写失效导致阴影真实开启而严重卡顿；glowSprite 用离屏画布自带光晕，不影响观感）
 try{Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:true,get:function(){return 0;},set:function(v){}});}catch(e){}
 var TTS_ENABLED=false; // 语音播报默认关闭：移动端中文 TTS 偶发会卡 1 秒
@@ -919,6 +920,7 @@ var EBULLET=[
 ];
 function enemyBullet(x,y,vx,vy,styleIdx,d,fromBoss,burn){
   var s=EBULLET[styleIdx%EBULLET.length];
+  if(bls.length>=BLS_MAX){var _ob=bls.shift();try{blsPool.push(_ob);}catch(e){}}
   var o=newBullet();o.x=x;o.y=y;o.vx=vx;o.vy=vy;o.d=d||1;o.w=s.w;o.h=s.h;o.cl=s.cl;o.shape=s.shape;o.pl=false;o.fromBoss=!!fromBoss;o.burn=!!burn;
   bls.push(o);return o;
 }
@@ -1623,9 +1625,10 @@ function update(){
   }
   // Particles
   for(var i=pts.length-1;i>=0;i--){var p=pts[i];p.life--;if(p.life<=0){ptsPool.push(p);pts.splice(i,1);continue;}if(p.vx!==void 0){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;}else p.y+=p.vy;}
-  // 数组上限保护：防止粒子/子弹爆炸导致卡顿
-  if(pts.length>220){for(var _pc=0;_pc<pts.length-220;_pc++)ptsPool.push(pts[_pc]);pts.splice(0,pts.length-220);}
-  if(bls.length>360){for(var _bc=0;_bc<bls.length-360;_bc++)blsPool.push(bls[_bc]);bls.splice(0,bls.length-360);}
+  // 数组上限保护：防止粒子/子弹爆炸导致卡顿。
+  // 注意：超出的对象必须回收到对象池（不能只 splice 丢棄），否则等于持续制造垃圾、加重 GC 卡顿。
+  if(pts.length>200){var _pOver=pts.length-200;for(var _pc=0;_pc<_pOver;_pc++)ptsPool.push(pts[_pc]);pts.splice(0,_pOver);}
+  if(bls.length>BLS_MAX){var _bOver=bls.length-BLS_MAX;for(var _bc=0;_bc<_bOver;_bc++)blsPool.push(bls[_bc]);bls.splice(0,_bOver);}
   // Wave complete check
   var alive=0,hasBoss=false;
   for(var i=0;i<ens.length;i++){if(ens[i].type=='boss')hasBoss=true;else alive++;}
