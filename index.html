@@ -634,6 +634,7 @@ function startBGM(){
   if(bgmAudio && !bgmAudio.paused) return;
   // 同一首歌只是被暂停（如取消静音 / 从暂停界面恢复）：直接续播，接暂停点
   if(bgmAudio && bgmAudio.paused){
+    if(bgmAudio.ended){ playBGMList(); return; }
     var _pr=bgmAudio.play(); if(_pr&&_pr.catch)_pr.catch(function(){}); return;
   }
   // 全新播放：从当前曲（bgmIndex）与上次进度（bgmResumeTime）接着播，不随机重选、不从头
@@ -654,7 +655,7 @@ function playBGMList(){
       if(bgmAudio){
         var loaded=false;
         var wantResume=bgmResumeTime;
-        bgmAudio.onended=function(){bgmResumeTime=0;playBGMList();};
+        bgmAudio.onended=function(){bgmResumeTime=0;bgmIndex++;playBGMList();};
         bgmAudio.oncanplay=bgmAudio.onloadeddata=function(){
           if(!loaded){loaded=true;}
           if(wantResume>0&&wantResume<(bgmAudio.duration||1e9)-1){try{bgmAudio.currentTime=wantResume;}catch(e){}}
