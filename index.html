@@ -5,7 +5,7 @@
 * {margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%}
 body{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;height:100dvh;font-family:Arial,sans-serif;overflow:hidden;touch-action:none}
-canvas{display:block;max-width:100vw;max-height:100vh;border:2px solid #0af;box-shadow:0 0 40px rgba(0,170,255,.25);transition:transform .26s cubic-bezier(.22,.61,.36,1),opacity .26s ease;will-change:transform,opacity}
+canvas{display:block;max-width:none;max-height:none;border:2px solid #0af;box-shadow:0 0 40px rgba(0,170,255,.25);transition:transform .26s cubic-bezier(.22,.61,.36,1),opacity .26s ease;will-change:transform,opacity}
 #transitionMask{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:9999}
 </style>
 <script src="jquery-3.7.1.min.js"></script>
@@ -20,7 +20,16 @@ var DPR=Math.min(window.devicePixelRatio||1,1.5);
 c.width=480*DPR;c.height=720*DPR;
 // 计算适配尺寸
 function vh(){var v=window.innerHeight;if(window.visualViewport&&window.visualViewport.height)v=window.visualViewport.height;return v||document.documentElement.clientHeight||window.innerHeight;}
-function resizeCanvas(){var ww=window.innerWidth,wh=vh();var ar=480/720;var cw,ch;if(ww/wh>ar){ch=Math.min(wh,720);cw=ch*ar;}else{cw=Math.min(ww,480);ch=cw/ar;}c.style.width=Math.floor(cw)+'px';c.style.height=Math.floor(ch)+'px';document.body.style.height=wh+'px';}
+function resizeCanvas(){
+  var ww=window.innerWidth,wh=vh();
+  // 覆盖(cover)：缩放画布使其至少填满屏幕（手机竖屏按高度填满，左右溢出由 overflow 裁切并居中）
+  var ar=480/720;
+  var cw,ch;
+  if(ww/wh>ar){cw=ww;ch=ww/ar;}else{ch=wh;cw=ch*ar;}
+  c.style.width=Math.floor(cw)+'px';
+  c.style.height=Math.floor(ch)+'px';
+  document.body.style.height=wh+'px';
+}
 resizeCanvas();window.addEventListener('resize',resizeCanvas);
 // iOS Safari：地址栏收起/展开会改变可视高度，必须监听 visualViewport 重新适配
 if(window.visualViewport){window.visualViewport.addEventListener('resize',resizeCanvas);window.visualViewport.addEventListener('scroll',resizeCanvas);}
