@@ -617,9 +617,12 @@ function startBGM(){
 function playBGMList(){
   var key=bgmPlayList[bgmIndex%bgmPlayList.length];
   bgmTrack=key;
-  var hasFile=(bgmFileMap[key]||bgmImportMap[key]);
-  var hasEmbed=getBgmSrc(key);
-  if(hasFile||hasEmbed){
+  // 没有本地文件、依赖内嵌数据且 assets 尚未就绪时，先等待加载完成再播，避免提前回退成「电音」
+  if(!ASSETS_READY && !(bgmFileMap[key]||bgmImportMap[key])){
+    ASSETS_PENDING.push(function(){ playBGMList(); });
+    return;
+  }
+  if(bgmFileMap[key]||bgmImportMap[key]||getBgmSrc(key)){
     try{
       if(bgmAudio){try{bgmAudio.pause();}catch(e){}}
       bgmAudio=loadBgmAudio(key);
@@ -637,34 +640,22 @@ function playBGMList(){
           }
         };
         bgmAudio.onerror=function(){
-          // 加载失败，切下一首
-          bgmAudio=null;bgmIndex++;playBGMList();
+          bgmAudio=null;bgmIndex++;playBGMList(); // 加载失败，切下一首
         };
         // 立即尝试播放（手势上下文中直接播放，mobile autoplay 策略需要）
         if(!bgmMuted){
           var pr=bgmAudio.play();
           if(pr&&pr.catch)pr.catch(function(){});
         }
-      }else if(!ASSETS_READY){
-        // 还没有嵌入式数据且 assets 未就绪：等加载完成后再播，避免提前回退成「电音」
-        ASSETS_PENDING.push(function(){ playBGMList(); });
-        return;
       }else{
-        bgmIndex++;playBGMList();
+        bgmIndex++;playBGMList(); // 未能创建音频对象，换下一首
       }
-  }else if(!ASSETS_READY){
-    // 找不到源但 assets 还没好，先等加载完
-    ASSETS_PENDING.push(function(){ playBGMList(); });
-    return;
+    }catch(e){bgmIndex++;playBGMList();}
   }else{
-    // 没有 mp3 文件也没有嵌入数据 → 回退到合成 BGM（手机端用）
+    // 没有 mp3 文件也没有嵌入数据 → 回退到合成 BGM（极旧环境）
     if(bgmAudio){try{bgmAudio.pause();bgmAudio=null;}catch(e){}}
     synthBGM();
     return;
-  }
-  }catch(e){
-    if(!ASSETS_READY){ASSETS_PENDING.push(function(){playBGMList();});return;}
-    bgmIndex++;playBGMList();
   }
 }
 function switchBGM(key){
