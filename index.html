@@ -1928,36 +1928,39 @@ function drawHUD(){
     ctx.fillText('\u2620 '+(e.isBig?'\u5927 ':'')+(e.name||'BOSS')+'   '+Math.max(0,Math.ceil(e.hp))+' / '+e.maxHp,220,by+16);ctx.shadowBlur=0;bIdx++;
   }
   ctx.textAlign='left';
-  var bx=10,by=82,bw=160,bh=20;
+  // 玩家血条（左上，分数/关卡下方，独立于属性面板避免重叠）
+  var bx=10,by=66,bw=170,bh=18;
   ctx.fillStyle='#300';ctx.fillRect(bx,by,bw,bh);var hr=hp/mhp,hc=hr>0.5?'#0f0':hr>0.25?'#fa0':'#f00';
-
   ctx.shadowColor=hc;ctx.shadowBlur=12;ctx.fillStyle=hc;ctx.fillRect(bx+2,by+2,(bw-4)*hr,bh-4);ctx.shadowBlur=0;
   ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(bx,by,bw,bh);
-  ctx.fillStyle='#fff';ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
-  ctx.fillText('\u2764 '+hp+'/'+mhp,bx+bw/2,by+bh-5);ctx.shadowBlur=0;
-  // 天赋属性面板（左上角，HP下方）
-  var sy=124;
-  ctx.font='bold 18px Arial';ctx.textAlign='left';
+  ctx.fillStyle='#fff';ctx.font='bold 17px Arial';ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=4;
+  ctx.fillText('\u2764 '+hp+'/'+mhp,bx+bw/2,by+bh-4);ctx.shadowBlur=0;
+  // 连击（血条下方单独一行，避免与属性面板重叠）
+  ctx.textAlign='left';ctx.fillStyle='#e8e8e8';ctx.font='bold 20px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;
+  ctx.fillText('\u8FDE\u51FB x'+combo,10,104);
+  // 伤害倍率（连击下方，仅连击≥5时显示）
+  if(vcCombo>=5){var cd=1+Math.min(0.5,Math.floor(vcCombo/5)*0.1);var cp=0.6+0.4*Math.sin(frameCount*0.12);
+    ctx.fillStyle='rgba(255,225,60,'+Math.min(1,cp+0.3)+')';ctx.font='bold 18px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;
+    ctx.fillText('\u26A1 \u4F24\u5BB3 x'+cd.toFixed(1),10,126);}
+  // 天赋属性面板（连击下方，整齐三列两行，行距充足不重叠）
+  var sy=150;
+  ctx.font='bold 17px Arial';ctx.textAlign='left';
   ctx.fillStyle='#fbb';ctx.fillText('\u2694 攻击 '+(1+tl('atk')*0.5).toFixed(1),10,sy);
-  ctx.fillStyle='#9f9';ctx.fillText('\u2764 上限 '+mhp,120,sy);
-  ctx.fillStyle='#9cf';ctx.fillText('\u26A1 射速 Lv'+tl('spd'),220,sy);
-  ctx.fillStyle='#fc9';ctx.fillText('\u273B 暴击 Lv'+tl('crit'),10,sy+18);
-  ctx.fillStyle='#f9f';ctx.fillText('\u2728 吸血 Lv'+tl('leech'),110,sy+18);
-  ctx.fillStyle='#ff9';ctx.fillText('\u25A3 护盾 Lv'+tl('shield'),210,sy+18);
-  ctx.font='bold 17px Arial';var wx=10,wy=sy+38;
-
-  if(wLevel>0){ctx.fillStyle='#0ff';ctx.fillText('\u25A0 散'+wLevel,wx,wy);wx+=38;}
-  if(wMissile>0){ctx.fillStyle='#f80';ctx.fillText('\u25A0 导'+wMissile,wx,wy);wx+=38;}
-  if(wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+wPower,wx,wy);wx+=38;}
-  if(wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+wShield,wx,wy);wx+=62;}
+  ctx.fillStyle='#9f9';ctx.fillText('\u2764 上限 '+mhp,128,sy);
+  ctx.fillStyle='#9cf';ctx.fillText('\u26A1 射速 Lv'+tl('spd'),236,sy);
+  ctx.fillStyle='#fc9';ctx.fillText('\u273B 暴击 Lv'+tl('crit'),10,sy+20);
+  ctx.fillStyle='#f9f';ctx.fillText('\u2728 吸血 Lv'+tl('leech'),128,sy+20);
+  ctx.fillStyle='#ff9';ctx.fillText('\u25A3 护盾 Lv'+tl('shield'),236,sy+20);
+  ctx.font='bold 16px Arial';var wx=10,wy=sy+42;
+  if(wLevel>0){ctx.fillStyle='#0ff';ctx.fillText('\u25A0 散'+wLevel,wx,wy);wx+=40;}
+  if(wMissile>0){ctx.fillStyle='#f80';ctx.fillText('\u25A0 导'+wMissile,wx,wy);wx+=40;}
+  if(wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+wPower,wx,wy);wx+=40;}
+  if(wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+wShield,wx,wy);wx+=64;}
   // 减速效果不显示HUD提示
 
+  // 分数 / 关卡名（最顶部）
   ctx.fillStyle='#ffec3d';ctx.font='bold 30px Arial';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText('\u5206\u6570 '+score,10,30);
   ctx.fillStyle='#7fd0ff';ctx.font='bold 22px Arial';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(getLv().name,10,54);
-  ctx.fillStyle='#e8e8e8';ctx.font='bold 22px Arial';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText('\u8FDE\u51FB x'+combo,10,76);
-  if(vcCombo>=5){var cd=1+Math.min(0.5,Math.floor(vcCombo/5)*0.1);var cp=0.6+0.4*Math.sin(frameCount*0.12);
-    ctx.fillStyle='rgba(255,225,60,'+Math.min(1,cp+0.3)+')';ctx.font='bold 18px Arial';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.textAlign='left';
-    ctx.fillText('\u26A1 \u4F24\u5BB3 x'+cd.toFixed(1),145,66);ctx.textAlign='left';}
   if(isBossRush){
     // 显示当前Boss名字和血量（挪到顶部Boss血条下方避免重叠）
     var brBoss=null;for(var bi=0;bi<ens.length;bi++){if(ens[bi].type=='boss'){brBoss=ens[bi];break;}}
@@ -2661,7 +2664,7 @@ function draw(){
   drawHUD();
   // 纯展示连击（仅文字 ×N + 放大回弹，无圆圈）
   if(vcCombo>=2){
-    var cx=240,cy=130,sc=1+vcComboPop*0.55;
+    var cx=240,cy=112,sc=1+vcComboPop*0.55;
     ctx.save();ctx.translate(cx,cy);ctx.scale(sc,sc);ctx.textAlign='center';
     ctx.fillStyle='#0ff';ctx.shadowColor='#0ff';ctx.shadowBlur=16;ctx.font='bold 22px Arial';ctx.fillText('连击',0,-16);
     ctx.fillStyle='#fff';ctx.shadowColor='#0af';ctx.shadowBlur=18;ctx.font='bold 52px Arial';ctx.fillText('×'+vcCombo,0,30);
