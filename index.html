@@ -1761,7 +1761,7 @@ function drawSettings(){
   var psk=playerSkin>=0&&playerSkin<PLAYER_SKINS.length?PLAYER_SKINS[playerSkin]:{name:mySkin.name};
   ctx.fillStyle='#fff';ctx.font='18px Arial';ctx.textAlign='center';ctx.fillText(psk.name,250,452);
   // 当前皮肤预览
-  try{ctx.save();ctx.translate(412,200);ctx.scale(0.62,0.62);drawPlayerShip(0,0,false);ctx.restore();}catch(e){}
+  try{ctx.save();ctx.translate(400,410);ctx.scale(0.6,0.6);drawPlayerShip(0,0,false);ctx.restore();}catch(e){}
   // 详情按钮
   var dbX=350,dbY=432,dbW=100,dbH=34;
   ctx.fillStyle='rgba(40,40,70,0.9)';ctx.strokeStyle='#88f';ctx.lineWidth=2;ctx.shadowColor='#88f';ctx.shadowBlur=6;
