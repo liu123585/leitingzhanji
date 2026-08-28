@@ -1154,11 +1154,11 @@ function handleClick(mx,my){try{
       play('menuClick');selectedLevel=lastPlayedLevel;try{localStorage.setItem('tlp',lastPlayedLevel);}catch(e){}init(selectedLevel);return;
     }
     // 按钮中心=300+58*idx，半高≈26，偏移±2容差
-    if(my>274&&my<326&&mx>180&&mx<360){play('menuClick');gameMode='single';try{localStorage.setItem('tgm','single');}catch(e){}gotoLevelSelect();}
+    if(my>274&&my<326&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');gameMode='single';try{localStorage.setItem('tgm','single');}catch(e){}gotoLevelSelect();}
     else if(my>332&&my<384&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('diy');}
-    else if(my>390&&my<442&&mx>140&&mx<340){play('menuClick');isBossRush=true;bossRushRound=0;bossRushTimer=0;init(1);}
+    else if(my>390&&my<442&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');isBossRush=true;bossRushRound=0;bossRushTimer=0;init(1);}
     else if(my>448&&my<500&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('help');}
-    else if(my>506&&my<558&&mx>140&&mx<340){play('menuClick');transitionTo('settings');}
+    else if(my>506&&my<558&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('settings');}
     else if(my>564&&my<616&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('stats');}
     else if(my>622&&my<674&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');talentScroll=0;transitionTo('talent');}
   }else if(state=='levelSelect'){
