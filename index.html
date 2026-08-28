@@ -45,6 +45,10 @@ ctx.scale(DPR,DPR);
 try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(_sd&&_sd.set){Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,enumerable:true,get:function(){return _sd.get.call(this);},set:function(v){_sd.set.call(this,0);}});}}catch(e){}
 // 预渲染发光精灵缓存：用 drawImage 替代实体上的 shadowBlur（shadowBlur 是 canvas 最大性能杀手）
 var _glowCache={};
+// 对象池：复用子弹/粒子对象，避免每帧大量分配触发移动端 GC 长卡顿（完全不影响画面与玩法，且清空字段保证无残留）
+var blsPool=[],ptsPool=[];
+function newBullet(){var b=blsPool.pop()||{};for(var k in b)delete b[k];return b;}
+function newPt(){var b=ptsPool.pop()||{};for(var k in b)delete b[k];return b;}
 function _glowRGB(c){if(c&&c[0]=='#'){var h=c.slice(1);if(h.length==3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];var n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];}return [200,230,255];}
 function glowSprite(col,r){if(r<1)r=1;var key=col+'|'+Math.round(r);var s=_glowCache[key];if(s)return s;var c=document.createElement('canvas');c.width=c.height=Math.ceil(r*2);var g=c.getContext('2d');var rgb=_glowRGB(col),cx=r;var rg=g.createRadialGradient(cx,cx,0,cx,cx,cx);rg.addColorStop(0,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.85)');rg.addColorStop(0.45,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.35)');rg.addColorStop(1,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0)');g.fillStyle=rg;g.beginPath();g.arc(cx,cx,cx,0,6.28);g.fill();_glowCache[key]=c;return c;}
 var state='menu',score=0,hs=0,combo=0,mcombo=0,gameMode='single';
@@ -422,20 +426,20 @@ function useNova(){
     for(var ei=ens.length-1;ei>=0;ei--){var e=ens[ei];
       var bdx=e.x-px,bdy=e.y-py,bdist=Math.sqrt(bdx*bdx+bdy*bdy);
       if(bdist<300){e.x+=bdx/bdist*40;e.y+=bdy/bdist*40;e.hp-=playerDmg(8);if(e.hp<=0){score+=12;boom(e.x,e.y,'#ffd700',8);spawnDrop(e.x,e.y,'s');onKillHeal();vcComboKill();ens.splice(ei,1);}}}
-    for(var bi=bls.length-1;bi>=0;bi--){var b=bls[bi];if(!b.pl){boom(b.x,b.y,'#fff',3);bls.splice(bi,1);}}
+    for(var bi=bls.length-1;bi>=0;bi--){var b=bls[bi];if(!b.pl){boom(b.x,b.y,'#fff',3);blsPool.push(b);bls.splice(bi,1);}}
   }else if(sk.type=='slow'){
     // 时间减速：领域内敌人减速+持续受伤
     slowTimer=360;
     for(var ei=ens.length-1;ei>=0;ei--){var e=ens[ei];
       var sdx=e.x-px,sdy=e.y-py;if(Math.sqrt(sdx*sdx+sdy*sdy)<250){e.hp-=playerDmg(5);if(e.hp<=0){score+=12;boom(e.x,e.y,'#4fc3f7',8);spawnDrop(e.x,e.y,'s');onKillHeal();vcComboKill();ens.splice(ei,1);}}}
-    for(var bi=bls.length-1;bi>=0;bi--){if(!bls[bi].pl&&Math.sqrt((px-bls[bi].x)*(px-bls[bi].x)+(py-bls[bi].y)*(py-bls[bi].y))<250){boom(bls[bi].x,bls[bi].y,'#4fc3f7',3);bls.splice(bi,1);}}
+    for(var bi=bls.length-1;bi>=0;bi--){if(!bls[bi].pl&&Math.sqrt((px-bls[bi].x)*(px-bls[bi].x)+(py-bls[bi].y)*(py-bls[bi].y))<250){boom(bls[bi].x,bls[bi].y,'#4fc3f7',3);blsPool.push(bls[bi]);bls.splice(bi,1);}}
   }else if(sk.type=='vortex'){
     // 引力黑洞：持续牵引+终末爆炸
     vortexTimer=120;vortexPhase=0;ultVortex=30;
     for(var ei=ens.length-1;ei>=0;ei--){var e=ens[ei];
       var vdx=px-e.x,vdy=py-e.y;var vd=Math.sqrt(vdx*vdx+vdy*vdy);
       if(vd<300){e.x+=vdx/vd*20;e.y+=vdy/vd*20;}}
-    for(var bi=bls.length-1;bi>=0;bi--){if(!bls[bi].pl){var bdx=px-bls[bi].x,bdy=py-bls[bi].y;if(Math.sqrt(bdx*bdx+bdy*bdy)<250){bls.splice(bi,1);}}}
+    for(var bi=bls.length-1;bi>=0;bi--){if(!bls[bi].pl){var bdx=px-bls[bi].x,bdy=py-bls[bi].y;if(Math.sqrt(bdx*bdx+bdy*bdy)<250){blsPool.push(bls[bi]);bls.splice(bi,1);}}}
   }else if(sk.type=='slash'){
     // 维度斩：屏幕大X斩
     slashTimer=60;slashPhase=0;
@@ -811,7 +815,7 @@ function useBomb(){
   if(state!='playing'||bombs<=0)return;
   bombs--;bombFx=1;play('bossKill');
   // 清空所有敌弹
-  for(var i=bls.length-1;i>=0;i--){if(!bls[i].pl){boom(bls[i].x,bls[i].y,'#fff',4);bls.splice(i,1);}}
+  for(var i=bls.length-1;i>=0;i--){if(!bls[i].pl){boom(bls[i].x,bls[i].y,'#fff',4);blsPool.push(bls[i]);bls.splice(i,1);}}
   // 伤害全部敌人（小兵与小型Boss秒杀，大Boss扣血，天赋加伤）
   var bombDmg=0.18+tl('bomb')*0.05;
   for(var j=ens.length-1;j>=0;j--){var e=ens[j];
@@ -850,7 +854,7 @@ function firePassiveMissiles(){
         var off=(k-(n-1)/2)*spread;
         var ang=-Math.PI/2 + s*0.9 + off; // 斜外上 + 扇形偏移
         var sp=4.2;
-        bls.push({x:cx+s*26,y:cy-6,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,d:md,w:13,h:30,cl:'#39ff14',pl:true,from:fromP1?1:2,homing:true,turn:0.42,life2:9999});
+        var nb=newBullet();nb.x=cx+s*26;nb.y=cy-6;nb.vx=Math.cos(ang)*sp;nb.vy=Math.sin(ang)*sp;nb.d=md;nb.w=13;nb.h=30;nb.cl='#39ff14';nb.pl=true;nb.from=fromP1?1:2;nb.homing=true;nb.turn=0.42;nb.life2=9999;bls.push(nb);
       }
     }
   }
@@ -877,7 +881,7 @@ function startWave(){
   if(wave!=lv.waveCount&&wave%5!=0)waveEnemies=0;
   spawnTimer=wave==1?8:18;
 }
-function boom(x,y,c,n){n=Math.min(n,14);for(var i=0;i<n;i++){var a=Math.random()*6.28,s=Math.random()*3+1;pts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:25+Math.random()*20,cl:c,sz:0.5+Math.random()*3});}}
+function boom(x,y,c,n){n=Math.min(n,14);for(var i=0;i<n;i++){var a=Math.random()*6.28,s=Math.random()*3+1;var p=newPt();p.x=x;p.y=y;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s;p.life=25+Math.random()*20;p.cl=c;p.sz=0.5+Math.random()*3;pts.push(p);}}
 
 var pwTypes=[
   {id:'W',disp:'散',color:'#0ff'},{id:'M',disp:'导',color:'#f80'},
@@ -904,7 +908,7 @@ var EBULLET=[
 ];
 function enemyBullet(x,y,vx,vy,styleIdx,d,fromBoss,burn){
   var s=EBULLET[styleIdx%EBULLET.length];
-  var o={x:x,y:y,vx:vx,vy:vy,d:d||1,w:s.w,h:s.h,cl:s.cl,shape:s.shape,pl:false,fromBoss:!!fromBoss,burn:!!burn};
+  var o=newBullet();o.x=x;o.y=y;o.vx=vx;o.vy=vy;o.d=d||1;o.w=s.w;o.h=s.h;o.cl=s.cl;o.shape=s.shape;o.pl=false;o.fromBoss=!!fromBoss;o.burn=!!burn;
   bls.push(o);return o;
 }
 // === Boss 定义（form: 外形编号 0~5，hpMul: 血量倍率，fire: 弹幕技能）===
@@ -1009,7 +1013,7 @@ function fireBullets(x,y,wLv,wMis,wPow,wSl,wHom,wSide,fromP1){
 }
 
 // 清屏：清除全屏敌弹（"清屏"道具/空投效果，替代原先滑稽的尾部后射）
-function clearEnemyBullets(c){for(var i=bls.length-1;i>=0;i--){if(!bls[i].pl){boom(bls[i].x,bls[i].y,c||'#fff',4);bls.splice(i,1);}}}
+function clearEnemyBullets(c){for(var i=bls.length-1;i>=0;i--){if(!bls[i].pl){boom(bls[i].x,bls[i].y,c||'#fff',4);blsPool.push(bls[i]);bls.splice(i,1);}}}
 
 // === 关卡选择辅助 ===
 function gotoLevelSelect(){selectedLevel=unlockedLevels;pageSel=Math.floor((unlockedLevels-1)/20);state='levelSelect';}
@@ -1308,7 +1312,7 @@ function update(){
       var dx=px-e.x,dy=py-e.y,dist=Math.sqrt(dx*dx+dy*dy);
       if(dist<ultVortex&&dist>5){e.x+=dx/dist*3;e.y+=dy/dist*3;}
       if(dist<30){e.hp-=playerDmg(4);if(e.hp<=0){score+=12;boom(e.x,e.y,'#7c4dff',8);spawnDrop(e.x,e.y,'s');onKillHeal();vcComboKill();ens.splice(ei,1);}}}
-    for(var bi=bls.length-1;bi>=0;bi--){if(!bls[bi].pl&&Math.abs(bls[bi].x-px)<ultVortex&&Math.abs(bls[bi].y-py)<ultVortex){boom(bls[bi].x,bls[bi].y,'#7c4dff',2);bls.splice(bi,1);}}
+    for(var bi=bls.length-1;bi>=0;bi--){if(!bls[bi].pl&&Math.abs(bls[bi].x-px)<ultVortex&&Math.abs(bls[bi].y-py)<ultVortex){boom(bls[bi].x,bls[bi].y,'#7c4dff',2);blsPool.push(bls[bi]);bls.splice(bi,1);}}
   }else if(ultVortex>0&&vortexTimer<=0){
     // 黑洞爆炸（仅一次）
     for(var ei=ens.length-1;ei>=0;ei--){var e=ens[ei];
@@ -1327,7 +1331,7 @@ function update(){
   if(empTimer>0){
     empTimer--;
     // 脉冲电弧效果
-    for(var ei=bls.length-1;ei>=0;ei--){if(!bls[ei].pl){boom(bls[ei].x,bls[ei].y,'#ff0',3);bls.splice(ei,1);}}
+    for(var ei=bls.length-1;ei>=0;ei--){if(!bls[ei].pl){boom(bls[ei].x,bls[ei].y,'#ff0',3);blsPool.push(bls[ei]);bls.splice(ei,1);}}
     if(frameCount%3==0&&novaStars.length<40){
       var ea=Math.random()*6.28;var ed=50+Math.random()*150;
       novaStars.push({x:px+Math.cos(ea)*ed,y:py+Math.sin(ea)*ed,vx:Math.cos(ea)*2,vy:Math.sin(ea)*2,life:20,cl:['#ff0','#fff','#0ff'][Math.floor(Math.random()*3)],sz:2+Math.random()*5});}
@@ -1431,13 +1435,13 @@ function update(){
       for(var k=0;k<ens.length;k++){var e=ens[k];var dx=e.x-b.x,dy=e.y-b.y,d=dx*dx+dy*dy;if(d<td){td=d;tgt=e;}}
       if(tgt){var ang=Math.atan2(tgt.y-b.y,tgt.x-b.x),sp=Math.sqrt((b.vx||0)*(b.vx||0)+(b.vy||0)*(b.vy||0))||7;
         var ba=Math.atan2(b.vy,b.vx),diff=ang-ba;while(diff>Math.PI)diff-=6.28;while(diff<-Math.PI)diff+=6.28;ba+=Math.max(-b.turn,Math.min(b.turn,diff));b.vx=Math.cos(ba)*sp;b.vy=Math.sin(ba)*sp;}
-      if(b.life<=0){bls.splice(i,1);continue;}
+      if(b.life<=0){blsPool.push(b);bls.splice(i,1);continue;}
     }
     var ebSpd=b.pl?PBULLET_SPEED:(EBULLET_SPEED*(wSlow>0?0.5:1));
-    b.x+=(b.vx||0)*ebSpd;b.y+=(b.vy||0)*ebSpd;if(b.y<-20||b.x<-20||b.x>500){bls.splice(i,1);continue;}
+    b.x+=(b.vx||0)*ebSpd;b.y+=(b.vy||0)*ebSpd;if(b.y<-20||b.x<-20||b.x>500){blsPool.push(b);bls.splice(i,1);continue;}
     // 炮台追踪导弹：记录历史轨迹点用于绘制拖尾
     if(b.turret){if(!b.trail)b.trail=[];b.trail.push(b.x,b.y);if(b.trail.length>24)b.trail.splice(0,2);}
-    for(var j=ens.length-1;j>=0;j--){var e=ens[j];if(Math.abs(b.x-e.x)<(e.w+Math.abs(b.vx||0))/2+4&&Math.abs(b.y-e.y)<(e.h+Math.abs(b.vy||0))/2+4){var dd=playerDmg(b.d);e.t=5;bls.splice(i,1);
+    for(var j=ens.length-1;j>=0;j--){var e=ens[j];if(Math.abs(b.x-e.x)<(e.w+Math.abs(b.vx||0))/2+4&&Math.abs(b.y-e.y)<(e.h+Math.abs(b.vy||0))/2+4){var dd=playerDmg(b.d);e.t=5;blsPool.push(b);bls.splice(i,1);
       // Boss 护盾：伤害先扣 shieldHP
       if(e.shieldHP&&e.shieldHP>0){var sd=Math.min(dd,e.shieldHP);e.shieldHP-=sd;dd-=sd;if(dd>0)e.hp-=dd;boom(e.x,e.y,'#0ff',3);if(e.shieldHP<=0){e.shieldHP=0;play('shield');boom(e.x,e.y,'#0ff',25);}}
       else{e.hp-=dd;}
@@ -1504,12 +1508,12 @@ function update(){
   }
   // Enemy bullets hit player
   for(var i=bls.length-1;i>=0;i--){var b=bls[i];if(b.pl)continue;
-    if(b.homing){var ca=Math.atan2(py-b.y,px-b.x);var ba=Math.atan2(b.vy,b.vx);var diff=ca-ba;while(diff>Math.PI)diff-=6.28;while(diff<-Math.PI)diff+=6.28;ba+=Math.max(-b.turn,Math.min(b.turn,diff));var sp=Math.sqrt(b.vx*b.vx+b.vy*b.vy);b.vx=Math.cos(ba)*sp;b.vy=Math.sin(ba)*sp;b.life2--;if(b.life2<=0){bls.splice(i,1);continue;}}
+    if(b.homing){var ca=Math.atan2(py-b.y,px-b.x);var ba=Math.atan2(b.vy,b.vx);var diff=ca-ba;while(diff>Math.PI)diff-=6.28;while(diff<-Math.PI)diff+=6.28;ba+=Math.max(-b.turn,Math.min(b.turn,diff));var sp=Math.sqrt(b.vx*b.vx+b.vy*b.vy);b.vx=Math.cos(ba)*sp;b.vy=Math.sin(ba)*sp;b.life2--;if(b.life2<=0){blsPool.push(b);bls.splice(i,1);continue;}}
     var ebSpd2=b.pl?PBULLET_SPEED:(EBULLET_SPEED*(wSlow>0?0.5:1));
-    b.x+=(b.vx||0)*ebSpd2;b.y+=(b.vy||0)*ebSpd2;if(b.y>750||b.x<-20||b.x>500||b.y<-20){bls.splice(i,1);continue;}
+    b.x+=(b.vx||0)*ebSpd2;b.y+=(b.vy||0)*ebSpd2;if(b.y>750||b.x<-20||b.x>500||b.y<-20){blsPool.push(b);bls.splice(i,1);continue;}
     var hitP1=Math.abs(b.x-px)<14&&Math.abs(b.y-py)<16;
 
-    if(hitP1){bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#fff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}
+    if(hitP1){blsPool.push(b);bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#fff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}
 
   }
   // 激光束：每帧对穿过的敌人造成伤害
@@ -1606,10 +1610,10 @@ function update(){
 
   }
   // Particles
-  for(var i=pts.length-1;i>=0;i--){var p=pts[i];p.life--;if(p.life<=0){pts.splice(i,1);continue;}if(p.vx!==void 0){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;}else p.y+=p.vy;}
+  for(var i=pts.length-1;i>=0;i--){var p=pts[i];p.life--;if(p.life<=0){ptsPool.push(p);pts.splice(i,1);continue;}if(p.vx!==void 0){p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;}else p.y+=p.vy;}
   // 数组上限保护：防止粒子/子弹爆炸导致卡顿
-  if(pts.length>220)pts.splice(0,pts.length-220);
-  if(bls.length>360)bls.splice(0,bls.length-360);
+  if(pts.length>220){for(var _pc=0;_pc<pts.length-220;_pc++)ptsPool.push(pts[_pc]);pts.splice(0,pts.length-220);}
+  if(bls.length>360){for(var _bc=0;_bc<bls.length-360;_bc++)blsPool.push(bls[_bc]);bls.splice(0,bls.length-360);}
   // Wave complete check
   var alive=0,hasBoss=false;
   for(var i=0;i<ens.length;i++){if(ens[i].type=='boss')hasBoss=true;else alive++;}
