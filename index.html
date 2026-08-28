@@ -22,10 +22,16 @@ c.width=480*DPR;c.height=720*DPR;
 function vh(){var v=window.innerHeight;if(window.visualViewport&&window.visualViewport.height)v=window.visualViewport.height;return v||document.documentElement.clientHeight||window.innerHeight;}
 function resizeCanvas(){
   var ww=window.innerWidth,wh=vh();
-  // 覆盖(cover)：缩放画布使其至少填满屏幕（手机竖屏按高度填满，左右溢出由 overflow 裁切并居中）
   var ar=480/720;
   var cw,ch;
-  if(ww/wh>ar){cw=ww;ch=ww/ar;}else{ch=wh;cw=ch*ar;}
+  if(ww>=wh){
+    // 横屏/桌面：完整显示游戏（contain），并限制最大 480x720，避免过大或被裁切
+    var cap=720; if(wh<cap)cap=wh;
+    if(ww/cap>ar){ch=cap;cw=ch*ar;}else{cw=ww;ch=cw/ar;}
+  }else{
+    // 竖屏（手机）：cover 填满屏幕，溢出部分由 overflow 裁切并居中（无黑边）
+    if(ww/wh>ar){cw=ww;ch=ww/ar;}else{ch=wh;cw=ch*ar;}
+  }
   c.style.width=Math.floor(cw)+'px';
   c.style.height=Math.floor(ch)+'px';
   document.body.style.height=wh+'px';
