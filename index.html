@@ -2799,12 +2799,14 @@ loadAssets();
 loop();
 // 首屏需要用户点击一次（浏览器自动播放限制 + 明确开始）
 function doStart(){
+  // 首次用户手势内：解锁 AudioContext 并启动 BGM（移动端 iOS/微信 必需，否则需用户主动触摸才解锁）
+  try{
+    var c=ac();
+    if(c&&c.state==='suspended'){c.resume();}
+    if(bgmAudio&&bgmAudio.paused&&!bgmMuted){ startBGM(); }
+  }catch(e){}
   if(!needStart)return;
   needStart=false;
-  // iOS: 必须在手势同步栈里 resume AudioContext + 启动 BGM
-  var ctx=ac();
-  if(ctx.state==='suspended'){ctx.resume();}
-  startBGM();
 }
 document.addEventListener('pointerdown',doStart,true);
 document.addEventListener('keydown',doStart,true);
