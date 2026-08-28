@@ -1638,75 +1638,92 @@ function drawBackground(){
   for(var l=0;l<3;l++)for(var i=0;i<stars.length;i++){var s=stars[i];if(s.l!=l)continue;var sz=l==0?1:l==1?1.8:3,al=(l==0?0.3:l==1?0.6:1)*(s.twinkle||0.5);ctx.fillStyle='rgba(255,255,255,'+al+')';ctx.beginPath();ctx.arc(s.x,s.y,sz,0,6.28);ctx.fill();}
 }
 
+function drawMenuJet(cx,cy,s,body,wg,gl){
+  ctx.save();ctx.translate(cx,cy);ctx.scale(s,s);
+  ctx.fillStyle=gl;ctx.shadowColor=gl;ctx.shadowBlur=12;
+  ctx.beginPath();ctx.ellipse(0,20,6,11,0,0,6.28);ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle=wg;
+  ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(-23,14);ctx.lineTo(-8,16);ctx.lineTo(0,6);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(23,14);ctx.lineTo(8,16);ctx.lineTo(0,6);ctx.closePath();ctx.fill();
+  ctx.fillStyle=body;
+  ctx.beginPath();ctx.moveTo(0,-25);ctx.lineTo(-6,8);ctx.lineTo(-4,18);ctx.lineTo(4,18);ctx.lineTo(6,8);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(180,230,255,0.9)';
+  ctx.beginPath();ctx.ellipse(0,-10,3,6,0,0,6.28);ctx.fill();
+  ctx.restore();
+}
+
 function drawMenu(){
   ctx.textAlign='center';
-  // 背景：深空渐变 + 缓慢漂浮星点 + 顶部/底部光晕
+  // 深空背景（与正版雷霆战机一致的太空质感）：渐变 + 星点 + 星云光晕
   var g=ctx.createLinearGradient(0,0,0,720);
-  g.addColorStop(0,'#070b18');g.addColorStop(0.5,'#0d1330');g.addColorStop(1,'#0a0a1f');
+  g.addColorStop(0,'#04071a');g.addColorStop(0.5,'#0a1030');g.addColorStop(1,'#0c0820');
   ctx.fillStyle=g;ctx.fillRect(0,0,480,720);
-  var ng=ctx.createRadialGradient(240,150,20,240,150,380);
-  ng.addColorStop(0,'rgba(80,140,255,0.16)');ng.addColorStop(1,'rgba(80,140,255,0)');
+  var ng=ctx.createRadialGradient(240,140,10,240,140,360);
+  ng.addColorStop(0,'rgba(70,130,255,0.16)');ng.addColorStop(1,'rgba(70,130,255,0)');
   ctx.fillStyle=ng;ctx.fillRect(0,0,480,720);
-  var ng2=ctx.createRadialGradient(240,710,20,240,710,320);
-  ng2.addColorStop(0,'rgba(255,80,180,0.12)');ng2.addColorStop(1,'rgba(255,80,180,0)');
+  var ng2=ctx.createRadialGradient(240,720,10,240,720,340);
+  ng2.addColorStop(0,'rgba(255,120,40,0.12)');ng2.addColorStop(1,'rgba(255,120,40,0)');
   ctx.fillStyle=ng2;ctx.fillRect(0,0,480,720);
-  ctx.fillStyle='rgba(255,255,255,0.55)';
-  for(var s=0;s<46;s++){
-    var sx=(s*97%480), sy=((s*53+frameCount*0.25)%720);
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  for(var s=0;s<50;s++){
+    var sx=(s*97%480), sy=((s*53+frameCount*0.3)%720);
     var sa=0.2+0.6*Math.abs(Math.sin(s*1.7+frameCount*0.02));
-    ctx.globalAlpha=sa*0.6;ctx.beginPath();ctx.arc(sx,sy,1+s%2,0,6.28);ctx.fill();
+    ctx.globalAlpha=sa*0.6;ctx.beginPath();ctx.arc(sx,sy,1+(s%2),0,6.28);ctx.fill();
   }
   ctx.globalAlpha=1;
+  // 背景英雄战机剪影（正版雷霆战机标志性的机体，淡淡铺在后方增加层次）
+  ctx.globalAlpha=0.08;drawMenuJet(240,430,3.4,'#9cf','#06c','#0af');ctx.globalAlpha=1;
 
-  // 标题渐变发光
-  if(!_menuTitleGrad){_menuTitleGrad=ctx.createLinearGradient(0,120,0,180);_menuTitleGrad.addColorStop(0,'#9ef');_menuTitleGrad.addColorStop(0.5,'#0af');_menuTitleGrad.addColorStop(1,'#06c');}
+  // 标题：金属金橙渐变 + 发光（贴近正版雷霆战机的 fiery 标题）
+  if(!_menuTitleGrad){_menuTitleGrad=ctx.createLinearGradient(0,118,0,184);_menuTitleGrad.addColorStop(0,'#ffe7a0');_menuTitleGrad.addColorStop(0.5,'#ffb43a');_menuTitleGrad.addColorStop(1,'#ff7a18');}
   var tg=_menuTitleGrad;
-  ctx.fillStyle=tg;ctx.font='bold '+UF(60)+'px Arial';ctx.shadowColor='#0af';ctx.shadowBlur=35;ctx.fillText('雷 霆 战 机',240,170);ctx.shadowBlur=0;
-  ctx.shadowColor='#0af';ctx.shadowBlur=8;ctx.fillStyle='#7cf';ctx.font='bold 15px Arial';ctx.fillText('— 经 典 飞 行 射 击 —',240,192);ctx.shadowBlur=0;
-  ctx.fillStyle='#9ab';ctx.font=UF(17)+'px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,212);
+  ctx.fillStyle=tg;ctx.font='bold '+UF(62)+'px Arial';ctx.shadowColor='#ff8c00';ctx.shadowBlur=30;ctx.fillText('雷 霆 战 机',240,172);ctx.shadowBlur=0;
+  ctx.shadowColor='#ffb43a';ctx.shadowBlur=8;ctx.fillStyle='#ffd98a';ctx.font='bold 15px Arial';ctx.fillText('— 经 典 飞 行 射 击 —',240,194);ctx.shadowBlur=0;
+  ctx.fillStyle='#9ab';ctx.font=UF(17)+'px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,214);
 
-  // 玻璃质感按钮通用绘制（带 hover 高亮）
-  function pill(x,y,w,h,ca,cb,stroke,label,lf){
+  // 统一科幻玻璃按钮（青色霓虹描边；主按钮金橙强调，机甲风指示灯）
+  function pill(x,y,w,h,accent,label,lf){
     var hov=myRaw>y-h/2&&myRaw<y+h/2&&mxRaw>x-w/2&&mxRaw<x+w/2;
-    var grad=ctx.createLinearGradient(0,y-h/2,0,y+h/2);
-    grad.addColorStop(0,hov?ca:'rgba(255,255,255,0.05)');grad.addColorStop(1,hov?cb:'rgba(0,0,0,0.35)');
-    ctx.fillStyle=grad;ctx.strokeStyle=stroke;ctx.lineWidth=2;
-    ctx.shadowColor=stroke;ctx.shadowBlur=hov?18:8;
+    var bg=ctx.createLinearGradient(0,y-h/2,0,y+h/2);
+    bg.addColorStop(0,hov?'rgba(40,70,120,0.95)':'rgba(20,32,60,0.92)');
+    bg.addColorStop(1,hov?'rgba(15,28,55,0.95)':'rgba(8,16,38,0.92)');
+    ctx.fillStyle=bg;ctx.strokeStyle=accent;ctx.lineWidth=2;
+    ctx.shadowColor=accent;ctx.shadowBlur=hov?16:7;
     drawRoundedRect(x-w/2,y-h/2,w,h,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    // 左端指示灯（机甲风）
+    ctx.fillStyle=accent;ctx.globalAlpha=hov?1:0.7;ctx.beginPath();ctx.arc(x-w/2+16,y,4,0,6.28);ctx.fill();ctx.globalAlpha=1;
     // 顶部高光
-    ctx.fillStyle='rgba(255,255,255,'+(hov?0.28:0.14)+')';drawRoundedRect(x-w/2+3,y-h/2+3,w-6,16,8);ctx.fill();
-    ctx.fillStyle=lf;ctx.font='bold '+UF(22)+'px Arial';ctx.shadowColor='rgba(0,0,0,0.4)';ctx.shadowBlur=hov?4:2;ctx.fillText(label,x,y+8);ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(255,255,255,'+(hov?0.22:0.1)+')';drawRoundedRect(x-w/2+3,y-h/2+3,w-6,15,8);ctx.fill();
+    ctx.fillStyle=lf;ctx.font='bold '+UF(22)+'px Arial';ctx.shadowColor='rgba(0,0,0,0.4)';ctx.shadowBlur=hov?4:2;ctx.fillText(label,x+6,y+8);ctx.shadowBlur=0;
   }
   var BW=UWw(260),BH=50,BY=300,BG=58;
-  // 继续游戏（自动续玩上次关卡，仅当有过游玩记录时显示）
+  // 继续游戏（金橙主按钮，带呼吸光）
   if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels){
     var cy=BY-58;
     var hov=myRaw>cy-BH/2&&myRaw<cy+BH/2&&mxRaw>240-BW/2&&mxRaw<240+BW/2;
     var pulse=0.5+0.5*Math.sin(nebulaTime*4);
     var gg=ctx.createLinearGradient(0,cy-BH/2,0,cy+BH/2);
-    gg.addColorStop(0,hov?'rgba(255,210,0,0.95)':'rgba(230,170,0,0.85)');gg.addColorStop(1,hov?'rgba(200,130,0,0.9)':'rgba(170,110,0,0.8)');
+    gg.addColorStop(0,hov?'rgba(255,200,60,0.98)':'rgba(240,160,30,0.95)');gg.addColorStop(1,hov?'rgba(230,130,10,0.95)':'rgba(200,110,10,0.9)');
     ctx.fillStyle=gg;ctx.strokeStyle='#ffd700';ctx.lineWidth=2.5;
     ctx.shadowColor='#ffd700';ctx.shadowBlur=18+10*pulse;
     drawRoundedRect(240-BW/2,cy-BH/2,BW,BH,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
     ctx.fillStyle='#fff';ctx.font='bold '+UF(22)+'px Arial';ctx.fillText('\u25B6 继续游戏 ('+lastPlayedLevel+'关)',240,cy+8);
   }
-  pill(240,BY+BG*0,BW,BH,'rgba(0,150,230,0.95)','rgba(0,90,180,0.95)','#0ff','\u25B6 闯关模式','#fff');
-  pill(240,BY+BG*1,BW,BH,'rgba(170,70,200,0.95)','rgba(120,30,170,0.95)','#f6f','\u2708 战机DIY','#fcf');
-  pill(240,BY+BG*2,BW,BH,'rgba(230,60,60,0.95)','rgba(180,20,20,0.95)','#f55','\u2620 BOSS挑战','#fee');
-  pill(240,BY+BG*3,BW,BH,'rgba(60,170,230,0.95)','rgba(20,110,190,0.95)','#0ff','\u2753 操作说明','#eaf');
-  pill(240,BY+BG*4,BW,BH,'rgba(120,130,160,0.95)','rgba(70,80,110,0.95)','#9ab','\u2699 设置','#eef');
-  pill(240,BY+BG*5,BW,BH,'rgba(255,170,60,0.95)','rgba(220,110,20,0.95)','#fb5','\u2139 属性介绍','#fff');
-  pill(240,BY+BG*6,BW,BH,'rgba(200,70,230,0.95)','rgba(150,30,200,0.95)','#f6f','\u272F 天赋 ('+talentPoints+'点)','#fcf');
+  pill(240,BY+BG*0,BW,BH,'#ffae3a','\u25B6 闯关模式','#ffe7b0');
+  pill(240,BY+BG*1,BW,BH,'#3fd0ff','\u2708 战机DIY','#dffaff');
+  pill(240,BY+BG*2,BW,BH,'#ff5a5a','\u2620 BOSS挑战','#ffd6d6');
+  pill(240,BY+BG*3,BW,BH,'#3fd0ff','\u2753 操作说明','#dffaff');
+  pill(240,BY+BG*4,BW,BH,'#3fd0ff','\u2699 设置','#dffaff');
+  pill(240,BY+BG*5,BW,BH,'#3fd0ff','\u2139 属性介绍','#dffaff');
+  pill(240,BY+BG*6,BW,BH,'#c77bff','\u272F 天赋 ('+talentPoints+'点)','#f3d9ff');
   // 已达成的 Boss 挑战最高分
   if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font=UF(16)+'px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
 
   ctx.fillStyle='#556';ctx.font='16px Arial';ctx.fillText('方向键/WASD/鼠标 | 自动射击',240,694);
-  // 底部飞船
-  ctx.save();ctx.translate(240,706);var sc=0.9+0.05*Math.sin(nebulaTime*3);ctx.scale(sc,sc);
-  ctx.shadowColor='#0af';ctx.shadowBlur=10;ctx.fillStyle='#0af';
-  ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(-12,12);ctx.lineTo(-5,9);ctx.lineTo(0,14);ctx.lineTo(5,9);ctx.lineTo(12,12);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#0cf';ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(-6,7);ctx.lineTo(0,10);ctx.lineTo(6,7);ctx.closePath();ctx.fill();
-  ctx.shadowBlur=0;ctx.restore();
+  // 底部英雄战机（精致版）
+  ctx.save();ctx.translate(240,690);var sc=0.9+0.05*Math.sin(nebulaTime*3);ctx.scale(sc,sc);
+  drawMenuJet(0,0,1,'#8fd','#06c','#0af');
+  ctx.restore();
 }
 
 function drawLevelSelect(){
