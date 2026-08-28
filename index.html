@@ -240,25 +240,40 @@ function saveMySkin(){try{localStorage.setItem('tms',JSON.stringify(mySkin));}ca
 // === 皮肤图片（异步加载自assets.json） ===
 var ASSETS=null,ASSETS_READY=false,ASSETS_PENDING=[];
 var IMG_SKINS=[{name:'听泉鉴宝',key:'IMG_tingquan'},{name:'奶龙',key:'IMG_nailong'},{name:'蔡徐坤',key:'IMG_caixukun'},{name:'东北雨姐',key:'IMG_yuji'}];
-// 皮肤图独立文件（不依赖 assets.json 大文件，加载更快更可靠）
-var IMG_FILES={'IMG_tingquan':'img/skins/tingquan.jpg','IMG_nailong':'img/skins/nailong.jpg','IMG_caixukun':'img/skins/caixukun.jpg','IMG_yuji':'img/skins/yuji.jpg'};
+// 皮肤图独立文件（直接指向本地小图，不依赖 assets.json 大文件，加载更快）
+var IMG_FILES={'IMG_tingquan':'雷霆战机图片/微信图片_20260717225257_26_458.jpg','IMG_nailong':'雷霆战机图片/微信图片_20260717225258_27_458.jpg','IMG_caixukun':'雷霆战机图片/微信图片_20260717225259_28_458.jpg','IMG_yuji':'雷霆战机图片/微信图片_20260717225259_29_458.jpg'};
 var IMG_CACHE={};
+var IMG_LOADED=false;
 function loadAssets(){
+  // 皮肤图片：立即并行加载（不依赖 assets.json 大文件，避免被 10MB BGM 阻塞导致图片迟迟不出来）
+  if(!IMG_LOADED){
+    IMG_LOADED=true;
+    for(var _i=0;_i<IMG_SKINS.length;_i++){
+      (function(o){
+        var im=new Image();
+        im.onload=function(){IMG_CACHE[o.key]=this;};
+        // 本地文件加载失败再回退到 assets.json 里的内嵌图（兜底，不影响首屏速度）
+        im.onerror=function(){try{if(ASSETS_READY&&ASSETS[o.key]){var i2=new Image();i2.onload=function(){IMG_CACHE[o.key]=i2;};i2.src=ASSETS[o.key];}}catch(e){}};
+        im.src=IMG_FILES[o.key];
+        IMG_CACHE[o.key]=im; // 先放占位，加载完自动替换
+      })(IMG_SKINS[_i]);
+    }
+  }
+  // BGM 音轨（手机端）来自 assets.json，异步加载，不阻塞图片与首屏
   if(ASSETS_READY)return;
   fetch('assets.json').then(function(r){return r.json();}).then(function(d){
     ASSETS=d;ASSETS_READY=true;
-    for(var _i=0;_i<IMG_SKINS.length;_i++){
-      var o=IMG_SKINS[_i],im=new Image();im.onload=function(){var k=this._k;IMG_CACHE[k]=this;};im._k=o.key;im.src=IMG_FILES[o.key]||d[o.key];IMG_CACHE[o.key]=im;
-    }
     ASSETS_PENDING.forEach(function(cb){cb();});
-    // BGM 音轨（手机端）已随 assets.json 就绪，立即尝试自动播放
+    // BGM 音轨已随 assets.json 就绪，立即尝试自动播放
     try{
       // 重置启动标志，允许用真实 mp3 重新启动（之前可能回退过合成或等待中）
       _started=false; _autoBgmDone=false;
       if(typeof tryAutoBgm==='function'){ tryAutoBgm(); }
       if(window.__userTouched && typeof doStart==='function'){ doStart(); }
     }catch(e){}
-  }).catch(function(){});
+  }).catch(function(){ // assets 加载失败也不阻塞游戏：当作已就绪，让 BGM 回退合成旋律
+    ASSETS_READY=true; ASSETS_PENDING.forEach(function(cb){cb();});
+  });
 }
 
 
