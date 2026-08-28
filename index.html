@@ -604,20 +604,18 @@ var bgmNameMap={'qifeng':'起风了','duoxingyun':'多幸运','qingtian':'晴天
 function bgmName(key){if(bgmNameMap[key])return bgmNameMap[key];if(bgmImportMap[key])return bgmImportMap[key].replace(/\.mp3$/i,'');return key;}
 var bgmAudio=null;
 function loadBgmAudio(key){
-  // 电脑端优先加载本地 mp3 文件（高音质）
-  if(!isMobile){
-    var f=bgmFileMap[key]||bgmImportMap[key];
-    if(f){
-      var a=new Audio();a.loop=false;a.volume=Math.min(1,bgmVolume);
-      try{var loc=window.location.href;var base='';if(loc.indexOf('file://')===0)base=loc.substring(0,loc.lastIndexOf('/')+1);a.src=base+encodeURI(f);a.load();}catch(e){}
-      return a;
-    }
-  }
-  // 手机端 / 电脑没有本地文件时，使用嵌入式 Base64 数据
-  if(getBgmSrc(key)){
+  // 两端都优先加载本地 mp3 文件（体积小、秒出，不依赖 10MB 的 assets.json）
+  var f=bgmFileMap[key]||bgmImportMap[key];
+  if(f){
     var a=new Audio();a.loop=false;a.volume=Math.min(1,bgmVolume);
-    try{a.src=getBgmSrc(key);a.load();}catch(e){return null;}
+    try{var loc=window.location.href;var base='';if(loc.indexOf('file://')===0)base=loc.substring(0,loc.lastIndexOf('/')+1);a.src=base+encodeURI(f);a.load();}catch(e){}
     return a;
+  }
+  // 本地没有该文件时（极少数导入歌），回退到嵌入式 Base64 数据
+  if(getBgmSrc(key)){
+    var a2=new Audio();a2.loop=false;a2.volume=Math.min(1,bgmVolume);
+    try{a2.src=getBgmSrc(key);a2.load();}catch(e){return null;}
+    return a2;
   }
   return null;
 }
