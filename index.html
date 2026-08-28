@@ -2582,19 +2582,8 @@ function draw(){
         ctx.fillStyle=ns.cl;ctx.beginPath();ctx.arc(ns.x,ns.y,ns.sz*(ns.life/20),0,6.28);ctx.fill();}}
     ctx.restore();
   }
-  if(slowTimer>0){
-    ctx.save();
-    ctx.fillStyle='rgba(50,150,255,0.12)';ctx.shadowColor='#4fc3f7';ctx.shadowBlur=40;
-    ctx.beginPath();ctx.arc(px,py,250,0,6.28);ctx.fill();
-    ctx.shadowBlur=20;ctx.strokeStyle='rgba(79,195,247,0.5)';ctx.lineWidth=4;
-    ctx.beginPath();ctx.arc(px,py,240+8*Math.sin(frameCount*0.08),0,6.28);ctx.stroke();
-    ctx.strokeStyle='rgba(150,220,255,0.25)';ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(px,py,180,0,6.28);ctx.stroke();
-    for(var ci=0;ci<ultCracks.length;ci++){var cc=ultCracks[ci];
-      var ca=Math.min(1,cc.life/15);ctx.globalAlpha=ca;ctx.shadowBlur=0;ctx.fillStyle=cc.cl;
-      ctx.beginPath();ctx.moveTo(cc.x-cc.sz,cc.y);ctx.lineTo(cc.x,cc.y-cc.sz);ctx.lineTo(cc.x+cc.sz,cc.y);ctx.lineTo(cc.x,cc.y+cc.sz);ctx.closePath();ctx.fill();}
-    ctx.restore();
-  }
+  // [已按用户要求] 移除「时间减速」的蓝色光晕/蓝圈/蓝色裂纹视觉，避免游戏内出现蓝色氛围；减速机制(line 1261+)照常生效
+
   if(vortexTimer>0){
     ctx.save();
     var vrad=Math.min(300,30+ultVortex);
