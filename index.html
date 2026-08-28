@@ -47,6 +47,9 @@ try{var _sd=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'
 var _glowCache={};
 // 对象池：复用子弹/粒子对象，避免每帧大量分配触发移动端 GC 长卡顿（完全不影响画面与玩法，且清空字段保证无残留）
 var blsPool=[],ptsPool=[];
+// 稳健关闭阴影：在主渲染上下文实例上强制 shadowBlur 为 0（不依赖原型覆写，防止部分手机内核原型覆写失效导致阴影真实开启而严重卡顿；glowSprite 用离屏画布自带光晕，不影响观感）
+try{Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:true,get:function(){return 0;},set:function(v){}});}catch(e){}
+var TTS_ENABLED=false; // 语音播报默认关闭：移动端中文 TTS 偶发会卡 1 秒
 function newBullet(){var b=blsPool.pop()||{};for(var k in b)delete b[k];return b;}
 function newPt(){var b=ptsPool.pop()||{};for(var k in b)delete b[k];return b;}
 function _glowRGB(c){if(c&&c[0]=='#'){var h=c.slice(1);if(h.length==3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];var n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];}return [200,230,255];}
@@ -327,6 +330,7 @@ try{
   if(lastPlayedLevel<1||lastPlayedLevel>unlockedLevels)lastPlayedLevel=0;
   gameMode='single';
   sfxVolume=+(localStorage.getItem('tsv')||0.35);
+  TTS_ENABLED=(localStorage.getItem('tts')=='1');
   bgmVolume=+(localStorage.getItem('tbv')||0.95);
   sfxPack=localStorage.getItem('tsp')||'default';
   bgmTrack=localStorage.getItem('tbt')||'qifeng';
@@ -538,6 +542,7 @@ function pickBossVoice(){
 if('speechSynthesis' in window){window.speechSynthesis.onvoiceschanged=function(){_bossVoiceCache=null;};}
 // 通用语音播报（用 Web Speech API 合成中文）
 function speakText(txt,rate,pitch){
+  if(!TTS_ENABLED)return;
   if(!('speechSynthesis' in window))return;
   if(!txt)return;
   // Safari/iOS 已知坑：cancel() 紧跟 speak() 会丢弃新语句，故不再预 cancel；先 resume 防止处于 paused
@@ -568,7 +573,7 @@ function onBossDefeated(e,x,y,isBig,bonus){
   play('bossKill');winFlash=1; // 金闪
   boom(x,y,'#f0f',40);boom(x,y,'#ff0',30);boom(x,y,'#fff',20);
   // 额外冲击波粒子环（打击感拉满）
-  for(var _ri=0;_ri<40;_ri++){var _a=_ri/40*6.283,_sp=2+Math.random()*6;pts.push({x:x,y:y,vx:Math.cos(_a)*_sp,vy:Math.sin(_a)*_sp,life:30+Math.random()*30,cl:['#ff0','#f0f','#fff','#0ff'][Math.floor(Math.random()*4)],sz:1+Math.random()*3});}
+  for(var _ri=0;_ri<40;_ri++){var _a=_ri/40*6.283,_sp=2+Math.random()*6;var _p=newPt();_p.x=x;_p.y=y;_p.vx=Math.cos(_a)*_sp;_p.vy=Math.sin(_a)*_sp;_p.life=30+Math.random()*30;_p.cl=['#ff0','#f0f','#fff','#0ff'][Math.floor(Math.random()*4)];_p.sz=1+Math.random()*3;pts.push(_p);}
   hitstop=isBig?14:9; // Boss 倒下时明显卡肉
   score+=200+(bonus>0?50:0);vcComboKill();
   speakBossDown(e.name,isBig); // 大小 boss 都播报语音
@@ -1194,6 +1199,7 @@ function handleClick(mx,my){try{
     if(my>398&&my<454){if(mx>140&&mx<220){cyclePlayerSkin(-1);play('menuClick');}if(mx>280&&mx<360){cyclePlayerSkin(1);play('menuClick');}}
     if(my>432&&my<466&&mx>350&&mx<450){skinInfoOpen=true;play('menuClick');return;}
     for(var uii=0;uii<3;uii++){var ubx=150+uii*100,uby=494,ubw=90,ubh=34;if(my>uby&&my<uby+ubh&&mx>ubx&&mx<ubx+ubw){uiStep=uii;uiScale=[1,1.12,1.26][uii];try{localStorage.setItem('tb_ui',String(uii));}catch(e){}play('menuClick');return;}}
+    if(my>548&&my<590){TTS_ENABLED=!TTS_ENABLED;try{localStorage.setItem('tts',TTS_ENABLED?'1':'0');}catch(e){}play('menuClick');return;}
     if(my>620&&my<660){play('menuClick');transitionTo('menu');}
   }else if(state=='diy'){
     function cyc(arr,cur,delta){for(var k=0;k<arr.length;k++)if(arr[k]==cur)return arr[(k+delta+arr.length)%arr.length];return arr[delta>0?0:arr.length-1];}
@@ -1447,7 +1453,7 @@ function update(){
       else{e.hp-=dd;}
       if(e.hp<=0){
         // Boss 重生：复活一次，不回满
-        if(e.type=='boss'&&e.revive&&!e._revived){e.hp=e.maxHp*0.4;e.t=20;e._revived=true;play('bossWarning');pts.push({x:e.x,y:e.y-30,vy:-1,life:60,txt:'REVIVE!',cl:'#f44'});for(var ri=0;ri<30;ri++){var ra=Math.random()*6.2832,rs=1+Math.random()*5;pts.push({x:e.x,y:e.y,vx:Math.cos(ra)*rs,vy:Math.sin(ra)*rs-2,life:30+Math.random()*20,cl:['#f44','#f80','#ff0'][Math.floor(Math.random()*3)],sz:1+Math.random()*3});}break;}
+        if(e.type=='boss'&&e.revive&&!e._revived){e.hp=e.maxHp*0.4;e.t=20;e._revived=true;play('bossWarning');var _rt=newPt();_rt.x=e.x;_rt.y=e.y-30;_rt.vy=-1;_rt.life=60;_rt.txt='REVIVE!';_rt.cl='#f44';pts.push(_rt);for(var ri=0;ri<30;ri++){var ra=Math.random()*6.2832,rs=1+Math.random()*5;var _rp=newPt();_rp.x=e.x;_rp.y=e.y;_rp.vx=Math.cos(ra)*rs;_rp.vy=Math.sin(ra)*rs-2;_rp.life=30+Math.random()*20;_rp.cl=['#f44','#f80','#ff0'][Math.floor(Math.random()*3)];_rp.sz=1+Math.random()*3;pts.push(_rp);}break;}
         if(e.type=='boss'){onBossDefeated(e,e.x,e.y,e.isBig,dd>1?50:0);}
         else{
           play(e.type=='s'?'killS':e.type=='m'?'killM':'killL');
@@ -1462,7 +1468,7 @@ function update(){
           onKillHeal();vcComboKill();
           // 击杀飘字（分数+连击）
           var vargain=Math.round(10*Math.min(combo,10)*(scoreMultTimer>0?2:1));
-          pts.push({x:e.x,y:e.y-10,vy:-2.2,life:40,cl:combo>=10?'#ffd700':'#fff',sz:combo>=10?2.6:2,txt:'+'+vargain+(combo>1?'  x'+combo:'')+(scoreMultTimer>0?' x2':'')});
+          var _kp=newPt();_kp.x=e.x;_kp.y=e.y-10;_kp.vy=-2.2;_kp.life=40;_kp.cl=combo>=10?'#ffd700':'#fff';_kp.sz=combo>=10?2.6:2;_kp.txt='+'+vargain+(combo>1?'  x'+combo:'')+(scoreMultTimer>0?' x2':'');pts.push(_kp);
         }
         var sz=e.type=='s'?'s':e.type=='m'?'m':'l';spawnDrop(e.x,e.y,sz);ens.splice(j,1);break;}
       else{if(hitSndCd<=0){play('enemyHit');hitSndCd=4;}}}
@@ -1477,7 +1483,7 @@ function update(){
     if(e.type=='boss'){
       if(e.phase===undefined)e.phase=1;
       // 大Boss过半切PHASE2；小Boss不切阶段
-      if(e.isBig&&e.phase==1&&e.hp<e.maxHp*0.5){e.phase=2;play('bossWarning');pts.push({x:e.x,y:e.y,vy:0,life:50,txt:'PHASE 2!',cl:e.color||'#f0f'});}
+      if(e.isBig&&e.phase==1&&e.hp<e.maxHp*0.5){e.phase=2;play('bossWarning');var _pp=newPt();_pp.x=e.x;_pp.y=e.y;_pp.vy=0;_pp.life=50;_pp.txt='PHASE 2!';_pp.cl=e.color||'#f0f';pts.push(_pp);}
       if(e.y<80){e.vy+=0.02;if(e.vy>1)e.vy=1;}else{e.vy=Math.sin(frameCount*0.04)*0.4;e.vx=Math.sin(frameCount*0.025+(e.isBig?0:1.5))*1.5;}
       if(e.x<50){e.x=50;e.vx*=-1;}if(e.x>430){e.x=430;e.vx*=-1;}if(e.y<30)e.y=30;if(e.y>220)e.y=220;
       var ft=(e.isBig?(e.phase==2?22:40):32)*(wSlow>0?2:1)*ENEMY_FIRE_MUL;
@@ -1907,6 +1913,10 @@ function drawSettings(){
   ctx.fillStyle='#ccc';ctx.font=UF(18)+'px Arial';ctx.textAlign='left';ctx.fillText('界面大小:',30,512);
   var uiLabels=['标准','大','超大'];
   for(var uii=0;uii<3;uii++){var ubx=150+uii*100,uby=494,ubw=90,ubh=34;var uon=(uii==uiStep);ctx.fillStyle=uon?'rgba(0,120,200,0.9)':'rgba(40,40,70,0.9)';ctx.strokeStyle=uon?'#0ff':'#888';ctx.lineWidth=2;drawRoundedRect(ubx,uby,ubw,ubh,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold '+UF(16)+'px Arial';ctx.textAlign='center';ctx.fillText(uiLabels[uii],ubx+ubw/2,uby+23);}
+  // 语音播报开关（默认关闭：移动端中文 TTS 偶发卡顿）
+  ctx.textAlign='left';ctx.fillStyle='#ccc';ctx.font='18px Arial';ctx.fillText('\uD83C\uDFA4 语音播报:',30,566);
+  ctx.fillStyle=TTS_ENABLED?'#0f0':'#888';ctx.font='bold 20px Arial';ctx.textAlign='center';ctx.fillText(TTS_ENABLED?'开':'关',400,566);
+  ctx.textAlign='left';ctx.fillStyle='#555';ctx.font='12px Arial';ctx.fillText('(默认关：手机中文语音会偶发卡顿)',150,584);
   ctx.textAlign='center';
   ctx.fillStyle='#666';ctx.font='17px Arial';ctx.textAlign='center';ctx.fillText('\u2190 返回菜单',240,650);
   // 皮肤技能介绍弹窗
@@ -2924,16 +2934,22 @@ function draw(){
   ctx.restore();
 }
 
+var _prof={fps:60,upd:0,drw:0,tot:0,slowT:0,slowU:0,slowD:0,slowB:0,slowE:0,slowP:0},_SLOW_MS=120,_profShown=0;
+function _drawProfiler(){ctx.save();ctx.textAlign='left';ctx.font='12px monospace';ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(2,2,152,46);ctx.fillStyle='#0f0';ctx.fillText('FPS '+_prof.fps,6,15);ctx.fillStyle='#0cf';ctx.fillText('up '+_prof.upd.toFixed(1)+' dr '+_prof.drw.toFixed(1),6,29);ctx.fillStyle='#888';ctx.fillText('bls '+bls.length+' ens '+ens.length,6,43);if(performance.now()<_profShown){ctx.fillStyle='rgba(140,0,0,0.9)';ctx.fillRect(0,72,480,36);ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.textAlign='center';ctx.fillText('卡顿! 总'+_prof.slowT.toFixed(0)+'ms 更新'+_prof.slowU.toFixed(0)+' 绘制'+_prof.slowD.toFixed(0)+' bls'+_prof.slowB+' ens'+_prof.slowE,240,94);}ctx.restore();}
 var _lastTS=0,_acc=0,_MAXSTEP=5; // 帧时间保护：掉帧时最多补算 5 步，避免慢设备上越拖越卡
 function loop(ts){try{
   if(!_lastTS)_lastTS=ts||0;
   var dt=(ts?ts:_lastTS+16)-_lastTS;_lastTS=ts||_lastTS;
   if(dt>250)dt=250;            // 切后台/长时间卡顿后，不要一次性补算几百帧
   _acc+=dt/16.6667;
-  var steps=0;
+  var steps=0;var _t0=performance.now();
   while(_acc>=1&&steps<_MAXSTEP){update();_acc-=1;steps++;}
   if(steps>=_MAXSTEP)_acc=0;   // 实在追不上就丢弃，保持流畅优先
-  draw();
+  var _t1=performance.now();draw();var _t2=performance.now();
+  _prof.upd=_t1-_t0;_prof.drw=_t2-_t1;_prof.tot=_t2-_t0;
+  if(dt>0)_prof.fps=Math.round(1000/dt);
+  if(_prof.tot>_SLOW_MS){_prof.slowT=_prof.tot;_prof.slowU=_prof.upd;_prof.slowD=_prof.drw;_prof.slowB=bls.length;_prof.slowE=ens.length;_prof.slowP=pts.length;_profShown=performance.now()+4000;}
+  if(state=='playing')_drawProfiler();
 }catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}
 requestAnimationFrame(loop);}
 loadAssets();
