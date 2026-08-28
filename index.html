@@ -51,6 +51,7 @@ var BLS_MAX=160; // 子弹（玩家弹+敌弹）硬上限：超过即回收 olde
 // 稳健关闭阴影：在主渲染上下文实例上强制 shadowBlur 为 0（不依赖原型覆写，防止部分手机内核原型覆写失效导致阴影真实开启而严重卡顿；glowSprite 用离屏画布自带光晕，不影响观感）
 try{Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:true,get:function(){return 0;},set:function(v){}});}catch(e){}
 var TTS_ENABLED=false; // 语音播报默认关闭：移动端中文 TTS 偶发会卡 1 秒
+var _lastTTS=0; // 语音播报节流时间戳：避免连续事件堆叠多次 speak 造成移动端卡顿
 function newBullet(){var b=blsPool.pop()||{};for(var k in b)delete b[k];return b;}
 function newPt(){var b=ptsPool.pop()||{};for(var k in b)delete b[k];return b;}
 function _glowRGB(c){if(c&&c[0]=='#'){var h=c.slice(1);if(h.length==3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];var n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];}return [200,230,255];}
@@ -546,6 +547,8 @@ function speakText(txt,rate,pitch){
   if(!TTS_ENABLED)return;
   if(!('speechSynthesis' in window))return;
   if(!txt)return;
+  var _nt=Date.now();if(_nt-_lastTTS<1000)return;_lastTTS=_nt; // 节流：1 秒内只播一次，杜绝排队叠加卡顿
+  try{window.speechSynthesis.cancel();}catch(e){} // 清掉上一条，防止队列堆积
   // 整段放入下一个宏任务并包 try/catch：
   // 1) 个别浏览器/系统首次合成中文语音会同步阻塞主线程，移到 setTimeout 可避免卡住当前游戏帧（主循环不会因此停掉）
   // 2) 任何异常都被吞掉，绝不影响游戏循环与输入
@@ -566,6 +569,7 @@ function speakBossArrival(name,isBig){speakText((isBig?'大 boss ':'小 boss ')+
 function speakBossDown(name,isBig){
   try{
     if(!('speechSynthesis' in window))return;
+    var _nt=Date.now();if(_nt-_lastTTS<1000)return;_lastTTS=_nt;
     var txt=(isBig?'击败大 boss ':'击败小 boss ')+(name||'boss')+'！干得漂亮！';
     var u=new SpeechSynthesisUtterance(txt);
     u.lang='zh-CN';
