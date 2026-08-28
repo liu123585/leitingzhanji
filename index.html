@@ -898,7 +898,7 @@ function boom(x,y,c,n){n=Math.min(n,14);for(var i=0;i<n;i++){var a=Math.random()
 var pwTypes=[
   {id:'W',disp:'散',color:'#0ff'},{id:'M',disp:'导',color:'#f80'},
   {id:'P',disp:'火',color:'#f44'},{id:'H',disp:'回',color:'#0f0'},
-  {id:'S',disp:'盾',color:'#ff0'},{id:'D',disp:'缓',color:'#aaf'},
+  {id:'S',disp:'盾',color:'#7fd0ff'},{id:'D',disp:'缓',color:'#aaf'},
   {id:'T',disp:'追',color:'#0ff'},{id:'B',disp:'后',color:'#0ff'},{id:'X',disp:'倍',color:'#ff0'},
 ];
 function spawnDrop(x,y,etype){
@@ -981,7 +981,7 @@ function collectDropFor(i,isP1){
   else if(p.type=='M'){wMis=Math.min(2,wMis+1);wMissile=wMis;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'导 Lv.'+wMis,cl:'#f80'});}
   else if(p.type=='P'){wPow=Math.min(5,wPow+1);wPower=wPow;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'火 Lv.'+wPow,cl:'#f44'});}
   else if(p.type=='H'){hpv=Math.min(mhpv,hpv+2);hp=hpv;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'+2 血',cl:'#0f0'});}
-  else if(p.type=='S'){wShield=Math.min(3,wShield+1);pts.push({x:x,y:y,vy:-1.5,life:30,txt:'护盾+1!',cl:'#ff0'});}
+  else if(p.type=='S'){wShield=Math.min(3,wShield+1);pts.push({x:x,y:y,vy:-1.5,life:30,txt:'护盾+1!',cl:'#7fd0ff'});}
       else if(p.type=='D'){wSlow=300;}
   else if(p.type=='T'){homingTimer=600;pts.push({x:x,y:y,vy:-1.5,life:30,txt:'自动追踪 10s!',cl:'#0ff'});}
   else if(p.type=='B'){clearEnemyBullets('#0ff');pts.push({x:x,y:y,vy:-1.5,life:30,txt:'清屏!',cl:'#0ff'});}
@@ -1436,7 +1436,7 @@ function update(){
   if(vcComboPop>0)vcComboPop=Math.max(0,vcComboPop-0.07);
   if(bossRushTimer>0)bossRushTimer--;
   // 护盾被动再生：护盾为"层数"，受击逐层消耗；无盾时才计时，到时自动补一层；有盾不计时
-  if(wShield<=0){if(shieldRegenCd>0)shieldRegenCd--;else{wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(px,py,'#ff0',12);}}
+  if(wShield<=0){if(shieldRegenCd>0)shieldRegenCd--;else{wShield=Math.min(3,1+Math.floor(tl('shield')/2));play('shield');boom(px,py,'#7fd0ff',12);}}
 
   if(p1BreakT>0)p1BreakT--;
 
@@ -1485,7 +1485,7 @@ function update(){
   for(var i=ens.length-1;i>=0;i--){var e=ens[i];e.y+=e.vy;e.x+=e.vx||0;if(e.t>0)e.t--;e.fireTimer++;if(e.type!='boss'){if(e.x<20)e.x=20;if(e.x>460)e.x=460;}
     // 敌机身体撞击玩家（与子弹命中共用护盾/掉血逻辑）
     var ehw=e.w/2+12;
-    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}}}
+    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#7fd0ff',15);triggerShieldBreak();playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}}}
 
     if(state=='over')break;
     if(e.type=='boss'){
@@ -1527,7 +1527,7 @@ function update(){
     b.x+=(b.vx||0)*ebSpd2;b.y+=(b.vy||0)*ebSpd2;if(b.y>750||b.x<-20||b.x>500||b.y<-20){blsPool.push(b);bls.splice(i,1);continue;}
     var hitP1=Math.abs(b.x-px)<14&&Math.abs(b.y-py)<16;
 
-    if(hitP1){blsPool.push(b);bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#fff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}
+    if(hitP1){blsPool.push(b);bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#fff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#7fd0ff',15);triggerShieldBreak();}}
 
   }
   // 激光束：每帧对穿过的敌人造成伤害
@@ -1548,7 +1548,7 @@ function update(){
     if(L.hostile){ // 敌激光：判定是否命中玩家（机翼两侧粗蓝激光）
       var half=L.lw*0.5+8;
       var ddx=px-L.x,ddy=py-L.y;var tt=(ddx*Math.cos(L.ang)+ddy*Math.sin(L.ang));
-      if(tt>=0&&tt<=L.len){var qx=L.x+Math.cos(L.ang)*tt,qy=L.y+Math.sin(L.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}}}
+      if(tt>=0&&tt<=L.len){var qx=L.x+Math.cos(L.ang)*tt,qy=L.y+Math.sin(L.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#7fd0ff',15);triggerShieldBreak();}}}}
     }
   }
   // 持久机翼激光：跟随飞机制造光束，长且粗，持续判定
@@ -1577,7 +1577,7 @@ function update(){
       }else{ // 敌光束：命中玩家
         var half=W.w*0.5+8;
         var ddx=px-W.x,ddy=py-W.y;var tt=(ddx*Math.cos(W.ang)+ddy*Math.sin(W.ang));
-        if(tt>=0&&tt<=W.len){var qx=W.x+Math.cos(W.ang)*tt,qy=W.y+Math.sin(W.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}}}
+        if(tt>=0&&tt<=W.len){var qx=W.x+Math.cos(W.ang)*tt,qy=W.y+Math.sin(W.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#7fd0ff',15);triggerShieldBreak();}}}}
 
       }
     }
@@ -2023,12 +2023,12 @@ function drawHUD(){
   ctx.fillStyle='#9cf';ctx.fillText('\u26A1 射速 Lv'+tl('spd'),236,sy);
   ctx.fillStyle='#fc9';ctx.fillText('\u273B 暴击 Lv'+tl('crit'),10,sy+20);
   ctx.fillStyle='#f9f';ctx.fillText('\u2728 吸血 Lv'+tl('leech'),128,sy+20);
-  ctx.fillStyle='#ff9';ctx.fillText('\u25A3 护盾 Lv'+tl('shield'),236,sy+20);
+  ctx.fillStyle='#7fd0ff';ctx.fillText('\u25A3 护盾 Lv'+tl('shield'),236,sy+20);
   ctx.font='bold 16px Arial';var wx=10,wy=sy+42;
   if(wLevel>0){ctx.fillStyle='#0ff';ctx.fillText('\u25A0 散'+wLevel,wx,wy);wx+=40;}
   if(wMissile>0){ctx.fillStyle='#f80';ctx.fillText('\u25A0 导'+wMissile,wx,wy);wx+=40;}
   if(wPower>1){ctx.fillStyle='#f44';ctx.fillText('\u25A0 火'+wPower,wx,wy);wx+=40;}
-  if(wShield>0){ctx.fillStyle='#ff0';ctx.fillText('\u25A0 盾x'+wShield,wx,wy);wx+=64;}
+  if(wShield>0){ctx.fillStyle='#7fd0ff';ctx.fillText('\u25A0 盾x'+wShield,wx,wy);wx+=64;}
   // 减速效果不显示HUD提示
 
   // 分数 / 关卡名（最顶部）
@@ -2046,7 +2046,9 @@ function drawHUD(){
   }else{
   // 右上角「波次」：放大+高亮荧光黄绿，加粗发光，手机端更易看清
   ctx.textAlign='right';ctx.fillStyle='#aaff00';ctx.font='bold 30px Arial';ctx.shadowColor='#5fff00';ctx.shadowBlur=14;ctx.fillText('\u6CE2\u6B21 '+wave+'/'+getLv().waveCount,420,108);}
-  var progress=waveEnemies/waveMax;ctx.fillStyle='#222';ctx.fillRect(280,116,135,8);ctx.fillStyle='#0af';ctx.fillRect(280,116,135*progress,8);
+  var _bhp=0,_bmax=0,_hasBoss=false;for(var _bi=0;_bi<ens.length;_bi++){if(ens[_bi].type=='boss'){_hasBoss=true;_bhp=ens[_bi].hp;_bmax=ens[_bi].maxHp;break;}}
+var progress=(_hasBoss&&!isBossRush&&wave==getLv().waveCount&&_bmax>0)?(_bhp/_bmax):(waveEnemies/waveMax);
+ctx.fillStyle='#222';ctx.fillRect(280,116,135,8);ctx.fillStyle='#0af';ctx.fillRect(280,116,135*progress,8);
   ctx.strokeStyle='#555';ctx.lineWidth=1;ctx.strokeRect(280,116,135,8);
   // 右上角「最高分」：放大+亮色，提升可读性
   ctx.fillStyle='#ffcf3d';ctx.font='bold 22px Arial';ctx.shadowColor='#000';ctx.shadowBlur=6;ctx.fillText('\u6700\u9AD8: '+hs,420,140);ctx.shadowBlur=0;ctx.textAlign='left';
@@ -2255,42 +2257,27 @@ function drawPlayerShip(x,y,flash){
   ctx.fillStyle='rgba(255,80,80,0.9)';ctx.beginPath();ctx.arc(0,-2,2.5,0,6.28);ctx.fill();
   // 左右机翼炮台（常驻追踪导弹发射器）
   drawTurrets();
-  // 护盾光罩（有护盾时在战机周围显示，正版雷霆战机风格）
+  // 护盾功能保留（吸收伤害）+ 青色护盾光圈（仅一圈清晰圆环，非金色氛围）
   drawShieldAura(wShield);drawShieldBreakFx();
   ctx.restore();
 }
-// ===== 护盾光罩绘制（局部坐标，须在战机 translate 后、restore 前调用）=====
+// ===== 护盾光圈绘制（青色清晰圆环，非金色氛围；局部坐标，须在战机 translate 后、restore 前调用）=====
 function drawShieldAura(sh){
   if(!sh||sh<=0)return;               // 只按传入的护盾层数绘制
   var _inv=playerInvuln;
   var _pulse=0.5+0.5*Math.sin(frameCount*0.12);            // 呼吸脉动
   var _hit=(_inv>0)?Math.min(1,_inv/30):0;                 // 受击/刚挡下时更亮
-  var _rx=42+sh*3,_ry=54+sh*3;                             // 层数越多罩越大
+  var _rx=40+sh*3,_ry=52+sh*3;                             // 层数越多环越大
   ctx.save();
-  // 柔光填充（中心透明→边缘金色）
+  // 极淡青色填充，仅作护盾质感，不产生“氛围”感（区别于原来金色大光晕）
   var _g=ctx.createRadialGradient(0,-4,8,0,-4,Math.max(_rx,_ry));
-  _g.addColorStop(0,'rgba(255,210,120,0)');
-  _g.addColorStop(0.7,'rgba(255,190,90,'+(0.10+0.06*sh)+')');
-  _g.addColorStop(1,'rgba(255,170,70,'+(0.20+0.08*sh)+')');
+  _g.addColorStop(0,'rgba(120,210,255,0)');
+  _g.addColorStop(1,'rgba(80,180,255,'+(0.06+0.04*sh)+')');
   ctx.fillStyle=_g;ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,0,0,6.28);ctx.fill();
-  // 主光环（发光描边，受击时爆亮）
-  ctx.lineWidth=2.5;ctx.strokeStyle='rgba(255,225,160,'+(0.55+0.25*_pulse+0.4*_hit)+')';
-  ctx.shadowColor='#ffd27f';ctx.shadowBlur=14+10*_pulse+20*_hit;
+  // 主光圈（清晰青色描边环，受击时爆亮，范围克制不扩散）
+  ctx.lineWidth=2.5;ctx.strokeStyle='rgba(150,230,255,'+(0.7+0.3*_pulse+0.3*_hit)+')';
+  ctx.shadowColor='#5cc8ff';ctx.shadowBlur=8+8*_hit;
   ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,0,0,6.28);ctx.stroke();
-  // 外层第二圈光环（正版同心圆层次感）
-  ctx.lineWidth=1.5;ctx.strokeStyle='rgba(255,210,120,'+(0.30+0.20*_pulse+0.3*_hit)+')';
-  ctx.shadowBlur=10+8*_pulse+16*_hit;
-  ctx.beginPath();ctx.ellipse(0,-4,_rx+7,_ry+7,0,0,6.28);ctx.stroke();
-  // 外层第三圈细环
-  ctx.lineWidth=1;ctx.strokeStyle='rgba(255,180,90,'+(0.18+0.15*_pulse+0.2*_hit)+')';
-  ctx.shadowBlur=6+6*_pulse;
-  ctx.beginPath();ctx.ellipse(0,-4,_rx+14,_ry+14,0,0,6.28);ctx.stroke();
-  // 内层细环（层次感）
-  ctx.shadowBlur=0;ctx.lineWidth=1;ctx.strokeStyle='rgba(255,235,190,'+(0.25+0.2*_pulse)+')';
-  ctx.beginPath();ctx.ellipse(0,-4,_rx-6,_ry-6,0,0,6.28);ctx.stroke();
-  // 顶部高光弧（玻璃质感）
-  ctx.lineWidth=2;ctx.strokeStyle='rgba(255,255,255,'+(0.4+0.4*_hit)+')';
-  ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,-0.5,Math.PI*1.05,Math.PI*1.5);ctx.stroke();
   ctx.restore();
 }
 // 战机两侧炮台绘制：明显放大、发光、带脉冲蓄能环，确保清晰可见
@@ -2958,7 +2945,7 @@ function loop(ts){try{
   _prof.upd=_t1-_t0;_prof.drw=_t2-_t1;_prof.tot=_t2-_t0;
   if(dt>0)_prof.fps=Math.round(1000/dt);
   if(_prof.tot>_SLOW_MS){_prof.slowT=_prof.tot;_prof.slowU=_prof.upd;_prof.slowD=_prof.drw;_prof.slowB=bls.length;_prof.slowE=ens.length;_prof.slowP=pts.length;_profShown=performance.now()+4000;}
-  if(state=='playing')_drawProfiler();
+  // 调试面板已关闭：不绘制 FPS / bls / ens 等左上角信息
 }catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}
 requestAnimationFrame(loop);}
 loadAssets();
