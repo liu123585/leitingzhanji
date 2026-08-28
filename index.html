@@ -2805,6 +2805,22 @@ function doStart(){
 document.addEventListener('pointerdown',doStart,true);
 document.addEventListener('keydown',doStart,true);
 document.addEventListener('touchstart',doStart,true);
+// 从外部站点（如导航站 site.liuyushan.top）通过点击跳转打开时，
+// 浏览器会把用户手势激活带入新页面，允许自动播放。这里在资源就绪后
+// 自动尝试启动 BGM；若被自动播放策略拦截，则由上面的首次交互兜底。
+var _autoBgmAt=0;
+function tryAutoBgm(){
+  if(_autoBgmAt>=3||!bgmPlayList.length)return; // 资源未就绪则等下一次
+  _autoBgmAt++;
+  try{
+    var c=ac();
+    if(c.state==='suspended'){c.resume();}
+    startBGM();
+  }catch(e){}
+}
+setTimeout(tryAutoBgm,800);
+setTimeout(tryAutoBgm,2000);
+setTimeout(tryAutoBgm,3500);
 // 持续记录 BGM 播放位置，刷新后从上次进度续播
 setInterval(function(){if(state!='pause')saveBgmPos();},2000);
 document.addEventListener('visibilitychange',function(){if(document.hidden)saveBgmPos();});
