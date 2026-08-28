@@ -1637,6 +1637,24 @@ function drawBackground(){
 
 function drawMenu(){
   ctx.textAlign='center';
+  // 背景：深空渐变 + 缓慢漂浮星点 + 顶部/底部光晕
+  var g=ctx.createLinearGradient(0,0,0,720);
+  g.addColorStop(0,'#070b18');g.addColorStop(0.5,'#0d1330');g.addColorStop(1,'#0a0a1f');
+  ctx.fillStyle=g;ctx.fillRect(0,0,480,720);
+  var ng=ctx.createRadialGradient(240,150,20,240,150,380);
+  ng.addColorStop(0,'rgba(80,140,255,0.16)');ng.addColorStop(1,'rgba(80,140,255,0)');
+  ctx.fillStyle=ng;ctx.fillRect(0,0,480,720);
+  var ng2=ctx.createRadialGradient(240,710,20,240,710,320);
+  ng2.addColorStop(0,'rgba(255,80,180,0.12)');ng2.addColorStop(1,'rgba(255,80,180,0)');
+  ctx.fillStyle=ng2;ctx.fillRect(0,0,480,720);
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  for(var s=0;s<46;s++){
+    var sx=(s*97%480), sy=((s*53+frameCount*0.25)%720);
+    var sa=0.2+0.6*Math.abs(Math.sin(s*1.7+frameCount*0.02));
+    ctx.globalAlpha=sa*0.6;ctx.beginPath();ctx.arc(sx,sy,1+s%2,0,6.28);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
   // 标题渐变发光
   if(!_menuTitleGrad){_menuTitleGrad=ctx.createLinearGradient(0,120,0,180);_menuTitleGrad.addColorStop(0,'#9ef');_menuTitleGrad.addColorStop(0.5,'#0af');_menuTitleGrad.addColorStop(1,'#06c');}
   var tg=_menuTitleGrad;
@@ -1644,26 +1662,38 @@ function drawMenu(){
   ctx.shadowColor='#0af';ctx.shadowBlur=8;ctx.fillStyle='#7cf';ctx.font='bold 15px Arial';ctx.fillText('— 经 典 飞 行 射 击 —',240,192);ctx.shadowBlur=0;
   ctx.fillStyle='#9ab';ctx.font=UF(17)+'px Arial';ctx.fillText('最高分 '+hs+'   |   已解锁 '+unlockedLevels+' / '+TOTAL_LEVELS+' 关',240,212);
 
-  // 胶囊按钮通用绘制（所有主菜单按钮统一尺寸：宽260 高50 圆角12）
-  function pill(x,y,w,h,fill,stroke,glow,label,lf){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.shadowColor=glow;ctx.shadowBlur=14;drawRoundedRect(x-w/2,y-h/2,w,h,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=lf;ctx.font='bold '+UF(22)+'px Arial';ctx.fillText(label,x,y+8);}
-  var BW=UWw(260),BH=50,BY=300,BG=58; // 统一按钮宽/高/起始Y/间距（宽度随界面大小缩放）
+  // 玻璃质感按钮通用绘制（带 hover 高亮）
+  function pill(x,y,w,h,ca,cb,stroke,label,lf){
+    var hov=myRaw>y-h/2&&myRaw<y+h/2&&mxRaw>x-w/2&&mxRaw<x+w/2;
+    var grad=ctx.createLinearGradient(0,y-h/2,0,y+h/2);
+    grad.addColorStop(0,hov?ca:'rgba(255,255,255,0.05)');grad.addColorStop(1,hov?cb:'rgba(0,0,0,0.35)');
+    ctx.fillStyle=grad;ctx.strokeStyle=stroke;ctx.lineWidth=2;
+    ctx.shadowColor=stroke;ctx.shadowBlur=hov?18:8;
+    drawRoundedRect(x-w/2,y-h/2,w,h,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    // 顶部高光
+    ctx.fillStyle='rgba(255,255,255,'+(hov?0.28:0.14)+')';drawRoundedRect(x-w/2+3,y-h/2+3,w-6,16,8);ctx.fill();
+    ctx.fillStyle=lf;ctx.font='bold '+UF(22)+'px Arial';ctx.shadowColor='rgba(0,0,0,0.4)';ctx.shadowBlur=hov?4:2;ctx.fillText(label,x,y+8);ctx.shadowBlur=0;
+  }
+  var BW=UWw(260),BH=50,BY=300,BG=58;
   // 继续游戏（自动续玩上次关卡，仅当有过游玩记录时显示）
   if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels){
-    ctx.save();
+    var cy=BY-58;
+    var hov=myRaw>cy-BH/2&&myRaw<cy+BH/2&&mxRaw>240-BW/2&&mxRaw<240+BW/2;
     var pulse=0.5+0.5*Math.sin(nebulaTime*4);
+    var gg=ctx.createLinearGradient(0,cy-BH/2,0,cy+BH/2);
+    gg.addColorStop(0,hov?'rgba(255,210,0,0.95)':'rgba(230,170,0,0.85)');gg.addColorStop(1,hov?'rgba(200,130,0,0.9)':'rgba(170,110,0,0.8)');
+    ctx.fillStyle=gg;ctx.strokeStyle='#ffd700';ctx.lineWidth=2.5;
     ctx.shadowColor='#ffd700';ctx.shadowBlur=18+10*pulse;
-    ctx.fillStyle='rgba(210,150,0,'+(0.78+0.12*pulse)+')';ctx.strokeStyle='#ffd700';ctx.lineWidth=2.5;
-    drawRoundedRect(240-BW/2,BY-58-BH/2,BW,BH,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-    ctx.fillStyle='#fff';ctx.font='bold '+UF(22)+'px Arial';ctx.fillText('\u25B6 继续游戏 ('+lastPlayedLevel+'关)',240,BY-58+8);
-    ctx.restore();
+    drawRoundedRect(240-BW/2,cy-BH/2,BW,BH,12);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle='#fff';ctx.font='bold '+UF(22)+'px Arial';ctx.fillText('\u25B6 继续游戏 ('+lastPlayedLevel+'关)',240,cy+8);
   }
-  pill(240,BY+BG*0,BW,BH,'rgba(0,120,200,0.85)','#0ff','#0ff','\u25B6 闯关模式','#fff');
-  pill(240,BY+BG*1,BW,BH,'rgba(120,40,120,0.85)','#f0f','#f0f','\u2708 战机DIY','#fcf');
-  pill(240,BY+BG*2,BW,BH,'rgba(180,20,20,0.85)','#f44','#f44','\u2620 BOSS挑战','#fcc');
-  pill(240,BY+BG*3,BW,BH,'rgba(30,30,55,0.85)','#0af','#0af','\u2753 操作说明','#cdf');
-  pill(240,BY+BG*4,BW,BH,'rgba(30,30,55,0.85)','#0af','#0af','\u2699 设置','#cdf');
-  pill(240,BY+BG*5,BW,BH,'rgba(30,30,55,0.85)','#0af','#0af','\u2139 属性介绍','#cdf');
-  pill(240,BY+BG*6,BW,BH,'rgba(120,30,150,0.85)','#f6f','#f6f','\u272F 天赋 ('+talentPoints+'点)','#fcf');
+  pill(240,BY+BG*0,BW,BH,'rgba(0,150,230,0.95)','rgba(0,90,180,0.95)','#0ff','\u25B6 闯关模式','#fff');
+  pill(240,BY+BG*1,BW,BH,'rgba(170,70,200,0.95)','rgba(120,30,170,0.95)','#f6f','\u2708 战机DIY','#fcf');
+  pill(240,BY+BG*2,BW,BH,'rgba(230,60,60,0.95)','rgba(180,20,20,0.95)','#f55','\u2620 BOSS挑战','#fee');
+  pill(240,BY+BG*3,BW,BH,'rgba(60,170,230,0.95)','rgba(20,110,190,0.95)','#0ff','\u2753 操作说明','#eaf');
+  pill(240,BY+BG*4,BW,BH,'rgba(120,130,160,0.95)','rgba(70,80,110,0.95)','#9ab','\u2699 设置','#eef');
+  pill(240,BY+BG*5,BW,BH,'rgba(255,170,60,0.95)','rgba(220,110,20,0.95)','#fb5','\u2139 属性介绍','#fff');
+  pill(240,BY+BG*6,BW,BH,'rgba(200,70,230,0.95)','rgba(150,30,200,0.95)','#f6f','\u272F 天赋 ('+talentPoints+'点)','#fcf');
   // 已达成的 Boss 挑战最高分
   if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font=UF(16)+'px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
 
