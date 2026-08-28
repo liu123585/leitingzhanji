@@ -10,6 +10,16 @@
 
 直接打开 `index.html` 即可游玩，或访问已部署的线上地址。
 
+
+## 游戏截图
+
+| 主菜单 | 闯关战斗 | 大 Boss 战 |
+| --- | --- | --- |
+| ![主菜单](screenshots/shot-menu.png) | ![闯关战斗](screenshots/shot-battle.png) | ![大Boss战](screenshots/shot-boss.png) |
+
+| 天赋系统 | 皮肤 DIY | 关卡选择 |
+| --- | --- | --- |
+| ![天赋系统](screenshots/shot-talent.png) | ![皮肤DIY](screenshots/shot-diy.png) | ![关卡选择](screenshots/shot-level.png) |
 ## 游戏模式
 
 | 模式 | 说明 |
