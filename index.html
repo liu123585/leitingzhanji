@@ -64,7 +64,7 @@ var HIT_BULLET=0,HIT_RAM=1,HIT_LASER=2,HIT_BOSS=3;
 function applyHit(type){
   var sh=0,mag=0,fx=0,col='255,0,0';
   if(type==HIT_RAM){sh=4;mag=3;fx=0.7;col='255,40,40';play('hitRam');}        // 敌机撞击：微震+撞击音效
-  else if(type==HIT_LASER){sh=3;mag=2;fx=0.45;col='180,60,255';play('hitLaser');} // 敌方激光：微震+激光音效
+  else if(type==HIT_LASER){sh=3;mag=2;fx=0.45;col='255,90,40';play('hitLaser');} // 敌方激光：微震+激光音效（受击氛围用暖色，避免蓝色）
   else if(type==HIT_BOSS){sh=4;mag=3;fx=0.5;col='255,140,40';play('hitBoss');}  // Boss弹幕：微震+重击音效
   else{sh=2;mag=1;fx=0.3;col='255,0,0';play('hitBullet');}                          // 普通子弹：极微震+轻击音效
   // 震屏已禁用
@@ -1492,7 +1492,7 @@ function update(){
     b.x+=(b.vx||0)*ebSpd2;b.y+=(b.vy||0)*ebSpd2;if(b.y>750||b.x<-20||b.x>500||b.y<-20){bls.splice(i,1);continue;}
     var hitP1=Math.abs(b.x-px)<14&&Math.abs(b.y-py)<16;
 
-    if(hitP1){bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#0ff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}
+    if(hitP1){bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#fff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}
 
   }
   // 激光束：每帧对穿过的敌人造成伤害
@@ -2223,26 +2223,26 @@ function drawShieldAura(sh){
   var _hit=(_inv>0)?Math.min(1,_inv/30):0;                 // 受击/刚挡下时更亮
   var _rx=42+sh*3,_ry=54+sh*3;                             // 层数越多罩越大
   ctx.save();
-  // 柔光填充（中心透明→边缘蓝色）
+  // 柔光填充（中心透明→边缘金色）
   var _g=ctx.createRadialGradient(0,-4,8,0,-4,Math.max(_rx,_ry));
-  _g.addColorStop(0,'rgba(120,220,255,0)');
-  _g.addColorStop(0.7,'rgba(80,200,255,'+(0.10+0.06*sh)+')');
-  _g.addColorStop(1,'rgba(60,180,255,'+(0.20+0.08*sh)+')');
+  _g.addColorStop(0,'rgba(255,210,120,0)');
+  _g.addColorStop(0.7,'rgba(255,190,90,'+(0.10+0.06*sh)+')');
+  _g.addColorStop(1,'rgba(255,170,70,'+(0.20+0.08*sh)+')');
   ctx.fillStyle=_g;ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,0,0,6.28);ctx.fill();
   // 主光环（发光描边，受击时爆亮）
-  ctx.lineWidth=2.5;ctx.strokeStyle='rgba(160,235,255,'+(0.55+0.25*_pulse+0.4*_hit)+')';
-  ctx.shadowColor='#7fe9ff';ctx.shadowBlur=14+10*_pulse+20*_hit;
+  ctx.lineWidth=2.5;ctx.strokeStyle='rgba(255,225,160,'+(0.55+0.25*_pulse+0.4*_hit)+')';
+  ctx.shadowColor='#ffd27f';ctx.shadowBlur=14+10*_pulse+20*_hit;
   ctx.beginPath();ctx.ellipse(0,-4,_rx,_ry,0,0,6.28);ctx.stroke();
   // 外层第二圈光环（正版同心圆层次感）
-  ctx.lineWidth=1.5;ctx.strokeStyle='rgba(120,220,255,'+(0.30+0.20*_pulse+0.3*_hit)+')';
+  ctx.lineWidth=1.5;ctx.strokeStyle='rgba(255,210,120,'+(0.30+0.20*_pulse+0.3*_hit)+')';
   ctx.shadowBlur=10+8*_pulse+16*_hit;
   ctx.beginPath();ctx.ellipse(0,-4,_rx+7,_ry+7,0,0,6.28);ctx.stroke();
   // 外层第三圈细环
-  ctx.lineWidth=1;ctx.strokeStyle='rgba(90,200,255,'+(0.18+0.15*_pulse+0.2*_hit)+')';
+  ctx.lineWidth=1;ctx.strokeStyle='rgba(255,180,90,'+(0.18+0.15*_pulse+0.2*_hit)+')';
   ctx.shadowBlur=6+6*_pulse;
   ctx.beginPath();ctx.ellipse(0,-4,_rx+14,_ry+14,0,0,6.28);ctx.stroke();
   // 内层细环（层次感）
-  ctx.shadowBlur=0;ctx.lineWidth=1;ctx.strokeStyle='rgba(200,245,255,'+(0.25+0.2*_pulse)+')';
+  ctx.shadowBlur=0;ctx.lineWidth=1;ctx.strokeStyle='rgba(255,235,190,'+(0.25+0.2*_pulse)+')';
   ctx.beginPath();ctx.ellipse(0,-4,_rx-6,_ry-6,0,0,6.28);ctx.stroke();
   // 顶部高光弧（玻璃质感）
   ctx.lineWidth=2;ctx.strokeStyle='rgba(255,255,255,'+(0.4+0.4*_hit)+')';
@@ -2411,9 +2411,9 @@ function draw(){
       // Boss 护盾光圈
       if(e.shieldHP&&e.shieldHP>0){
         var sa=0.3+0.2*Math.sin(frameCount*0.1);
-        ctx.shadowColor='#0af';ctx.shadowBlur=30;ctx.strokeStyle='rgba(80,200,255,'+sa+')';ctx.lineWidth=3;
+        ctx.shadowColor='#ffd27f';ctx.shadowBlur=30;ctx.strokeStyle='rgba(255,200,110,'+sa+')';ctx.lineWidth=3;
         ctx.beginPath();ctx.arc(0,0,e.w/2+12,0,6.28);ctx.stroke();
-        ctx.strokeStyle='rgba(80,200,255,'+(sa*0.4)+')';ctx.lineWidth=6;
+        ctx.strokeStyle='rgba(255,190,90,'+(sa*0.4)+')';ctx.lineWidth=6;
         ctx.beginPath();ctx.arc(0,0,e.w/2+16,0,6.28);ctx.stroke();ctx.shadowBlur=0;
       }
     }else if(e.type=='s'){
@@ -2639,8 +2639,8 @@ function draw(){
     ctx.shadowColor='#ff0';ctx.shadowBlur=30;
     ctx.strokeStyle='rgba(255,255,0,'+(ef*0.6)+')';ctx.lineWidth=6;
     ctx.beginPath();ctx.arc(px,py,(1-ef)*300,0,6.28);ctx.stroke();
-    ctx.shadowColor='#0ff';ctx.shadowBlur=20;
-    ctx.strokeStyle='rgba(0,255,255,'+(ef*0.4)+')';ctx.lineWidth=3;
+    ctx.shadowColor='#ffd700';ctx.shadowBlur=20;
+    ctx.strokeStyle='rgba(255,215,0,'+(ef*0.4)+')';ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(px,py,(1-ef)*280,0,6.28);ctx.stroke();
     for(var ni=0;ni<novaStars.length;ni++){var ns=novaStars[ni];
       if(ns.life>0){ctx.shadowBlur=0;ctx.globalAlpha=ns.life/20;
