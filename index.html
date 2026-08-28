@@ -238,7 +238,7 @@ var DIY_PRESETS=[
 var mySkin={body:'#0af',wg:'#0cf',eye:0,shape:0,form:0,name:'我的战机'};
 function saveMySkin(){try{localStorage.setItem('tms',JSON.stringify(mySkin));}catch(e){}}
 // === 皮肤图片（异步加载自assets.json） ===
-var ASSETS=null,ASSETS_READY=false,ASSETS_PENDING=[];
+var ASSETS=null,ASSETS_READY=false,ASSETS_PENDING=[],_assetsRequested=false;
 var IMG_SKINS=[{name:'听泉鉴宝',key:'IMG_tingquan'},{name:'奶龙',key:'IMG_nailong'},{name:'蔡徐坤',key:'IMG_caixukun'},{name:'东北雨姐',key:'IMG_yuji'}];
 // 皮肤图独立文件（直接指向本地小图，不依赖 assets.json 大文件，加载更快）
 var IMG_FILES={'IMG_tingquan':'雷霆战机图片/微信图片_20260717225257_26_458.jpg','IMG_nailong':'雷霆战机图片/微信图片_20260717225258_27_458.jpg','IMG_caixukun':'雷霆战机图片/微信图片_20260717225259_28_458.jpg','IMG_yuji':'雷霆战机图片/微信图片_20260717225259_29_458.jpg'};
@@ -259,21 +259,24 @@ function loadAssets(){
       })(IMG_SKINS[_i]);
     }
   }
-  // BGM 音轨（手机端）来自 assets.json，异步加载，不阻塞图片与首屏
-  if(ASSETS_READY)return;
-  fetch('assets.json').then(function(r){return r.json();}).then(function(d){
-    ASSETS=d;ASSETS_READY=true;
-    ASSETS_PENDING.forEach(function(cb){cb();});
-    // BGM 音轨已随 assets.json 就绪，立即尝试自动播放
-    try{
-      // 重置启动标志，允许用真实 mp3 重新启动（之前可能回退过合成或等待中）
-      _started=false; _autoBgmDone=false;
-      if(typeof tryAutoBgm==='function'){ tryAutoBgm(); }
-      if(window.__userTouched && typeof doStart==='function'){ doStart(); }
-    }catch(e){}
-  }).catch(function(){ // assets 加载失败也不阻塞游戏：当作已就绪，让 BGM 回退合成旋律
-    ASSETS_READY=true; ASSETS_PENDING.forEach(function(cb){cb();});
-  });
+  // assets.json 含兜底图与导入歌 BGM，体积约 10MB；为不拖慢首屏，延迟到首屏渲染后空闲再拉取（兜底能力保留）
+  if(ASSETS_READY||_assetsRequested)return;
+  _assetsRequested=true;
+  setTimeout(function(){
+    if(ASSETS_READY)return;
+    fetch('assets.json').then(function(r){return r.json();}).then(function(d){
+      ASSETS=d;ASSETS_READY=true;
+      ASSETS_PENDING.forEach(function(cb){cb();});
+      // BGM 音轨已随 assets.json 就绪，立即尝试自动播放
+      try{
+        _started=false; _autoBgmDone=false;
+        if(typeof tryAutoBgm==='function'){ tryAutoBgm(); }
+        if(window.__userTouched && typeof doStart==='function'){ doStart(); }
+      }catch(e){}
+    }).catch(function(){ // assets 加载失败也不阻塞游戏：当作已就绪，让 BGM 回退合成旋律
+      ASSETS_READY=true; ASSETS_PENDING.forEach(function(cb){cb();});
+    });
+  }, 3000);
 }
 
 
