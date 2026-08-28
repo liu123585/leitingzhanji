@@ -250,6 +250,13 @@ function loadAssets(){
       var o=IMG_SKINS[_i],im=new Image();im.onload=function(){var k=this._k;IMG_CACHE[k]=this;};im._k=o.key;im.src=IMG_FILES[o.key]||d[o.key];IMG_CACHE[o.key]=im;
     }
     ASSETS_PENDING.forEach(function(cb){cb();});
+    // BGM 音轨（手机端）已随 assets.json 就绪，立即尝试自动播放
+    try{
+      // 重置启动标志，允许用真实 mp3 重新启动（之前可能回退过合成或等待中）
+      _started=false; _autoBgmDone=false;
+      if(typeof tryAutoBgm==='function'){ tryAutoBgm(); }
+      if(window.__userTouched && typeof doStart==='function'){ doStart(); }
+    }catch(e){}
   }).catch(function(){});
 }
 
@@ -610,7 +617,9 @@ function startBGM(){
 function playBGMList(){
   var key=bgmPlayList[bgmIndex%bgmPlayList.length];
   bgmTrack=key;
-  if(bgmFileMap[key]||bgmImportMap[key]||getBgmSrc(key)){
+  var hasFile=(bgmFileMap[key]||bgmImportMap[key]);
+  var hasEmbed=getBgmSrc(key);
+  if(hasFile||hasEmbed){
     try{
       if(bgmAudio){try{bgmAudio.pause();}catch(e){}}
       bgmAudio=loadBgmAudio(key);
@@ -621,7 +630,8 @@ function playBGMList(){
         bgmAudio.oncanplay=bgmAudio.onloadeddata=function(){
           if(!loaded){loaded=true;bgmResumeTime=0;}
           if(wantResume>0&&wantResume<(bgmAudio.duration||1e9)-1){try{bgmAudio.currentTime=wantResume;}catch(e){}}
-          if(!bgmMuted){
+          // 可播放即播：手机端「首次交互后」由这里兜底，保证触摸/点击后能顺利出声
+          if(!bgmMuted&&(window.__userTouched||bgmAudio.paused)){
             var pr=bgmAudio.play();
             if(pr&&pr.catch)pr.catch(function(){});
           }
@@ -635,14 +645,27 @@ function playBGMList(){
           var pr=bgmAudio.play();
           if(pr&&pr.catch)pr.catch(function(){});
         }
+      }else if(!ASSETS_READY){
+        // 还没有嵌入式数据且 assets 未就绪：等加载完成后再播，避免提前回退成「电音」
+        ASSETS_PENDING.push(function(){ playBGMList(); });
+        return;
+      }else{
+        bgmIndex++;playBGMList();
+      }
+  }else if(!ASSETS_READY){
+    // 找不到源但 assets 还没好，先等加载完
+    ASSETS_PENDING.push(function(){ playBGMList(); });
+    return;
   }else{
     // 没有 mp3 文件也没有嵌入数据 → 回退到合成 BGM（手机端用）
     if(bgmAudio){try{bgmAudio.pause();bgmAudio=null;}catch(e){}}
     synthBGM();
     return;
   }
-    }catch(e){bgmIndex++;playBGMList();}
-  }else{bgmIndex++;playBGMList();}
+  }catch(e){
+    if(!ASSETS_READY){ASSETS_PENDING.push(function(){playBGMList();});return;}
+    bgmIndex++;playBGMList();
+  }
 }
 function switchBGM(key){
   if(bgmPlayList.indexOf(key)<0)return;
@@ -954,10 +977,10 @@ function transitionTo(s){
 document.onkeydown=function(e){keys[e.key]=true;if(e.key==' '||e.key=='Spacebar'){useBomb();e.preventDefault();}  if(e.key=='q'||e.key=='Q'){useNova();}if(e.key=='Escape'){if(state=='playing'){state='pause';saveBgmPos();}else if(state=='pause'){selectedLevel=0;gotoLevelSelect();}else if(state=='levelComplete'){selectedLevel=0;gotoLevelSelect();}else{state='menu';}}};
 document.onkeyup=function(e){keys[e.key]=false;};
 
-c.onclick=function(e){var r=c.getBoundingClientRect();handleClick((e.clientX-r.left)*480/r.width,(e.clientY-r.top)*720/r.height);};
+c.onclick=function(e){window.__userTouched=true;var r=c.getBoundingClientRect();handleClick((e.clientX-r.left)*480/r.width,(e.clientY-r.top)*720/r.height);};
 var volDrag=0; // 0=无 1=音效 2=BGM（暂停界面拖动滑块）
 function setVolFromX(which,mx){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;if(which==1){sfxVolume=p;localStorage.setItem('tsv',p);tone(660,0.04,'sine',0.04);}else{bgmVolume=p;applyBgmVolume();localStorage.setItem('tbv',p);}}
-c.onmousedown=function(e){var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>628&&y<646&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>662&&y<680&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();uiDragLock=1;return;}}};
+c.onmousedown=function(e){window.__userTouched=true;var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>628&&y<646&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>662&&y<680&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();uiDragLock=1;return;}}};
 c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(uiDragLock)return;if(state=='playing'&&bossWarningTimer<=0){px=Math.round((e.clientX-r.left)*480/r.width);py=Math.round((e.clientY-r.top)*720/r.height);}};
 window.onmouseup=function(){uiDragLock=0;};
 c.onwheel=function(e){if(state!='talent')return;e.preventDefault();talentScroll+=e.deltaY*0.5;var maxS=Math.max(0,120+TALENTS.length*72+64-640);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;};
@@ -2798,12 +2821,15 @@ function loop(){try{update();draw();}catch(e){console.error('GAME ERROR:',e);var
 loadAssets();
 loop();
 // 首屏需要用户点击一次（浏览器自动播放限制 + 明确开始）
+var _started=false;
 function doStart(){
-  // 首次用户手势内：解锁 AudioContext 并启动 BGM（移动端 iOS/微信 必需，否则需用户主动触摸才解锁）
+  // 首次用户手势内：解锁 AudioContext 并启动 BGM（移动端 iOS/微信/QQ 必需）
+  window.__userTouched=true;
   try{
     var c=ac();
     if(c&&c.state==='suspended'){c.resume();}
-    if(bgmAudio&&bgmAudio.paused&&!bgmMuted){ startBGM(); }
+    if(!_started){ _started=true; if(!bgmMuted){ startBGM(); } }
+    else if(bgmAudio&&bgmAudio.paused&&!bgmMuted){ startBGM(); }
   }catch(e){}
   if(!needStart)return;
   needStart=false;
@@ -2811,6 +2837,7 @@ function doStart(){
 document.addEventListener('pointerdown',doStart,true);
 document.addEventListener('keydown',doStart,true);
 document.addEventListener('touchstart',doStart,true);
+document.addEventListener('touchend',doStart,true);
 // 从外部站点（如导航站 site.liuyushan.top）通过点击跳转打开时，
 // 浏览器会把用户手势激活带入新页面，允许自动播放。这里资源一就绪就立刻尝试，
 // 不再死等固定 3.5 秒；若被自动播放策略拦截，则由上面的首次交互（doStart）兜底。
@@ -2825,7 +2852,7 @@ function tryAutoBgm(){
     _autoBgmDone=true; // 只要成功发起一次就不再重试（避免重复触发）
   }catch(e){}
 }
-// 资源加载完立即尝试（首屏就能响），并在前几秒做几次兜底重试以防偶发拦截
+// 资源（含 BGM 音轨）加载完立即尝试（首屏就能响），并在前几秒做几次兜底重试以防偶发拦截
 setTimeout(tryAutoBgm,300);
 setTimeout(tryAutoBgm,1000);
 setTimeout(tryAutoBgm,2500);
