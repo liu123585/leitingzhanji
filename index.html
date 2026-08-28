@@ -1190,8 +1190,10 @@ function handleClick(mx,my){try{
     else if(my>312-UH(48)/2&&my<312+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');init(currentLevel);}
     else if(my>384-UH(48)/2&&my<384+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=unlockedLevels;pageSel=Math.floor((unlockedLevels-1)/20);state='levelSelect';}
     else if(my>456-UH(48)/2&&my<456+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=0;state='menu';}
-    // BGM 开关（媒体按钮）
-    else if(my>506&&my<544&&mx>150&&mx<330){bgmMuted=!bgmMuted;try{localStorage.setItem('tbm',bgmMuted?'1':'0');}catch(e){}applyBgmMute();play('menuClick');return;}
+    // BGM 开关（媒体按钮）—— 左侧
+    else if(my>506&&my<544&&mx>30&&mx<225){bgmMuted=!bgmMuted;try{localStorage.setItem('tbm',bgmMuted?'1':'0');}catch(e){}applyBgmMute();play('menuClick');return;}
+    // 语音播报开关 —— 右侧
+    else if(my>506&&my<544&&mx>255&&mx<450){TTS_ENABLED=!TTS_ENABLED;try{localStorage.setItem('tts',TTS_ENABLED?'1':'0');}catch(e){}play('menuClick');return;}
     else if(my>566&&my<610&&mx>114&&mx<178){var tk=bgmPlayList;var i=tk.indexOf(bgmTrack);switchBGM(tk[(i-1+tk.length)%tk.length]);return;}
     else if(my>566&&my<610&&mx>302&&mx<366){var tk=bgmPlayList;var i=tk.indexOf(bgmTrack);switchBGM(tk[(i+1)%tk.length]);return;}
     // 音量滑块（音效 / BGM），点击即设值
@@ -2758,12 +2760,19 @@ function draw(){
     pbtn(240,456,UWw(220),UH(48),'\u2302 返回主菜单','rgba(180,20,20,0.9)');
     ctx.textAlign='center';
     // === 音乐控制区（下移到主菜单按钮下方，避免重叠）===
-    // BGM 开关（媒体按钮：⏸暂停 / ▶播放）
-    var mtbx=150,mtby=506,mtbw=180,mtbh=38;
+    // BGM 开关（媒体按钮：⏸暂停 / ▶播放）—— 左侧
+    var mtbx=30,mtby=506,mtbw=195,mtbh=38;
     ctx.fillStyle='rgba(20,30,60,0.9)';ctx.strokeStyle='#0af';ctx.lineWidth=2;ctx.shadowColor='#0af';ctx.shadowBlur=8;
     drawRoundedRect(mtbx,mtby,mtbw,mtbh,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-    ctx.fillStyle='#0af';ctx.font='20px Arial';ctx.textAlign='left';ctx.fillText(bgmMuted?'\u25B6':'\u23F8',mtbx+20,mtby+26);
-    ctx.fillStyle='#fff';ctx.font='17px Arial';ctx.textAlign='left';ctx.fillText(bgmMuted?'BGM 已关':'BGM 播放',mtbx+50,mtby+25);
+    ctx.fillStyle='#0af';ctx.font='20px Arial';ctx.textAlign='left';ctx.fillText(bgmMuted?'\u25B6':'\u23F8',mtbx+18,mtby+26);
+    ctx.fillStyle='#fff';ctx.font='17px Arial';ctx.textAlign='left';ctx.fillText(bgmMuted?'BGM 已关':'BGM 播放',mtbx+48,mtby+25);
+    ctx.textAlign='center';
+    // 语音播报开关（暂停界面直接可切换：移动端中文 TTS 偶发卡顿，默认关）—— 右侧
+    var tbx=255,tby=506,tbw=195,tbh=38,tbOn=TTS_ENABLED;
+    ctx.fillStyle=tbOn?'rgba(20,60,30,0.9)':'rgba(40,40,55,0.9)';ctx.strokeStyle=tbOn?'#0f0':'#888';ctx.lineWidth=2;ctx.shadowColor=tbOn?'#0f0':'#000';ctx.shadowBlur=tbOn?10:0;
+    drawRoundedRect(tbx,tby,tbw,tbh,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='18px Arial';ctx.fillText('\uD83C\uDFA4',tbx+16,tby+25);
+    ctx.fillStyle='#fff';ctx.font='16px Arial';ctx.fillText('语音播报 '+(tbOn?'开':'关'),tbx+42,tby+24);
     ctx.textAlign='center';
     // 切歌控件
     ctx.fillStyle='#bbf';ctx.font='15px Arial';ctx.textAlign='center';ctx.fillText('\u266B 切换歌曲',240,560);
