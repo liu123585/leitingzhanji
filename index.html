@@ -239,13 +239,15 @@ function saveMySkin(){try{localStorage.setItem('tms',JSON.stringify(mySkin));}ca
 // === 皮肤图片（异步加载自assets.json） ===
 var ASSETS=null,ASSETS_READY=false,ASSETS_PENDING=[];
 var IMG_SKINS=[{name:'听泉鉴宝',key:'IMG_tingquan'},{name:'奶龙',key:'IMG_nailong'},{name:'蔡徐坤',key:'IMG_caixukun'},{name:'东北雨姐',key:'IMG_yuji'}];
+// 皮肤图独立文件（不依赖 assets.json 大文件，加载更快更可靠）
+var IMG_FILES={'IMG_tingquan':'img/skins/tingquan.jpg','IMG_nailong':'img/skins/nailong.jpg','IMG_caixukun':'img/skins/caixukun.jpg','IMG_yuji':'img/skins/yuji.jpg'};
 var IMG_CACHE={};
 function loadAssets(){
   if(ASSETS_READY)return;
   fetch('assets.json').then(function(r){return r.json();}).then(function(d){
     ASSETS=d;ASSETS_READY=true;
     for(var _i=0;_i<IMG_SKINS.length;_i++){
-      var o=IMG_SKINS[_i],im=new Image();im.onload=function(){var k=this._k;IMG_CACHE[k]=this;};im._k=o.key;im.src=d[o.key];IMG_CACHE[o.key]=im;
+      var o=IMG_SKINS[_i],im=new Image();im.onload=function(){var k=this._k;IMG_CACHE[k]=this;};im._k=o.key;im.src=IMG_FILES[o.key]||d[o.key];IMG_CACHE[o.key]=im;
     }
     ASSETS_PENDING.forEach(function(cb){cb();});
   }).catch(function(){});
@@ -1758,6 +1760,8 @@ function drawSettings(){
   ctx.restore();
   var psk=playerSkin>=0&&playerSkin<PLAYER_SKINS.length?PLAYER_SKINS[playerSkin]:{name:mySkin.name};
   ctx.fillStyle='#fff';ctx.font='18px Arial';ctx.textAlign='center';ctx.fillText(psk.name,250,452);
+  // 当前皮肤预览
+  try{ctx.save();ctx.translate(412,200);ctx.scale(0.62,0.62);drawPlayerShip(0,0,false);ctx.restore();}catch(e){}
   // 详情按钮
   var dbX=350,dbY=432,dbW=100,dbH=34;
   ctx.fillStyle='rgba(40,40,70,0.9)';ctx.strokeStyle='#88f';ctx.lineWidth=2;ctx.shadowColor='#88f';ctx.shadowBlur=6;
