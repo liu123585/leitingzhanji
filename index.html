@@ -70,6 +70,7 @@ var needStart=false;
 var countdownTimer=0; // 开场倒计时帧数（240=4秒，0=未激活）
 var tutTimer=0; // 开局教程遮罩自动消失计时（帧数）
 var px,py,hp,mhp,pt,pi,playerInvuln=0,playerBurnTimer=0;
+var mxRaw=240,myRaw=640; // 始终记录原始光标位置（暂停时也能追踪），用于恢复游戏时把飞机snap到光标
 
 var bls=[],ens=[],pts=[],pws=[],drs=[],stars=[],lasers=[],wingLasers=[],et=0,df=1,keys={};
 var wave=0,waveEnemies=0,waveMax=0,spawnTimer=0,bossWarningTimer=0;
@@ -979,7 +980,7 @@ c.onclick=function(e){window.__userTouched=true;var r=c.getBoundingClientRect();
 var volDrag=0; // 0=无 1=音效 2=BGM（暂停界面拖动滑块）
 function setVolFromX(which,mx){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.round(p*100)/100;if(which==1){sfxVolume=p;localStorage.setItem('tsv',p);tone(660,0.04,'sine',0.04);}else{bgmVolume=p;applyBgmVolume();localStorage.setItem('tbv',p);}}
 c.onmousedown=function(e){window.__userTouched=true;var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>628&&y<646&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>662&&y<680&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();uiDragLock=1;return;}}};
-c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(uiDragLock)return;if(state=='playing'&&bossWarningTimer<=0){px=Math.round((e.clientX-r.left)*480/r.width);py=Math.round((e.clientY-r.top)*720/r.height);}};
+c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(uiDragLock)return;mxRaw=Math.round((e.clientX-r.left)*480/r.width);myRaw=Math.round((e.clientY-r.top)*720/r.height);if(state=='playing'&&bossWarningTimer<=0){px=mxRaw;py=myRaw;}};
 window.onmouseup=function(){uiDragLock=0;};
 c.onwheel=function(e){if(state!='talent')return;e.preventDefault();talentScroll+=e.deltaY*0.5;var maxS=Math.max(0,120+TALENTS.length*72+64-640);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;};
 window.onmouseup=function(){volDrag=0;};
@@ -1020,6 +1021,7 @@ c.ontouchstart=function(e){
     var r=c.getBoundingClientRect();
     var tx=(t.clientX-r.left)*480/r.width;
     var ty=(t.clientY-r.top)*720/r.height;
+    mxRaw=Math.round(tx);myRaw=Math.round(ty);
     touchStartY=t.clientY;touchMoved=false;
     // 非playing界面：天赋页拖动或菜单点击
     if(state!=='playing'){
@@ -1106,7 +1108,7 @@ function handleClick(mx,my){try{
     if(my>440&&my<470&&mx>140&&mx<340){play('menuClick');tone(440,0.1,'sine',0.04);setTimeout(function(){tone(554,0.1,'sine',0.04);},120);setTimeout(function(){tone(659,0.15,'sine',0.04);},240);if(isBossRush){isBossRush=false;selectedLevel=0;transitionTo('menu');}else{selectedLevel=0;state='menu';}}
   }
   else if(state=='pause'){
-    if(my>240-UH(48)/2&&my<240+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');state='playing';}
+    if(my>240-UH(48)/2&&my<240+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');state='playing';px=mxRaw;py=myRaw;}
     else if(my>312-UH(48)/2&&my<312+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');init(currentLevel);}
     else if(my>384-UH(48)/2&&my<384+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=unlockedLevels;pageSel=Math.floor((unlockedLevels-1)/20);state='levelSelect';}
     else if(my>456-UH(48)/2&&my<456+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=0;state='menu';}
