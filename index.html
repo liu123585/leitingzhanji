@@ -480,11 +480,14 @@ function ensureAudio(){try{
   try{var s=a.createBufferSource();s.buffer=a.createBuffer(1,1,22050);s.connect(a.destination);s.start();}catch(e){}
   startBGM();
 }catch(e){_audioReady=true;}}
-function tone(f,d,t,v,opt){try{if(sfxVolume<=0&&!opt)return;var c=ac(),o=c.createOscillator(),g=c.createGain();o.type=t||'sine';o.frequency.value=f;
+// 音频节点节流：WebKit(iOS Safari/QQ) 每帧新建大量振荡器节点会严重卡顿，故限制单位时间内排程的节点数
+var _audioNodes=0,_audioNodesReset=0,_AUDIO_NODE_LIMIT=10,_AUDIO_WINDOW=8; // 每 8 帧最多 10 个节点
+function _audioBudget(){if(frameCount>=_audioNodesReset){_audioNodesReset=frameCount+_AUDIO_WINDOW;_audioNodes=0;}return _audioNodes<_AUDIO_NODE_LIMIT;}
+function tone(f,d,t,v,opt){try{if(sfxVolume<=0&&!opt)return;if(!opt&&!_audioBudget())return;var c=ac(),o=c.createOscillator(),g=c.createGain();_audioNodes++;o.type=t||'sine';o.frequency.value=f;
   var vol=(v||0.1)*(opt?1:sfxVolume)*MASTER_GAIN*3;if(!opt){if(sfxPack=='retro'){o.type='square';vol*=0.7;}if(sfxPack=='modern'){o.type='sawtooth';vol*=1.2;}}
   if(vol>0.95)vol=0.95;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(Math.max(0.0002,vol),c.currentTime+0.008);g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);
   o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);}catch(e){}}
-function noise(d,v,opt){try{if(sfxVolume<=0&&!opt)return;var c=ac(),n=c.sampleRate*d,b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(var i=0;i<n;i++)a[i]=Math.random()*2-1;var s=c.createBufferSource();s.buffer=b;var g=c.createGain();  g.gain.setValueAtTime((v||0.05)*(opt?1:sfxVolume)*MASTER_GAIN*3,c.currentTime);if(((v||0.05)*MASTER_GAIN*3)>0.95)g.gain.value=0.95;g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);s.connect(g);g.connect(c.destination);s.start();}catch(e){}}
+function noise(d,v,opt){try{if(sfxVolume<=0&&!opt)return;if(!opt&&!_audioBudget())return;var c=ac(),n=c.sampleRate*d,b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(var i=0;i<n;i++)a[i]=Math.random()*2-1;var s=c.createBufferSource();s.buffer=b;var g=c.createGain();_audioNodes++;  g.gain.setValueAtTime((v||0.05)*(opt?1:sfxVolume)*MASTER_GAIN*3,c.currentTime);if(((v||0.05)*MASTER_GAIN*3)>0.95)g.gain.value=0.95;g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);s.connect(g);g.connect(c.destination);s.start();}catch(e){}}
 var sfx={};
 sfx.shoot=function(){tone(1200,0.04,'square',0.025);tone(900,0.03,'square',0.02);};
 sfx.enemyHit=function(){noise(0.04,0.05);tone(300,0.03,'square',0.02);};
@@ -1659,7 +1662,8 @@ function drawNebula(){if(_nebDone)return;_nebDone=true;var c=_nebCtx;c.clearRect
 function drawBackground(){
   if(!_bgGrad){_bgGrad=ctx.createLinearGradient(0,0,0,720);_bgGrad.addColorStop(0,'#05081a');_bgGrad.addColorStop(0.45,'#0a0e2e');_bgGrad.addColorStop(1,'#160a2e');}
   ctx.fillStyle=_bgGrad;ctx.fillRect(0,0,480,720);
-  if(frameCount%3===0){drawNebula();}
+  // 星云只在完成时绘制一次并缓存（避免每帧 createRadialGradient，WebKit 下开销大）
+  if(!_nebDone)drawNebula();
   ctx.drawImage(_nebCanvas,0,0);
   if(!_bgVg){_bgVg=ctx.createRadialGradient(240,720,0,240,720,320);_bgVg.addColorStop(0,'rgba(40,120,200,0.12)');_bgVg.addColorStop(1,'rgba(0,0,30,0)');}
   ctx.fillStyle=_bgVg;ctx.fillRect(0,0,480,720);
@@ -1959,8 +1963,8 @@ function drawDIY(){
 
 function drawHUD(){
   ctx.textAlign='left';var bIdx=0;
-  // 默认给HUD文字加深色描边，保证在繁忙弹幕背景上清晰可读
-  ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=4;
+  // 默认给HUD文字加深色描边，保证在繁忙弹幕背景上清晰可读（WebKit 对 shadowBlur 较敏感，适当减小半径）
+  ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=2;
   for(var i=0;i<ens.length;i++){var e=ens[i];if(e.type!='boss')continue;if(bIdx>=3)break;
     var r=e.hp/e.maxHp;var by=4+bIdx*28;
     ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(8,by,424,24);
@@ -2915,7 +2919,18 @@ function draw(){
   ctx.restore();
 }
 
-function loop(){try{update();draw();}catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}requestAnimationFrame(loop);}
+var _lastTS=0,_acc=0,_MAXSTEP=5; // 帧时间保护：掉帧时最多补算 5 步，避免慢设备上越拖越卡
+function loop(ts){try{
+  if(!_lastTS)_lastTS=ts||0;
+  var dt=(ts?ts:_lastTS+16)-_lastTS;_lastTS=ts||_lastTS;
+  if(dt>250)dt=250;            // 切后台/长时间卡顿后，不要一次性补算几百帧
+  _acc+=dt/16.6667;
+  var steps=0;
+  while(_acc>=1&&steps<_MAXSTEP){update();_acc-=1;steps++;}
+  if(steps>=_MAXSTEP)_acc=0;   // 实在追不上就丢弃，保持流畅优先
+  draw();
+}catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}
+requestAnimationFrame(loop);}
 loadAssets();
 loop();
 // 首屏需要用户点击一次（浏览器自动播放限制 + 明确开始）
