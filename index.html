@@ -621,11 +621,22 @@ function loadBgmAudio(key){
 }
 var bgmIndex=0;
 var bgmResumeTime=0;
+// 恢复上次播放的歌曲与进度，让「接着上次播放」真正生效（避免每次从头 / 换歌）
+try{
+  var _rt=localStorage.getItem('tbt');
+  if(_rt&&bgmPlayList.indexOf(_rt)>=0)bgmIndex=bgmPlayList.indexOf(_rt);
+  var _rs=+(localStorage.getItem('tbtime')||0);
+  if(_rs>0)bgmResumeTime=_rs;
+}catch(e){}
 function saveBgmPos(){try{if(bgmAudio&&!bgmAudio.paused&&isFinite(bgmAudio.currentTime)){localStorage.setItem('tbt',bgmTrack);localStorage.setItem('tbtime',Math.floor(bgmAudio.currentTime));}}catch(e){}}
 function startBGM(){
-  // 每次进入随机选一首作为起始曲（不同歌曲轮流开场，避免总是同一首开头）
-  bgmResumeTime=0;
-  if(bgmPlayList.length>0)bgmIndex=Math.floor(Math.random()*bgmPlayList.length);
+  // 已在播放：不打断，避免每次交互都换歌 / 从头
+  if(bgmAudio && !bgmAudio.paused) return;
+  // 同一首歌只是被暂停（如取消静音 / 从暂停界面恢复）：直接续播，接暂停点
+  if(bgmAudio && bgmAudio.paused){
+    var _pr=bgmAudio.play(); if(_pr&&_pr.catch)_pr.catch(function(){}); return;
+  }
+  // 全新播放：从当前曲（bgmIndex）与上次进度（bgmResumeTime）接着播，不随机重选、不从头
   playBGMList();
 }
 function playBGMList(){
@@ -643,9 +654,9 @@ function playBGMList(){
       if(bgmAudio){
         var loaded=false;
         var wantResume=bgmResumeTime;
-        bgmAudio.onended=function(){bgmResumeTime=0;bgmIndex++;playBGMList();};
+        bgmAudio.onended=function(){bgmResumeTime=0;playBGMList();};
         bgmAudio.oncanplay=bgmAudio.onloadeddata=function(){
-          if(!loaded){loaded=true;bgmResumeTime=0;}
+          if(!loaded){loaded=true;}
           if(wantResume>0&&wantResume<(bgmAudio.duration||1e9)-1){try{bgmAudio.currentTime=wantResume;}catch(e){}}
           // 可播放即播：手机端「首次交互后」由这里兜底，保证触摸/点击后能顺利出声
           if(!bgmMuted&&(window.__userTouched||bgmAudio.paused)){
