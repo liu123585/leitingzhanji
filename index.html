@@ -93,13 +93,16 @@ var px,py,hp,mhp,pt,pi,playerInvuln=0,playerBurnTimer=0;
 var mxRaw=240,myRaw=640; // 始终记录原始光标位置（暂停时也能追踪），用于恢复游戏时把飞机snap到光标
 
 var bls=[],ens=[],pts=[],pws=[],drs=[],stars=[],lasers=[],wingLasers=[],et=0,df=1,keys={};
+// 初始化视差星空（三层：远/中/近，速度/大小/亮度不同）+ 偶尔流星
+for(var _si=0;_si<170;_si++){var _sl=_si%3;var _cc=Math.random();stars.push({x:Math.random()*480,y:Math.random()*720,l:_sl,v:_sl==0?0.4:_sl==1?0.9:1.6,ph:Math.random()*6.28,twinkle:0.5,r:_cc<0.18?180:_cc<0.34?255:255,g:_cc<0.18?220:_cc<0.34?205:255,b:_cc<0.18?255:_cc<0.34?170:255});}
+var comet=null,cometTimer=90;
 var wave=0,waveEnemies=0,waveMax=0,spawnTimer=0,bossWarningTimer=0;
 // === 整体节奏加速参数（一处调全局）===
 var PBULLET_SPEED=2.0;  // 玩家子弹移动速度倍率（保持较快离场，避免滞留堆积卡顿）
-var EBULLET_SPEED=1.1;  // 敌人子弹移动速度倍率（更快，节奏更紧张）
-var ENEMY_SPD_MUL=1.05; // 敌机下落速度倍率（更快，节奏更紧张）
-var SPAWN_MUL=0.5;      // 刷怪间隔倍率（越小越密集，敌人出现越快）
-var ENEMY_FIRE_MUL=1.2; // 敌机开火间隔倍率（越小开火越密，节奏更紧凑）
+var EBULLET_SPEED=1.5;  // 敌人子弹移动速度倍率（更快，节奏更紧张）
+var ENEMY_SPD_MUL=1.35; // 敌机下落速度倍率（更快，节奏更紧张）
+var SPAWN_MUL=0.45;     // 刷怪间隔倍率（越小越密集，敌人出现越快）
+var ENEMY_FIRE_MUL=1.1; // 敌机开火间隔倍率（越小开火越密，节奏更紧凑）
 // 立即生成大 Boss（预警期间玩家点击/触摸时调用，或倒计时归零时自动调用）
 function spawnBoss(){if(bossWarningTimer<=0&&state!='playing')return;bossWarningTimer=0;var lv=getLv();var count=currentLevel>=30?4:currentLevel>=20?3:currentLevel>=10?2:1;for(var i=0;i<count;i++){var bb=BIGBOSSES[((currentLevel-1)+i)%BIGBOSSES.length];var bossHP=Math.round(lv.bossHp*bb.hpMul);var e={x:240+(i-(count-1)/2)*60,y:-60-i*30,vx:0,vy:1.2,hp:bossHP,maxHp:bossHP,type:'boss',isBig:true,name:bb.name,color:bb.color,cl2:bb.cl2,skin:bb.skin,w:80,h:60,t:0,fireTimer:i*10,phase:1,abilities:bb};if(bb.shield)e.shieldHP=bossHP*0.3;if(bb.revive)e.revive=true;if(bb.burnBullets)e.burnBullets=true;ens.push(e);}wShield=1+tl('shield');play('shield');var fn=BIGBOSSES[(currentLevel-1)%BIGBOSSES.length].name;if(count>=3)speakText('大 boss 集群降临！',0.9,1.3);else if(count==2)speakText('两名大 boss 降临！',0.9,1.3);else speakBossArrival(fn,true);}
 // BOSS挑战：直接生成一个Boss（跳过小兵）
@@ -849,7 +852,7 @@ function firePassiveMissiles(){
 }
 function startWave(){
   wave++;var lv=getLv();
-  if(wave==lv.waveCount){waveMax=1;waveEnemies=0;bossWarningTimer=120;play('bossWarning');}
+  if(wave==lv.waveCount){waveMax=1;waveEnemies=0;bossWarningTimer=120;play('bossWarning');speakText('警告！Boss 来袭！',0.95,1.2);}
   else if(wave%5==0){ // 每5波小Boss（后续关卡多只 + 混入大Boss）
     var miniCount=currentLevel>=25?3:currentLevel>=12?2:1;
     for(var m=0;m<miniCount;m++){
@@ -1030,7 +1033,7 @@ function setVolFromX(which,mx){var p=(mx-130)/200;if(p<0)p=0;if(p>1)p=1;p=Math.r
 c.onmousedown=function(e){window.__userTouched=true;var r=c.getBoundingClientRect();var x=(e.clientX-r.left)*480/r.width,y=(e.clientY-r.top)*720/r.height;if(state=='pause'){if(y>628&&y<646&&x>130&&x<330){volDrag=1;setVolFromX(1,x);}else if(y>662&&y<680&&x>130&&x<330){volDrag=2;setVolFromX(2,x);}}if(state=='playing'){if(handleGameButton(x,y)){e.preventDefault();uiDragLock=1;return;}}};
 c.onmousemove=function(e){var r=c.getBoundingClientRect();if(volDrag!==0){var x=(e.clientX-r.left)*480/r.width;setVolFromX(volDrag,x);return;}if(uiDragLock)return;mxRaw=Math.round((e.clientX-r.left)*480/r.width);myRaw=Math.round((e.clientY-r.top)*720/r.height);if(state=='playing'&&bossWarningTimer<=0){px=mxRaw;py=myRaw;}};
 window.onmouseup=function(){uiDragLock=0;};
-c.onwheel=function(e){if(state!='talent')return;e.preventDefault();talentScroll+=e.deltaY*0.5;var maxS=Math.max(0,120+TALENTS.length*72+64-640);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;};
+c.onwheel=function(e){if(state!='talent')return;e.preventDefault();talentScroll+=e.deltaY*1.3;var maxS=Math.max(0,120+TALENTS.length*72+64-640);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;};
 window.onmouseup=function(){volDrag=0;};
 
 // === 游戏内按钮检测（统一被遮罩层盖住前优先执行） ===
@@ -1092,7 +1095,7 @@ c.ontouchmove=function(e){
     var ty=(t.clientY-r.top)*720/r.height;
     if(state=='talent'){
       var dy=t.clientY-touchStartY;
-      if(Math.abs(dy)>8){touchMoved=true;talentScroll-=dy*0.6;var maxS=Math.max(0,120+TALENTS.length*72+64-636);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;touchStartY=t.clientY;}
+      if(Math.abs(dy)>8){touchMoved=true;talentScroll-=dy*1.8;var maxS=Math.max(0,120+TALENTS.length*72+64-636);if(talentScroll<0)talentScroll=0;if(talentScroll>maxS)talentScroll=maxS;touchStartY=t.clientY;}
       continue;
     }
     if(state!='playing'||bossWarningTimer>0)continue;
@@ -1259,6 +1262,8 @@ function handleClick(mx,my){try{
 function update(){
   frameCount++;nebulaTime+=0.002;
   for(var i=0;i<stars.length;i++){var s=stars[i];s.y+=s.v;if(s.y>720){s.y=0;s.x=Math.random()*480;s.ph=Math.random()*6.28;}s.ph+=0.05;s.twinkle=0.5+0.5*Math.sin(s.ph);}
+  if(comet){comet.x+=comet.vx;comet.y+=comet.vy;comet.life--;if(comet.life<=0)comet=null;}
+  cometTimer--;if(cometTimer<=0){cometTimer=Math.floor(120+Math.random()*180);if(!comet&&Math.random()<0.6){var _cvx=(Math.random()<0.5?-1:1)*(1.2+Math.random()*2),_cvyy=3+Math.random()*2;comet={x:Math.random()*480,y:-20,vx:_cvx,vy:_cvyy,life:130};}}
   if(fadeDir>0){fadeAlpha+=0.03;if(fadeAlpha>=1){if(!tutorialSeen){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}}fadeDir=-1;}}else if(fadeDir<0){fadeAlpha-=0.03;if(fadeAlpha<=0){fadeDir=0;fadeAlpha=0;}}
   if(state=='playing'){if(!tutorialSeen){tutTimer++;if(tutTimer>90){tutorialSeen=true;try{localStorage.setItem('tts','1');}catch(e){}tutTimer=0;}}else tutTimer=0;}
   if(hitFx>0)hitFx-=0.04;if(hitFx<0)hitFx=0;
@@ -1456,7 +1461,7 @@ function update(){
   for(var i=ens.length-1;i>=0;i--){var e=ens[i];e.y+=e.vy;e.x+=e.vx||0;if(e.t>0)e.t--;e.fireTimer++;if(e.type!='boss'){if(e.x<20)e.x=20;if(e.x>460)e.x=460;}
     // 敌机身体撞击玩家（与子弹命中共用护盾/掉血逻辑）
     var ehw=e.w/2+12;
-    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');}}}}
+    if(Math.abs(e.x-px)<ehw&&Math.abs(e.y-py)<(e.h/2+14)){if(playerInvuln<=0){if(wShield>0){wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();playerInvuln=30;}else{hp--;play('playerHit');applyHit(HIT_RAM);pi=15;hitstop=Math.max(hitstop,4);if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}}}
 
     if(state=='over')break;
     if(e.type=='boss'){
@@ -1498,7 +1503,7 @@ function update(){
     b.x+=(b.vx||0)*ebSpd2;b.y+=(b.vy||0)*ebSpd2;if(b.y>750||b.x<-20||b.x>500||b.y<-20){bls.splice(i,1);continue;}
     var hitP1=Math.abs(b.x-px)<14&&Math.abs(b.y-py)<16;
 
-    if(hitP1){bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#fff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}
+    if(hitP1){bls.splice(i,1);if(playerInvuln>0){boom(px,py,'#fff',6);}else if(wShield<=0){hp--;play('playerHit');applyHit(b.fromBoss?HIT_BOSS:HIT_BULLET);pi=15;if(b.burn && !playerInvuln)playerBurnTimer=120;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);break;}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}
 
   }
   // 激光束：每帧对穿过的敌人造成伤害
@@ -1519,7 +1524,7 @@ function update(){
     if(L.hostile){ // 敌激光：判定是否命中玩家（机翼两侧粗蓝激光）
       var half=L.lw*0.5+8;
       var ddx=px-L.x,ddy=py-L.y;var tt=(ddx*Math.cos(L.ang)+ddy*Math.sin(L.ang));
-      if(tt>=0&&tt<=L.len){var qx=L.x+Math.cos(L.ang)*tt,qy=L.y+Math.sin(L.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}}}
+      if(tt>=0&&tt<=L.len){var qx=L.x+Math.cos(L.ang)*tt,qy=L.y+Math.sin(L.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}}}
     }
   }
   // 持久机翼激光：跟随飞机制造光束，长且粗，持续判定
@@ -1548,7 +1553,7 @@ function update(){
       }else{ // 敌光束：命中玩家
         var half=W.w*0.5+8;
         var ddx=px-W.x,ddy=py-W.y;var tt=(ddx*Math.cos(W.ang)+ddy*Math.sin(W.ang));
-        if(tt>=0&&tt<=W.len){var qx=W.x+Math.cos(W.ang)*tt,qy=W.y+Math.sin(W.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}}}
+        if(tt>=0&&tt<=W.len){var qx=W.x+Math.cos(W.ang)*tt,qy=W.y+Math.sin(W.ang)*tt;if(Math.sqrt((px-qx)*(px-qx)+(py-qy)*(py-qy))<half){if(playerInvuln<=0){if(wShield<=0){hp--;play('playerHit');applyHit(HIT_LASER);pi=15;if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}else{wShield--;if(wShield<=0)shieldRegenCd=shieldRegenDelay();play('shield');boom(px,py,'#ff0',15);triggerShieldBreak();}}}}
 
       }
     }
@@ -1604,7 +1609,7 @@ function update(){
   for(var i=0;i<ens.length;i++){if(ens[i].type=='boss')hasBoss=true;else alive++;}
   if((waveEnemies>=waveMax||(wave==getLv().waveCount&&bossWarningTimer==0))&&alive==0&&!hasBoss&&!isBossRush){
     if(wave<getLv().waveCount){startWave();}else{
-      state='levelComplete';
+      state='levelComplete';speakText('闯关成功！',1,1.1);
       // 评价：残血比例 + 是否用炸弹少
       var hpRate=hp/mhp;var rk='C';
       if(hpRate>=0.8&&bombs>=maxBombs-1)rk='S';
@@ -1629,7 +1634,7 @@ function update(){
     hp=Math.min(mhp,hp+5);bombs=maxBombs;play('levelComplete');
   }
   // 玩家燃烧 DoT（被 boss 燃烧子弹击中后的持续掉血）
-  if(playerBurnTimer>0){playerBurnTimer--;if(playerBurnTimer%20==0&&playerBurnTimer>0){hp--;play('playerHit');boom(px,py,'#f80',3);if(hp<=0){state='over';play('gameOver');}}}
+  if(playerBurnTimer>0){playerBurnTimer--;if(playerBurnTimer%20==0&&playerBurnTimer>0){hp--;play('playerHit');boom(px,py,'#f80',3);if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}}
 
   if(pi>0)pi--;
 }
@@ -1655,7 +1660,8 @@ function drawBackground(){
   ctx.drawImage(_nebCanvas,0,0);
   if(!_bgVg){_bgVg=ctx.createRadialGradient(240,720,0,240,720,320);_bgVg.addColorStop(0,'rgba(40,120,200,0.12)');_bgVg.addColorStop(1,'rgba(0,0,30,0)');}
   ctx.fillStyle=_bgVg;ctx.fillRect(0,0,480,720);
-  for(var l=0;l<3;l++)for(var i=0;i<stars.length;i++){var s=stars[i];if(s.l!=l)continue;var sz=l==0?1:l==1?1.8:3,al=(l==0?0.3:l==1?0.6:1)*(s.twinkle||0.5);ctx.fillStyle='rgba(255,255,255,'+al+')';ctx.beginPath();ctx.arc(s.x,s.y,sz,0,6.28);ctx.fill();}
+  for(var l=0;l<3;l++)for(var i=0;i<stars.length;i++){var s=stars[i];if(s.l!=l)continue;var sz=l==0?1:l==1?1.8:3,al=(l==0?0.3:l==1?0.6:1)*(s.twinkle||0.5);ctx.fillStyle='rgba('+s.r+','+s.g+','+s.b+','+al+')';ctx.beginPath();ctx.arc(s.x,s.y,sz,0,6.28);ctx.fill();}
+  if(comet){var cg=ctx.createLinearGradient(comet.x,comet.y,comet.x-comet.vx*9,comet.y-comet.vy*9);cg.addColorStop(0,'rgba(255,255,255,0.95)');cg.addColorStop(1,'rgba(120,180,255,0)');ctx.strokeStyle=cg;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(comet.x,comet.y);ctx.lineTo(comet.x-comet.vx*9,comet.y-comet.vy*9);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(comet.x,comet.y,2,0,6.28);ctx.fill();}
 }
 
 function drawMenuJet(cx,cy,s,body,wg,gl){
@@ -2914,6 +2920,7 @@ var _started=false;
 function doStart(){
   // 首次用户手势内：解锁 AudioContext 并启动 BGM（移动端 iOS/微信/QQ 必需）
   window.__userTouched=true;
+  try{ if('speechSynthesis' in window){ var _sw=window.speechSynthesis; if(_sw.paused)_sw.resume(); if(!window.__spkPrimed){ window.__spkPrimed=true; var _su=new SpeechSynthesisUtterance(' '); _su.volume=0; _sw.speak(_su); } } }catch(e){}
   try{
     var c=ac();
     if(c&&c.state==='suspended'){c.resume();}
