@@ -647,10 +647,17 @@ function playBGMList(){
           var pr=bgmAudio.play();
           if(pr&&pr.catch)pr.catch(function(){});
         }
+      }else if(!ASSETS_READY){
+        // 源尚未就绪（手机端 assets.json 未加载完），等待后再播，避免同步递归卡死主线程
+        ASSETS_PENDING.push(function(){ playBGMList(); });
+        return;
       }else{
-        bgmIndex++;playBGMList(); // 未能创建音频对象，换下一首
+        bgmIndex++;playBGMList(); // 已就绪仍失败：换下一首
       }
-    }catch(e){bgmIndex++;playBGMList();}
+    }catch(e){
+      if(!ASSETS_READY){ASSETS_PENDING.push(function(){playBGMList();});return;}
+      bgmIndex++;playBGMList();
+    }
   }else{
     // 没有 mp3 文件也没有嵌入数据 → 回退到合成 BGM（极旧环境）
     if(bgmAudio){try{bgmAudio.pause();bgmAudio=null;}catch(e){}}
