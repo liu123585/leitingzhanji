@@ -5,18 +5,27 @@
 * {margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%}
 body{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;height:100dvh;font-family:Arial,sans-serif;overflow:hidden;touch-action:none}
-canvas{display:block;max-width:none;max-height:none;border:2px solid #0af;box-shadow:0 0 40px rgba(0,170,255,.25);transition:transform .26s cubic-bezier(.22,.61,.36,1),opacity .26s ease;will-change:transform,opacity}
+canvas{display:block;max-width:none;max-height:none;border:2px solid #0af;transition:transform .26s cubic-bezier(.22,.61,.36,1),opacity .26s ease}
 #transitionMask{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:9999}
+.wb-ov{display:none;position:fixed;inset:0;z-index:9998;align-items:center;justify-content:center;background:rgba(0,0,10,0.82);font-family:Arial,"Microsoft YaHei",sans-serif}
+.wb-card{background:linear-gradient(160deg,#101838,#1a1040);border:2px solid #ffb43a;box-shadow:0 0 30px rgba(255,150,40,0.5);border-radius:16px;padding:26px 22px;max-width:86%;text-align:center;color:#fff}
+.wb-pt{font-size:21px;font-weight:bold;color:#ffd98a;margin-bottom:10px}
+.wb-lt{font-size:25px;font-weight:bold;margin-bottom:10px}
+.wb-pd{font-size:14px;color:#cde;margin-bottom:18px;line-height:1.6}
+.wb-btn{margin-top:6px;padding:12px 26px;font-size:17px;font-weight:bold;color:#1a1040;background:linear-gradient(180deg,#ffd98a,#ffae3a);border:none;border-radius:10px;cursor:pointer}
 </style>
 <script src="jquery-3.7.1.min.js"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="transitionMask"></div>
+<div id="wbOv" class="wb-ov"></div>
 <script>
 // === SETUP ===
 var c=document.getElementById('c'),ctx=c.getContext('2d');
-var DPR=Math.min(window.devicePixelRatio||1,1.5);
+var _isMobile=/Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent)||('ontouchstart' in window&&Math.max(window.innerWidth,window.innerHeight)<900);
+// 移动端（尤其是 QQ 浏览器等弱内核）填充率极弱：DPR 封顶 1.0（并会在低帧率时自适应降到 0.85），用分辨率换帧率；桌面端仍保持 1.5 清晰度
+var DPR=Math.min(window.devicePixelRatio||1,_isMobile?1:1.5);
 c.width=480*DPR;c.height=720*DPR;
 // 计算适配尺寸
 function vh(){var v=window.innerHeight;if(window.visualViewport&&window.visualViewport.height)v=window.visualViewport.height;return v||document.documentElement.clientHeight||window.innerHeight;}
@@ -48,6 +57,8 @@ var blsPool=[],ptsPool=[];
 var BLS_MAX=160; // 子弹（玩家弹+敌弹）硬上限：超过即回收 oldest 回对象池。160 足够呈现弹幕且不会因数量失控导致渲染/碰撞开销剧变而掉帧
 // 稳健关闭阴影：在主渲染上下文实例上强制 shadowBlur 为 0（不依赖原型覆写，防止部分手机内核原型覆写失效导致阴影真实开启而严重卡顿）
 try{Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:true,get:function(){return 0;},set:function(v){}});}catch(e){}
+// 自适应降分辨率：持续低帧率时自动下调 DPR（最低 0.85），用清晰度换帧率，保证弱内核手机（QQ 浏览器等）也能流畅
+function downgradeDPR(){DPR=Math.max(0.85,+(DPR-0.25).toFixed(2));c.width=480*DPR;c.height=720*DPR;resizeCanvas();ctx.setTransform(1,0,0,1,0,0);ctx.scale(DPR,DPR);try{Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:true,get:function(){return 0;},set:function(v){}});}catch(e){}}
 var TTS_ENABLED=false; // 语音播报默认关闭：移动端中文 TTS 偶发会卡 1 秒
 var _lastTTS=0; // 语音播报节流时间戳：避免连续事件堆叠多次 speak 造成移动端卡顿
 function newBullet(){var b=blsPool.pop()||{};for(var k in b)delete b[k];return b;}
@@ -72,7 +83,7 @@ var hitFx=0;            // 边缘受击氛围强度（0~1，逐帧衰减）
 var hitFxColor='255,0,0'; // 当前受击氛围颜色（rgb 字符串）
 // 攻击类型常量
 var HIT_BULLET=0,HIT_RAM=1,HIT_LASER=2,HIT_BOSS=3;
-function applyHit(type){
+function applyHit(type){if(typeof gSession!=='undefined'&&gSession)gSession.nohit=false;
   var sh=0,mag=0,fx=0,col='255,0,0';
   if(type==HIT_RAM){sh=4;mag=3;fx=0.7;col='255,40,40';play('hitRam');}        // 敌机撞击：微震+撞击音效
   else if(type==HIT_LASER){sh=3;mag=2;fx=0.45;col='255,90,40';play('hitLaser');} // 敌方激光：微震+激光音效（受击氛围用暖色，避免蓝色）
@@ -218,6 +229,7 @@ function cyclePlayerSkin(delta){
   var idx=SKIN_ORDER.indexOf(playerSkin);if(idx<0)idx=0;
   playerSkin=SKIN_ORDER[(idx+delta+SKIN_ORDER.length)%SKIN_ORDER.length];
   try{localStorage.setItem('tps',playerSkin);}catch(e){}
+  gstat.skinswitch=(gst('skinswitch')||0)+1;saveWbBase();
 }
 function activeSkinSkill(){
   if(playerSkin>=0&&playerSkin<PLAYER_SKINS.length)return SKIN_SKILLS[playerSkin];
@@ -577,6 +589,7 @@ function speakBossDown(name,isBig){
 }
 // 统一的 Boss 被击败处理：音效 + 爆炸特效 + 连击 + 语音播报（三处击杀共用，避免重复触发）
 function onBossDefeated(e,x,y,isBig,bonus){
+  gstat.boss=(gst('boss')||0)+1;for(var _bi=0;_bi<BIGBOSSES.length;_bi++)if(BIGBOSSES[_bi].name===e.name)codex['boss'+_bi]=1;saveWbBase();
   play('bossKill');winFlash=1; // 金闪
   boom(x,y,'#f0f',40);boom(x,y,'#ff0',30);boom(x,y,'#fff',20);
   // 额外冲击波粒子环（打击感拉满）
@@ -820,6 +833,8 @@ function init(lvl){
   // 清空上局残留实体与波次状态（关键：必须重置 wave，否则上一关结束时的 wave 会带入新关卡，导致进第二关直接判定胜利）
   bls.length=0;ens.length=0;pws.length=0;pts.length=0;drs.length=0;
   wave=0;waveEnemies=0;waveMax=0;spawnTimer=0;bossWarningTimer=0;dropTimer=0;enterMsgTimer=0;countdownTimer=0;bossRushTimer=0;scoreMultTimer=0;homingTimer=0;
+  applyMeta();
+  onLevelStart();
   // 直接进入游戏（去掉开场倒计时黑屏，开局有短无敌保护）
   state='playing';
 }
@@ -1003,7 +1018,7 @@ function applyAirdropTo(x,y,tp){
   wLevel=wL;wMissile=wMis;wPower=wPow;wShield=wSh;wSlow=wSl;hp=hpv;
   pts.push({x:x,y:y,vy:-1.5,life:40,txt:txt,cl:'#fa0'});
 }
-function openAirdrop(i,fromP1){
+function openAirdrop(i,fromP1){gSession.airdrop++;
   var d=drs[i];if(d.opened)return;play('airdrop');d.opened=true;
   boom(d.x,d.y,'#fa0',20);boom(d.x,d.y,'#fff',10);
   applyAirdropTo(d.x,d.y,true);
@@ -1161,7 +1176,7 @@ function handleClick(mx,my){try{
     else if(my>390&&my<442&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');isBossRush=true;bossRushRound=0;bossRushTimer=0;init(1);}
     else if(my>448&&my<500&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('help');}
     else if(my>506&&my<558&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('settings');}
-    else if(my>564&&my<616&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');transitionTo('stats');}
+    else if(my>564&&my<616&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');wbPage='home';transitionTo('warband');}
     else if(my>622&&my<674&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');talentScroll=0;transitionTo('talent');}
   }else if(state=='levelSelect'){
     var totalPages=Math.ceil(TOTAL_LEVELS/20);
@@ -1286,6 +1301,8 @@ function handleClick(mx,my){try{
 
 // === UPDATE ===
 function update(){
+  checkDailyReset();if(wbMsgT>0)wbMsgT--;
+  if(state=='over'&&!gameOverProcessed){gameOverProcessed=true;onGameOver();}
   frameCount++;nebulaTime+=0.002;
   for(var i=0;i<stars.length;i++){var s=stars[i];s.y+=s.v;if(s.y>720){s.y=0;s.x=Math.random()*480;s.ph=Math.random()*6.28;}s.ph+=0.05;s.twinkle=0.5+0.5*Math.sin(s.ph);}
   if(comet){comet.x+=comet.vx;comet.y+=comet.vy;comet.life--;if(comet.life<=0)comet=null;}
@@ -1460,7 +1477,7 @@ function update(){
     for(var j=ens.length-1;j>=0;j--){var e=ens[j];if(Math.abs(b.x-e.x)<(e.w+Math.abs(b.vx||0))/2+4&&Math.abs(b.y-e.y)<(e.h+Math.abs(b.vy||0))/2+4){var dd=playerDmg(b.d);e.t=5;blsPool.push(b);bls.splice(i,1);
       // Boss 护盾：伤害先扣 shieldHP
       if(e.shieldHP&&e.shieldHP>0){var sd=Math.min(dd,e.shieldHP);e.shieldHP-=sd;dd-=sd;if(dd>0)e.hp-=dd;boom(e.x,e.y,'#0ff',3);if(e.shieldHP<=0){e.shieldHP=0;play('shield');boom(e.x,e.y,'#0ff',25);}}
-      else{e.hp-=dd;}
+      else{e.hp-=dd;if(dd>0&&tl('crit')>0&&Math.random()<0.1*tl('crit')){pts.push({x:b.x,y:b.y-12,vy:-1.6,life:30,txt:'暴击!',cl:'#ff3b3b'});}}
       if(e.hp<=0){
         // Boss 重生：复活一次，不回满
         if(e.type=='boss'&&e.revive&&!e._revived){e.hp=e.maxHp*0.4;e.t=20;e._revived=true;play('bossWarning');var _rt=newPt();_rt.x=e.x;_rt.y=e.y-30;_rt.vy=-1;_rt.life=60;_rt.txt='REVIVE!';_rt.cl='#f44';pts.push(_rt);for(var ri=0;ri<30;ri++){var ra=Math.random()*6.2832,rs=1+Math.random()*5;var _rp=newPt();_rp.x=e.x;_rp.y=e.y;_rp.vx=Math.cos(ra)*rs;_rp.vy=Math.sin(ra)*rs-2;_rp.life=30+Math.random()*20;_rp.cl=['#f44','#f80','#ff0'][Math.floor(Math.random()*3)];_rp.sz=1+Math.random()*3;pts.push(_rp);}break;}
@@ -1653,12 +1670,13 @@ function update(){
       // 通关强烈反馈：金闪 + 大屏震 + 上扬音效
       winFlash=1;
       play('levelComplete');
+      onLevelClear();
     }
   }
   // BOSS挑战：检测Boss是否被击杀
   if(isBossRush&&state=='playing'&&!ens.length&&bossRushTimer<=0){
     bossRushRound++;bossRushTimer=90;countdownTimer=90;state='countdown';
-    hp=Math.min(mhp,hp+5);bombs=maxBombs;play('levelComplete');
+    hp=Math.min(mhp,hp+5);bombs=maxBombs;play('levelComplete');onBossRushRound();
   }
   // 玩家燃烧 DoT（被 boss 燃烧子弹击中后的持续掉血）
   if(playerBurnTimer>0){playerBurnTimer--;if(playerBurnTimer%20==0&&playerBurnTimer>0){hp--;play('playerHit');boom(px,py,'#f80',3);if(hp<=0){state='over';play('gameOver');speakText('游戏结束',0.9,1.1);}}}
@@ -1703,7 +1721,7 @@ function drawBackground(){
     g.fillStyle=_bgVg;g.fillRect(0,0,480,720);
     for(var l=0;l<3;l++)for(var i=0;i<stars.length;i++){var s=stars[i];if(s.l!=l)continue;var sz=l==0?1:l==1?1.8:3;g.fillStyle=s.col;g.fillRect(s.x-sz/2,s.y-sz/2,sz,sz);}
   }
-  ctx.globalAlpha=0.85+0.15*Math.sin(frameCount*0.03);ctx.drawImage(bgLayer,0,0);ctx.globalAlpha=1;
+  ctx.drawImage(bgLayer,0,0);
   if(comet){var cg=ctx.createLinearGradient(comet.x,comet.y,comet.x-comet.vx*9,comet.y-comet.vy*9);cg.addColorStop(0,'rgba(255,255,255,0.95)');cg.addColorStop(1,'rgba(120,180,255,0)');ctx.strokeStyle=cg;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(comet.x,comet.y);ctx.lineTo(comet.x-comet.vx*9,comet.y-comet.vy*9);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(comet.x,comet.y,2,0,6.28);ctx.fill();}
 }
 
@@ -1783,7 +1801,7 @@ function drawMenu(){
   pill(240,BY+BG*2,BW,BH,'#ff5a5a','\u2620 BOSS挑战','#ffd6d6');
   pill(240,BY+BG*3,BW,BH,'#3fd0ff','\u2753 操作说明','#dffaff');
   pill(240,BY+BG*4,BW,BH,'#3fd0ff','\u2699 设置','#dffaff');
-  pill(240,BY+BG*5,BW,BH,'#3fd0ff','\u2139 属性介绍','#dffaff');
+  pill(240,BY+BG*5,BW,BH,'#ffd700','⚡ 战令中心','#fff3c0');
   pill(240,BY+BG*6,BW,BH,'#c77bff','\u272F 天赋 ('+talentPoints+'点)','#f3d9ff');
   // 已达成的 Boss 挑战最高分
   if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font=UF(16)+'px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
@@ -2261,15 +2279,11 @@ function drawPlayerShip(x,y,flash){
   if(eye>0)drawShipFace(0,-6,eye,wg=='#fff'?'#000':(body=='#fff'?'#000':wg));
   // 引擎喷射火焰（正版科幻蓝白推进尾焰：白热核心+青蓝外焰+辉光）
   var fl=16+Math.random()*7;
-  var fg=ctx.createLinearGradient(0,13,0,13+fl);
-  fg.addColorStop(0,'rgba(255,255,255,0.98)');
-  fg.addColorStop(0.35,'rgba(150,230,255,0.85)');
-  fg.addColorStop(0.7,'rgba(60,160,255,0.55)');
-  fg.addColorStop(1,'rgba(40,120,255,0)');
-  ctx.shadowColor='#5cc8ff';ctx.shadowBlur=14;
-  ctx.fillStyle=fg;
+  // 尾焰改为纯色双段（去渐变+去阴影），每帧省一次 createLinearGradient，弱内核更稳
+  ctx.fillStyle='rgba(170,230,255,0.9)';
   ctx.beginPath();ctx.moveTo(-5,13);ctx.lineTo(5,13);ctx.lineTo(1.6,13+fl);ctx.lineTo(-1.6,13+fl);ctx.closePath();ctx.fill();
-  ctx.shadowBlur=0;ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(255,255,255,0.95)';
+  ctx.beginPath();ctx.moveTo(-2.4,13);ctx.lineTo(2.4,13);ctx.lineTo(0.8,13+fl*0.7);ctx.lineTo(-0.8,13+fl*0.7);ctx.closePath();ctx.fill();
   // 判定点（小圆，提示真实受击位置）
   ctx.fillStyle='rgba(255,80,80,0.9)';ctx.beginPath();ctx.arc(0,-2,2.5,0,6.28);ctx.fill();
   // 左右机翼炮台（常驻追踪导弹发射器）
@@ -2407,6 +2421,7 @@ function draw(){
   if(state=='talent'){drawTalent();ctx.restore();return;}
   if(state=='settings'){drawSettings();ctx.restore();return;}
   if(state=='diy'){drawDIY();ctx.restore();return;}
+  if(state=='warband'){if(wbPage=='meta')drawMetaUp();else if(wbPage=='ach')drawAch();else if(wbPage=='codex')drawCodex();else if(wbPage=='rank')drawRank();else if(wbPage=='plot')drawPlotReview();else drawWarband();ctx.restore();return;}
   // Gameplay（敌弹，赛博朋克多样样式）
   for(var i=0;i<bls.length;i++){var b=bls[i];if(!b.pl)continue;if(b.x<-30||b.x>510||b.y<-30||b.y>750)continue;
     if(b.laser){
@@ -2928,11 +2943,11 @@ function draw(){
   }
   // Fade overlay
   if(fadeAlpha>0){ctx.fillStyle='rgba(0,0,0,'+fadeAlpha+')';ctx.fillRect(0,0,480,720);}
-
+  drawComboBanner();
   ctx.restore();
 }
 
-var _prof={fps:60,upd:0,drw:0,tot:0,slowT:0,slowU:0,slowD:0,slowB:0,slowE:0,slowP:0},_SLOW_MS=120,_profShown=0;
+var _prof={fps:60,upd:0,drw:0,tot:0,slowT:0,slowU:0,slowD:0,slowB:0,slowE:0,slowP:0},_SLOW_MS=120,_profShown=0,_fpsAvg=60,_lowF=0;
 function _drawProfiler(){ctx.save();ctx.textAlign='left';ctx.font='12px monospace';ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(2,2,152,46);ctx.fillStyle='#0f0';ctx.fillText('FPS '+_prof.fps,6,15);ctx.fillStyle='#0cf';ctx.fillText('up '+_prof.upd.toFixed(1)+' dr '+_prof.drw.toFixed(1),6,29);ctx.fillStyle='#888';ctx.fillText('bls '+bls.length+' ens '+ens.length,6,43);if(performance.now()<_profShown){ctx.fillStyle='rgba(140,0,0,0.9)';ctx.fillRect(0,72,480,36);ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.textAlign='center';ctx.fillText('卡顿! 总'+_prof.slowT.toFixed(0)+'ms 更新'+_prof.slowU.toFixed(0)+' 绘制'+_prof.slowD.toFixed(0)+' bls'+_prof.slowB+' ens'+_prof.slowE,240,94);}ctx.restore();}
 var _lastTS=0,_acc=0,_MAXSTEP=5; // 帧时间保护：掉帧时最多补算 5 步，避免慢设备上越拖越卡
 function loop(ts){try{
@@ -2946,6 +2961,8 @@ function loop(ts){try{
   var _t1=performance.now();draw();var _t2=performance.now();
   _prof.upd=_t1-_t0;_prof.drw=_t2-_t1;_prof.tot=_t2-_t0;
   if(dt>0)_prof.fps=Math.round(1000/dt);
+  _fpsAvg=_fpsAvg*0.95+_prof.fps*0.05; // 平滑帧率，避免瞬时波动误判
+  if(_fpsAvg<42){_lowF++;if(_lowF>120){_lowF=0;if(DPR>0.85)downgradeDPR();}}else _lowF=0; // 持续 ~2 秒低帧则降一档分辨率
   if(_prof.tot>_SLOW_MS){_prof.slowT=_prof.tot;_prof.slowU=_prof.upd;_prof.slowD=_prof.drw;_prof.slowB=bls.length;_prof.slowE=ens.length;_prof.slowP=pts.length;_profShown=performance.now()+4000;}
   // 调试面板已关闭：不绘制 FPS / bls / ens 等左上角信息
 }catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}
@@ -2998,6 +3015,96 @@ setTimeout(function(){tone(523,0.1,'sine',0.04);},200);
 setTimeout(function(){tone(659,0.1,'sine',0.04);},350);
 setTimeout(function(){tone(784,0.1,'sine',0.04);},500);
 setTimeout(function(){tone(1047,0.2,'sine',0.05);},650);
+
+/* ================= 战令中心 / 元进度 / 趣味系统（新增） ================= */
+var CREDIT=0,metaLv={},signStreak=0,signDate='',dailyTasks=null,achDone={},codex={},lb=[],gstat={},wbPage='home',wbMsg='',wbMsgT=0;
+var gSession={kills:0,maxCombo:0,ults:0,airdrop:0,cleared:false,nohit:true};
+var gameOverProcessed=false,pendingLoot=false;
+function ml(id){return metaLv[id]||0;}
+function tryLs(k,d){try{var v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}}
+function setLs(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function loadWb(){CREDIT=+localStorage.getItem('tcr')||0;metaLv=tryLs('tmu',{})||{};signStreak=+localStorage.getItem('tsg')||0;signDate=localStorage.getItem('tsd')||'';dailyTasks=tryLs('tdq',null);achDone=tryLs('tac',{})||{};codex=tryLs('tcx',{})||{};lb=tryLs('tlb',[])||[];gstat=tryLs('tgs',{})||{};}
+loadWb();
+function saveWbBase(){try{localStorage.setItem('tcr',CREDIT);setLs('tmu',metaLv);localStorage.setItem('tsg',signStreak);localStorage.setItem('tsd',signDate);setLs('tdq',dailyTasks);setLs('tac',achDone);setLs('tcx',codex);setLs('tlb',lb);setLs('tgs',gstat);}catch(e){}}
+var META_UPGRADES=[{id:'vigor',name:'钢铁意志',desc:'每级 +2 初始最大生命',max:8,cost:20},{id:'gun',name:'锐利炮管',desc:'每级 初始火力 +1',max:5,cost:25},{id:'shield',name:'守护力场',desc:'每级 初始护盾 +1',max:3,cost:30},{id:'fortune',name:'幸运弹仓',desc:'每级 初始炸弹 +1',max:3,cost:25},{id:'lucky',name:'幸运星',desc:'每级 补给箱稀有度提升',max:5,cost:30},{id:'scholar',name:'学者勋章',desc:'每级 任务/签到学分 +20%',max:5,cost:25},{id:'warlord',name:'战神气场',desc:'每级 击杀得分 +10%',max:5,cost:25},{id:'collector',name:'收藏家',desc:'每级 图鉴学分 +50%',max:3,cost:30}];
+function applyMeta(){mhp+=2*ml('vigor');wPower+=ml('gun');wShield+=ml('shield');maxBombs+=ml('fortune');bombs+=ml('fortune');hp=mhp;}
+function buyMeta(id){var m=null;for(var i=0;i<META_UPGRADES.length;i++)if(META_UPGRADES[i].id==id)m=META_UPGRADES[i];if(!m)return;var lv=ml(id);if(lv>=m.max)return;var cost=m.cost*(lv+1);if(CREDIT<cost){wbMsg='学分不足';wbMsgT=120;return;}CREDIT-=cost;metaLv[id]=lv+1;saveWbBase();play('levelComplete');wbMsg='升级成功!';wbMsgT=90;}
+var DAILY_POOL=[{id:'kill',desc:'单局击杀 80 敌',target:80,reward:30},{id:'combo',desc:'单局达成 25 连击',target:25,reward:30},{id:'clear',desc:'通关任意一关',target:1,reward:40},{id:'score',desc:'单局得分 3000',target:3000,reward:35},{id:'score2',desc:'单局得分 5000',target:5000,reward:35},{id:'nohit',desc:'单局无伤通关',target:1,reward:60},{id:'air',desc:'单局开启 2 空投',target:2,reward:25},{id:'bossrush',desc:'Boss挑战存活 3 轮',target:3,reward:40}];
+function todayStr(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function rollDaily(){var pool=DAILY_POOL.slice(),pick=[];for(var k=0;k<3&&pool.length;k++){var i=Math.floor(Math.random()*pool.length);var t=pool[i];pick.push({id:t.id,desc:t.desc,target:t.target,reward:t.reward,prog:0,done:false});pool.splice(i,1);}dailyTasks={date:todayStr(),list:pick};saveWbBase();}
+function checkDailyReset(){if(!dailyTasks||dailyTasks.date!==todayStr())rollDaily();if(signDate!==todayStr()){var y=new Date();y.setDate(y.getDate()-1);var ys=y.getFullYear()+'-'+(y.getMonth()+1)+'-'+y.getDate();signStreak=(signDate===ys)?(signStreak+1):1;signDate=todayStr();var bonus=Math.round((10+signStreak*5)*(1+0.2*ml('scholar')));CREDIT+=bonus;saveWbBase();wbMsg='签到 +'+bonus+' 学分 (连签'+signStreak+'天)';wbMsgT=200;}}
+var ACHIEVEMENTS=[{id:'k100',name:'初战告捷',desc:'累计击杀 100 敌',stat:'totalkill',target:100,reward:40},{id:'k1k',name:'千机斩',desc:'累计击杀 1000 敌',stat:'totalkill',target:1000,reward:80},{id:'c50',name:'连击大师',desc:'达成 50 连击',stat:'maxcombo',target:50,reward:50},{id:'cl10',name:'渐入佳境',desc:'通关 10 关',stat:'clear',target:10,reward:60},{id:'cl40',name:'守护圆满',desc:'通关全部 40 关',stat:'clear',target:40,reward:200},{id:'b10',name:'屠龙者',desc:'击败大 Boss 10 次',stat:'boss',target:10,reward:80},{id:'s7',name:'七日签到',desc:'连续签到 7 天',stat:'sign',target:7,reward:70},{id:'bx10',name:'欧皇附体',desc:'开启 10 个补给箱',stat:'box',target:10,reward:60},{id:'sk5',name:'换装达人',desc:'切换皮肤 5 次',stat:'skinswitch',target:5,reward:50},{id:'sc10k',name:'万分达人',desc:'单局得分 10000',stat:'score',target:10000,reward:100}];
+function gst(k){return gstat[k]||0;}
+function checkAch(){for(var i=0;i<ACHIEVEMENTS.length;i++){var a=ACHIEVEMENTS[i];if(achDone[a.id])continue;var cur=(a.stat=='skin')?countSkins():gst(a.stat);if(cur>=a.target){achDone[a.id]=1;CREDIT+=a.reward;wbMsg='成就达成: '+a.name+' +'+a.reward;wbMsgT=160;play('levelComplete');}}saveWbBase();}
+function countSkins(){return (playerSkin>=0?1:0)+1+7;}
+var LOOT_RARITY=[{key:'common',name:'普通',color:'#b0b0b0',cr:8},{key:'rare',name:'稀有',color:'#3fd0ff',cr:20},{key:'epic',name:'史诗',color:'#c77bff',cr:50},{key:'legend',name:'传说',color:'#ffb43a',cr:120}];
+function rollLoot(){var lucky=ml('lucky');var r=Math.random();var pL=0.02+lucky*0.012,pE=0.10+lucky*0.02,pR=0.32+lucky*0.02;var rarity;if(r<pL)rarity='legend';else if(r<pL+pE)rarity='epic';else if(r<pL+pE+pR)rarity='rare';else rarity='common';var cr=0;for(var i=0;i<LOOT_RARITY.length;i++)if(LOOT_RARITY[i].key==rarity)cr=LOOT_RARITY[i].cr;var creditGain=Math.round(cr*(1+0.2*ml('scholar')));var tpGain=0;if(rarity=='epic')tpGain=1;if(rarity=='legend')tpGain=2;CREDIT+=creditGain;if(tpGain){talentPoints+=tpGain;saveTalents();}gstat.box=(gst('box')||0)+1;saveWbBase();return {rarity:rarity,credit:creditGain,tp:tpGain};}
+var PLOT=[
+{t:'第一关 · 入学报到',d:'你以新生身份驾机驶入洛河上空，雷达捕捉到不明信号……'},
+{t:'第二关 · 图书馆惊魂',d:'自习室的灯光忽明忽暗，书页无风自动，异动正在发生。'},
+{t:'第三关 · 琴湖魅影',d:'湖面泛起诡异涟漪，水底似有巨大黑影缓缓升起。'},
+{t:'第四关 · 第一教学楼',d:'阶梯教室的黑板写满公式，粉笔灰化作弹幕飞来。'},
+{t:'第五关 · 工科楼试炼',d:'实验室仪器失控，激光与电弧在走廊间乱窜。'},
+{t:'第六关 · 开元校区远征',d:'跨越洛河奔赴新区，陌生的天际线藏着更强敌人。'},
+{t:'第七关 · 食堂争夺战',d:'饭点铃声一响，不锈钢餐盘如飞盘般横扫而来。'},
+{t:'第八关 · 体育场空袭',d:'操场看台升起炮台，呐喊声化作声波攻击。'},
+{t:'第九关 · 樱花大道',d:'春日花瓣飞舞美不胜收，却暗藏甜蜜的杀机。'},
+{t:'第十关 · 考研自习室',d:'卷王们的怨念凝结成墙，唯有突围才能成功上岸。'},
+{t:'第十一关 · 体测危机',d:'千米跑的喘息化为狂风，肺活量不足的敌人率先倒下。'},
+{t:'第十二关 · 百团大战',d:'社团招新现场人声鼎沸，传单如雪片般遮蔽视线。'},
+{t:'第十三关 · 四六级听力',d:'模糊的英语广播在脑中环绕，专心者方能听见破绽。'},
+{t:'第十四关 · 期末周',d:'复习资料堆成山，焦虑化作黑色漩涡吞噬理智。'},
+{t:'第十五关 · 高数巨兽',d:'微积分之兽现身，导数与积分是它锋利的獠牙。'},
+{t:'第十六关 · 大物BOSS',d:'经典力学坍塌，量子涨落构成它不可捉摸的弹幕。'},
+{t:'第十七关 · 线代幻阵',d:'行列式织成迷宫，特征值在虚空中低语。'},
+{t:'第十八关 · C语言要塞',d:'指针的丛林危机四伏，段错误随时引爆。'},
+{t:'第十九关 · 马原迷宫',d:'辩证法的螺旋层层嵌套，唯心与唯物激烈交锋。'},
+{t:'第二十关 · 概率风暴',d:'随机变量呼啸而过，置信区间里藏着生路。'},
+{t:'第二十一关 · 实验报告潮',d:'堆积如山的报告化作纸飞机轰炸，deadline 步步逼近。'},
+{t:'第二十二关 · 实习内卷',d:'职场新人的 KPI 凝成尖刺，唯强者不被淘汰。'},
+{t:'第二十三关 · 竞赛突围',d:'奖杯的光芒刺眼，对手们早已布下天罗地网。'},
+{t:'第二十四关 · 宿舍攻防',d:'熄灯后的寝室暗流涌动，谁的鼾声先击穿防线？'},
+{t:'第二十五关 · 校园卡失窃',d:'丢失的卡片在黑市流转，权限之门的守卫已经苏醒。'},
+{t:'第二十六关 · 选课系统崩',d:'秒杀的战场硝烟弥漫，手速决定一学期的命运。'},
+{t:'第二十七关 · 空调战争',d:'三伏天的冷气被垄断，抢到风口者得天下。'},
+{t:'第二十八关 · 供暖危机',d:'隆冬的暖气片沉默，寒流化作冰晶弹幕。'},
+{t:'第二十九关 · 毕业设计',d:'查重率的达摩克利斯之剑高悬，创新是唯一出路。'},
+{t:'第三十关 · 答辩之日',d:'聚光灯下，评委的目光比激光更灼人。'},
+{t:'第三十一关 · 校友归来',d:'学长学姐携经验空降，传说级战法首次公开。'},
+{t:'第三十二关 · 校庆盛典',d:'百年钟声回荡，烟花与敌袭同时绽放。'},
+{t:'第三十三关 · 洛河之约',d:'河畔的约定牵动心绪，守护者亦有无可退让的温柔。'},
+{t:'第三十四关 · 实验室爆炸',d:'科研的边界被引爆，未知能量重塑战场规则。'},
+{t:'第三十五关 · 论文盲审',d:'匿名评审的利剑悬顶，字斟句酌方得过关。'},
+{t:'第三十六关 · 考研复试',d:'最后一关较量，临场发挥定乾坤。'},
+{t:'第三十七关 · offer争夺',d:'名企的橄榄枝暗藏试炼，抉择改写人生轨迹。'},
+{t:'第三十八关 · 毕业典礼',d:'拨穗的刹那，离别与启程同样沉重。'},
+{t:'第三十九关 · 校友捐赠',d:'功成不忘母校，回馈之力化作守护新星。'},
+{t:'第四十关 · 守护永恒',d:'你已成为洛河之上不灭的雷霆，传说就此封笔。'}
+];
+function addRank(sc,mode){lb.push({s:sc,m:mode,d:todayStr()});lb.sort(function(a,b){return b.s-a.s;});if(lb.length>10)lb=lb.slice(0,10);saveWbBase();}
+function onLevelStart(){gSession={kills:0,maxCombo:0,ults:0,airdrop:0,cleared:false,nohit:true};gameOverProcessed=false;if(isBossRush)return;var p=PLOT[currentLevel-1];if(p)showPlot(p);}
+function onLevelClear(){gSession.cleared=true;var gain=Math.round((50+currentLevel*8)*(1+0.1*ml('warlord')));CREDIT+=gain;gstat.totalkill=(gst('totalkill')||0)+gSession.kills;gstat.clear=(gst('clear')||0)+1;gstat.maxcombo=Math.max(gst('maxcombo')||0,gSession.maxCombo);updateDaily();checkAch();pendingLoot=true;saveWbBase();wbMsg='通关! +'+gain+' 学分';wbMsgT=160;showLoot();}
+function onBossRushRound(){var gain=Math.round((30+bossRushRound*5)*(1+0.1*ml('warlord')));CREDIT+=gain;if(dailyTasks&&dailyTasks.date===todayStr()){for(var i=0;i<dailyTasks.list.length;i++){var t=dailyTasks.list[i];if(t.done)continue;if(t.type=='bossrush'){t.prog=Math.max(t.prog,bossRushRound);if(t.prog>=t.target){t.done=true;CREDIT+=Math.round(t.reward*(1+0.2*ml('scholar')));}}}}checkAch();saveWbBase();}
+function onGameOver(){var gain=Math.round((10+gSession.kills*2+score*0.02)*(1+0.1*ml('warlord')));CREDIT+=gain;gstat.totalkill=(gst('totalkill')||0)+gSession.kills;gstat.maxcombo=Math.max(gst('maxcombo')||0,gSession.maxCombo);gstat.score=Math.max(gst('score')||0,score);updateDaily();checkAch();addRank(score,isBossRush?'Boss挑战':'闯关');pendingLoot=true;saveWbBase();wbMsg='阵亡! +'+gain+' 学分';wbMsgT=160;showLoot();}
+function updateDaily(){if(!dailyTasks||dailyTasks.date!==todayStr())return;for(var i=0;i<dailyTasks.list.length;i++){var t=dailyTasks.list[i];if(t.done)continue;if(t.type=='kill')t.prog=Math.max(t.prog,gSession.kills);else if(t.type=='combo')t.prog=Math.max(t.prog,gSession.maxCombo);else if(t.type=='clear')t.prog=1;else if(t.type=='score')t.prog=Math.max(t.prog,score);else if(t.type=='score2')t.prog=Math.max(t.prog,score);else if(t.type=='nohit'){if(gSession.nohit)t.prog=1;}else if(t.type=='air')t.prog=Math.max(t.prog,gSession.airdrop);else if(t.type=='bossrush')t.prog=Math.max(t.prog,bossRushRound);if(t.prog>=t.target){t.done=true;CREDIT+=Math.round(t.reward*(1+0.2*ml('scholar')));}}saveWbBase();}
+var wbOv=document.getElementById('wbOv');
+function showOverlay(html){if(wbOv){wbOv.innerHTML=html;wbOv.style.display='flex';}}
+function hideOverlay(){if(wbOv){wbOv.style.display='none';wbOv.innerHTML='';}}
+window.__wbClose=function(){hideOverlay();};
+function showPlot(p){showOverlay('<div class="wb-card"><div class="wb-pt">'+p.t+'</div><div class="wb-pd">'+p.d+'</div><button class="wb-btn" onclick="window.__wbClose()">继续 ▶</button></div>');}
+function showLoot(){if(!pendingLoot)return;var res=rollLoot();pendingLoot=false;var rn='',rc='#aaa';for(var i=0;i<LOOT_RARITY.length;i++)if(LOOT_RARITY[i].key==res.rarity){rn=LOOT_RARITY[i].name;rc=LOOT_RARITY[i].color;}var html='<div class="wb-card"><div class="wb-lt" style="color:'+rc+'">'+rn+' 补给箱</div><div class="wb-pd">获得 <b style="color:#ffd700">'+res.credit+' 学分</b>'+(res.tp>0?' + '+res.tp+' 天赋点':'')+'</div><button class="wb-btn" onclick="window.__wbClose()">收下 ✦</button></div>';showOverlay(html);}
+var wbBtns=[];
+function wbBtn(x,y,w,h,label,accent,act){wbBtns.push({x:x,y:y,w:w,h:h,act:act});var hov=myRaw>y-h/2&&myRaw<y+h/2&&mxRaw>x-w/2&&mxRaw<x+w/2;ctx.fillStyle=hov?'rgba(40,70,120,0.95)':'rgba(20,32,60,0.92)';ctx.strokeStyle=accent;ctx.lineWidth=2;ctx.shadowColor=accent;ctx.shadowBlur=hov?16:7;drawRoundedRect(x-w/2,y-h/2,w,h,10);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=hov?'#fff':'#dfeaff';ctx.font='bold '+UF(16)+'px Arial';ctx.textAlign='center';ctx.fillText(label,x,y+6);}
+function wbClick(mx,my){ensureAudio();play('menuClick');for(var i=0;i<wbBtns.length;i++){var b=wbBtns[i];if(my>b.y-b.h/2&&my<b.y+b.h/2&&mx>b.x-b.w/2&&mx<b.x+b.w/2){var a=b.act;if(a=='back'){wbPage='home';return;}if(a=='meta'){wbPage='meta';return;}if(a=='ach'){wbPage='ach';return;}if(a=='codex'){wbPage='codex';return;}if(a=='rank'){wbPage='rank';return;}if(a=='plot'){wbPage='plot';return;}if(a=='help'){transitionTo('help');return;}if(a=='home'){transitionTo('menu');return;}if(a=='sign'){checkDailyReset();return;}if(a&&a.indexOf('meta_')===0){buyMeta(a.substr(5));return;}}}}
+function drawWarband(){wbBtns=[];ctx.textAlign='center';ctx.fillStyle='#04071a';ctx.fillRect(0,0,480,720);var ng=ctx.createRadialGradient(240,140,10,240,140,360);ng.addColorStop(0,'rgba(70,130,255,0.14)');ng.addColorStop(1,'rgba(70,130,255,0)');ctx.fillStyle=ng;ctx.fillRect(0,0,480,720);ctx.fillStyle='#ffd98a';ctx.font='bold '+UF(30)+'px Arial';ctx.fillText('⚡ 战令中心',240,58);ctx.fillStyle='#9ab';ctx.font=UF(15)+'px Arial';ctx.fillText('学分 '+CREDIT+'    连续签到 '+signStreak+' 天',240,86);var sd=(signDate===todayStr());wbBtn(240,128,210,42,sd?'每日签到 ✓ 已签到':'每日签到 +学分','#ffae3a','sign');ctx.fillStyle='#3fd0ff';ctx.font='bold '+UF(17)+'px Arial';ctx.fillText('— 今日任务 —',240,182);if(dailyTasks&&dailyTasks.list){for(var i=0;i<dailyTasks.list.length;i++){var t=dailyTasks.list[i];var yy=206+i*34;ctx.textAlign='left';ctx.fillStyle=t.done?'#5f8':'#cde';ctx.font=UF(13)+'px Arial';ctx.fillText((t.done?'✓ ':'· ')+t.desc+'  '+Math.min(t.prog,t.target)+'/'+t.target,44,yy);ctx.textAlign='center';}}wbBtn(120,400,150,46,'军校·升级','#c77bff','meta');wbBtn(360,400,150,46,'成就','#ffd700','ach');wbBtn(120,458,150,46,'图鉴','#3fd0ff','codex');wbBtn(360,458,150,46,'排行榜','#ff5a5a','rank');wbBtn(120,516,150,46,'剧情回顾','#9f9','plot');wbBtn(360,516,150,46,'属性介绍','#3fd0ff','help');wbBtn(240,636,200,46,'返回主菜单','#3fd0ff','home');if(wbMsgT>0){wbMsgT--;ctx.fillStyle='#ffd98a';ctx.font='bold '+UF(16)+'px Arial';ctx.fillText(wbMsg,240,694);}}
+function drawMetaUp(){wbBtns=[];ctx.textAlign='center';ctx.fillStyle='#04071a';ctx.fillRect(0,0,480,720);ctx.fillStyle='#c77bff';ctx.font='bold '+UF(26)+'px Arial';ctx.fillText('🎓 军校·永久升级',240,46);ctx.fillStyle='#9ab';ctx.font=UF(14)+'px Arial';ctx.fillText('学分 '+CREDIT+'（永久生效·死亡不丢）',240,72);for(var i=0;i<META_UPGRADES.length;i++){var m=META_UPGRADES[i];var lv=ml(m.id);var yy=104+i*64;ctx.fillStyle='rgba(30,30,60,0.85)';drawRoundedRect(30,yy-24,300,52,8);ctx.fill();ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='bold '+UF(15)+'px Arial';ctx.fillText(m.name+' Lv.'+lv+'/'+m.max,42,yy-4);ctx.fillStyle='#cde';ctx.font=UF(11)+'px Arial';ctx.fillText(m.desc,42,yy+14);var cost=m.cost*(lv+1);var can=lv<m.max&&CREDIT>=cost;wbBtn(390,yy,76,42,lv>=m.max?'满级':('升 '+cost),can?'#ffae3a':'#556','meta_'+m.id);}wbBtn(240,684,200,42,'返回','#3fd0ff','back');if(wbMsgT>0){wbMsgT--;ctx.fillStyle='#ffd98a';ctx.font='bold '+UF(15)+'px Arial';ctx.fillText(wbMsg,240,672);}}
+function drawAch(){wbBtns=[];ctx.textAlign='center';ctx.fillStyle='#04071a';ctx.fillRect(0,0,480,720);ctx.fillStyle='#ffd700';ctx.font='bold '+UF(26)+'px Arial';ctx.fillText('🏆 成就',240,46);var done=0;for(var k=0;k<ACHIEVEMENTS.length;k++)if(achDone[ACHIEVEMENTS[k].id])done++;ctx.fillStyle='#9ab';ctx.font=UF(14)+'px Arial';ctx.fillText('已达成 '+done+' / '+ACHIEVEMENTS.length,240,72);for(var i=0;i<ACHIEVEMENTS.length;i++){var a=ACHIEVEMENTS[i];var yy=100+i*52;var ok=!!achDone[a.id];ctx.fillStyle=ok?'rgba(40,70,40,0.85)':'rgba(40,30,50,0.85)';drawRoundedRect(30,yy-22,420,46,8);ctx.fill();ctx.textAlign='left';ctx.fillStyle=ok?'#6f6':'#fff';ctx.font='bold '+UF(14)+'px Arial';ctx.fillText((ok?'✓ ':'· ')+a.name,42,yy-4);ctx.fillStyle='#cde';ctx.font=UF(11)+'px Arial';ctx.fillText(a.desc+'  ('+Math.min(gst(a.stat),a.target)+'/'+a.target+')',42,yy+14);}wbBtn(240,691,200,38,'返回','#3fd0ff','back');}
+function drawCodex(){wbBtns=[];ctx.textAlign='center';ctx.fillStyle='#04071a';ctx.fillRect(0,0,480,720);ctx.fillStyle='#3fd0ff';ctx.font='bold '+UF(24)+'px Arial';ctx.fillText('📖 图鉴',240,46);ctx.fillStyle='#9ab';ctx.font=UF(13)+'px Arial';ctx.fillText('击败大 Boss 解锁（'+countCodex()+'/'+BIGBOSSES.length+'）',240,70);for(var i=0;i<BIGBOSSES.length;i++){var b=BIGBOSSES[i];var yy=98+i*30;ctx.textAlign='left';ctx.fillStyle=codex['boss'+i]?b.color:'#556';ctx.font=UF(13)+'px Arial';ctx.fillText((codex['boss'+i]?b.name:'？？？ 未击败'),44,yy);}wbBtn(240,691,200,38,'返回','#3fd0ff','back');}
+function countCodex(){var n=0;for(var i=0;i<BIGBOSSES.length;i++)if(codex['boss'+i])n++;return n;}
+function drawRank(){wbBtns=[];ctx.textAlign='center';ctx.fillStyle='#04071a';ctx.fillRect(0,0,480,720);ctx.fillStyle='#ff5a5a';ctx.font='bold '+UF(24)+'px Arial';ctx.fillText('🏅 本地排行榜',240,46);if(!lb.length){ctx.fillStyle='#889';ctx.font=UF(15)+'px Arial';ctx.fillText('暂无记录，去战斗吧！',240,360);}for(var i=0;i<lb.length;i++){var r=lb[i];var yy=96+i*52;ctx.textAlign='left';ctx.fillStyle=i===0?'#ffd700':'#fff';ctx.font='bold '+UF(17)+'px Arial';ctx.fillText((i+1)+'. '+r.s,44,yy);ctx.fillStyle='#9ab';ctx.font=UF(12)+'px Arial';ctx.fillText('['+r.m+'] '+r.d,150,yy+2);}wbBtn(240,691,200,38,'返回','#3fd0ff','back');}
+function drawPlotReview(){wbBtns=[];ctx.textAlign='center';ctx.fillStyle='#04071a';ctx.fillRect(0,0,480,720);ctx.fillStyle='#9f9';ctx.font='bold '+UF(22)+'px Arial';ctx.fillText('📜 剧情回顾',240,40);for(var i=0;i<PLOT.length;i++){var p=PLOT[i];var yy=66+i*14;ctx.textAlign='left';ctx.fillStyle=i<currentLevel?'#cde':'#556';ctx.font=UF(11)+'px Arial';ctx.fillText((i+1)+'. '+p.t,30,yy);}wbBtn(240,700,200,34,'返回','#3fd0ff','back');}
+function drawComboBanner(){if(state!=='playing'&&state!=='countdown')return;if(vcCombo>=10){ctx.save();ctx.textAlign='center';var col=vcCombo>=50?'#ff3b3b':vcCombo>=30?'#ffd700':vcCombo>=20?'#3fd0ff':'#9f9';ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=14;ctx.globalAlpha=0.9;ctx.font='bold '+UF(Math.round(26+Math.min(14,vcCombo*0.3)))+'px Arial';ctx.fillText(vcCombo+' 连击!',240,150);ctx.restore();}}
+/* ================= /战令中心 ================= */
 </script>
 
 </body>
