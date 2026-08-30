@@ -1675,20 +1675,35 @@ function drawRoundedRect(x,y,w,h,r){
   ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
 
-var _bgGrad=null,_bgVg;
+var _bgGrad=null,_bgVg,bgLayer=null,bulletSprites={};
 var _nebCanvas=document.createElement('canvas');_nebCanvas.width=480;_nebCanvas.height=720;var _nebCtx=_nebCanvas.getContext('2d');
 var _nebDone=false;
 var _menuTitleGrad=null,_lsTitleGrad=null;
 function drawNebula(){if(_nebDone)return;_nebDone=true;var c=_nebCtx;c.clearRect(0,0,480,720);for(var i=0;i<4;i++){var nx=80+i*120,ny=200+i*55;var ng=c.createRadialGradient(nx,ny,0,nx,ny,150);var rc=20+i*40,gc=40+i*30,bc=110+i*60;ng.addColorStop(0,'rgba('+rc+','+gc+','+bc+',0.10)');ng.addColorStop(1,'rgba(0,0,30,0)');c.fillStyle=ng;c.fillRect(0,0,480,720);}}
+function getBulletSprite(col){
+  if(bulletSprites[col])return bulletSprites[col];
+  var W=40,H=24,c=document.createElement('canvas');c.width=W;c.height=H;var g=c.getContext('2d');
+  g.fillStyle='rgba(255,190,50,0.95)';g.beginPath();g.moveTo(6,0-5);g.lineTo(-2,0);g.lineTo(6,0+5);g.closePath();g.fill();
+  g.fillStyle='rgba(255,90,0,0.85)';g.beginPath();g.moveTo(6,0-3);g.lineTo(1,0);g.lineTo(6,0+3);g.closePath();g.fill();
+  g.fillStyle=col;g.beginPath();g.moveTo(6,0-7);g.lineTo(30,0-7);g.lineTo(30,0+7);g.lineTo(6,0+7);g.closePath();g.fill();g.strokeStyle='#fff';g.lineWidth=1;g.stroke();
+  g.fillStyle='#fff';g.beginPath();g.moveTo(30,0-7);g.lineTo(38,0);g.lineTo(30,0+7);g.closePath();g.fill();
+  g.strokeStyle='rgba(255,255,255,0.6)';g.lineWidth=1;g.beginPath();g.moveTo(9,0-7);g.lineTo(27,0-7);g.moveTo(9,0+7);g.lineTo(27,0+7);g.stroke();
+  g.fillStyle='rgba(255,255,255,0.85)';g.beginPath();g.moveTo(6,0-7);g.lineTo(1,0-11);g.lineTo(11,0-7);g.closePath();g.fill();g.beginPath();g.moveTo(6,0+7);g.lineTo(1,0+11);g.lineTo(11,0+7);g.closePath();g.fill();
+  bulletSprites[col]=c;return c;
+}
 function drawBackground(){
-  if(!_bgGrad){_bgGrad=ctx.createLinearGradient(0,0,0,720);_bgGrad.addColorStop(0,'#05081a');_bgGrad.addColorStop(0.45,'#0a0e2e');_bgGrad.addColorStop(1,'#160a2e');}
-  ctx.fillStyle=_bgGrad;ctx.fillRect(0,0,480,720);
-  // 星云只在完成时绘制一次并缓存（避免每帧 createRadialGradient，WebKit 下开销大）
-  if(!_nebDone)drawNebula();
-  ctx.drawImage(_nebCanvas,0,0);
-  if(!_bgVg){_bgVg=ctx.createRadialGradient(240,720,0,240,720,320);_bgVg.addColorStop(0,'rgba(40,120,200,0.12)');_bgVg.addColorStop(1,'rgba(0,0,30,0)');}
-  ctx.fillStyle=_bgVg;ctx.fillRect(0,0,480,720);
-  for(var l=0;l<3;l++)for(var i=0;i<stars.length;i++){var s=stars[i];if(s.l!=l)continue;var sz=l==0?1:l==1?1.8:3,al=(l==0?0.3:l==1?0.6:1)*(s.twinkle||0.5);ctx.globalAlpha=al;ctx.fillStyle=s.col;ctx.fillRect(s.x-sz/2,s.y-sz/2,sz,sz);}ctx.globalAlpha=1;
+  if(!bgLayer){
+    bgLayer=document.createElement('canvas');bgLayer.width=480;bgLayer.height=720;
+    var g=bgLayer.getContext('2d');
+    if(!_bgGrad){_bgGrad=ctx.createLinearGradient(0,0,0,720);_bgGrad.addColorStop(0,'#05081a');_bgGrad.addColorStop(0.45,'#0a0e2e');_bgGrad.addColorStop(1,'#160a2e');}
+    g.fillStyle=_bgGrad;g.fillRect(0,0,480,720);
+    if(!_nebDone)drawNebula();
+    if(_nebCanvas)g.drawImage(_nebCanvas,0,0);
+    if(!_bgVg){_bgVg=ctx.createRadialGradient(240,720,0,240,720,320);_bgVg.addColorStop(0,'rgba(40,120,200,0.12)');_bgVg.addColorStop(1,'rgba(0,0,30,0)');}
+    g.fillStyle=_bgVg;g.fillRect(0,0,480,720);
+    for(var l=0;l<3;l++)for(var i=0;i<stars.length;i++){var s=stars[i];if(s.l!=l)continue;var sz=l==0?1:l==1?1.8:3;g.fillStyle=s.col;g.fillRect(s.x-sz/2,s.y-sz/2,sz,sz);}
+  }
+  ctx.globalAlpha=0.85+0.15*Math.sin(frameCount*0.03);ctx.drawImage(bgLayer,0,0);ctx.globalAlpha=1;
   if(comet){var cg=ctx.createLinearGradient(comet.x,comet.y,comet.x-comet.vx*9,comet.y-comet.vy*9);cg.addColorStop(0,'rgba(255,255,255,0.95)');cg.addColorStop(1,'rgba(120,180,255,0)');ctx.strokeStyle=cg;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(comet.x,comet.y);ctx.lineTo(comet.x-comet.vx*9,comet.y-comet.vy*9);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(comet.x,comet.y,2,0,6.28);ctx.fill();}
 }
 
@@ -2394,31 +2409,17 @@ function draw(){
   if(state=='diy'){drawDIY();ctx.restore();return;}
   // Gameplay（敌弹，赛博朋克多样样式）
   for(var i=0;i<bls.length;i++){var b=bls[i];if(!b.pl)continue;if(b.x<-30||b.x>510||b.y<-30||b.y>750)continue;
-    var col=b.cl||'#0ff';
-    if(b.laser){ // 追尾激光束：发光光束（预渲染光晕替代阴影，性能更好）
+    if(b.laser){
       var ex=b.x+(b.vx||0)*b.len/8, ey=b.y+(b.vy||0)*b.len/8;
       ctx.save();ctx.globalAlpha=0.95;ctx.lineCap='round';
-      ctx.strokeStyle=col;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(ex,ey);ctx.stroke();
+      ctx.strokeStyle=b.cl||'#0ff';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(ex,ey);ctx.stroke();
       ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(ex,ey);ctx.stroke();
       ctx.restore();continue;
     }
-    // RPG 火箭弹样式：沿飞行方向绘制的拉长弹体 + 尖弹头 + 尾翼 + 尾焰（棱角分明）
     var ang=Math.atan2(b.vy||-1,b.vx||0);
+    var spr=getBulletSprite(b.cl||'#0ff');var scX=b.h/24,scY=b.w/7;
     ctx.save();ctx.translate(b.x,b.y);ctx.rotate(ang);
-    var bw2=b.w, bh2=b.h; // 弹体宽、长
-    ctx.strokeStyle='#fff';ctx.lineWidth=1;
-    // 尾焰（向后，尖锐三角）
-    ctx.fillStyle='rgba(255,190,50,0.95)';ctx.beginPath();ctx.moveTo(-bh2/2,0-bw2*0.45);ctx.lineTo(-bh2/2-7-Math.random()*4,0);ctx.lineTo(-bh2/2,0+bw2*0.45);ctx.closePath();ctx.fill();
-    ctx.fillStyle='rgba(255,90,0,0.85)';ctx.beginPath();ctx.moveTo(-bh2/2,0-bw2*0.28);ctx.lineTo(-bh2/2-4,0);ctx.lineTo(-bh2/2,0+bw2*0.28);ctx.closePath();ctx.fill();
-    // 弹体（方正长方体，棱角分明）
-    ctx.fillStyle=col;ctx.beginPath();
-    ctx.moveTo(-bh2/2,0-bw2*0.5);ctx.lineTo(bh2/2-6,0-bw2*0.5);ctx.lineTo(bh2/2-6,0+bw2*0.5);ctx.lineTo(-bh2/2,0+bw2*0.5);ctx.closePath();ctx.fill();ctx.stroke();
-    // 弹头（尖锐四棱锥形，明显）
-    ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(bh2/2-6,0-bw2*0.5);ctx.lineTo(bh2/2+4,0);ctx.lineTo(bh2/2-6,0+bw2*0.5);ctx.closePath();ctx.fill();ctx.stroke();
-    // 弹体刻线（棱角高光）
-    ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-bh2/2+3,0-bw2*0.5);ctx.lineTo(bh2/2-9,0-bw2*0.5);ctx.moveTo(-bh2/2+3,0+bw2*0.5);ctx.lineTo(bh2/2-9,0+bw2*0.5);ctx.stroke();
-    // 追踪弹额外尾翼（更明显的棱角）
-    if(b.homing){ctx.fillStyle='rgba(255,255,255,0.85)';ctx.beginPath();ctx.moveTo(-bh2/2,0-bw2*0.5);ctx.lineTo(-bh2/2-5,0-bw2*0.9);ctx.lineTo(-bh2/2+4,0-bw2*0.5);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(-bh2/2,0+bw2*0.5);ctx.lineTo(-bh2/2-5,0+bw2*0.9);ctx.lineTo(-bh2/2+4,0+bw2*0.5);ctx.closePath();ctx.fill();}
+    ctx.drawImage(spr,-spr.width*scX/2,-spr.height*scY/2,spr.width*scX,spr.height*scY);
     ctx.restore();
   }
   var _heavy=ens.length>6||bls.length>60;
