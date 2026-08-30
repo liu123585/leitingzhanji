@@ -1801,7 +1801,7 @@ function drawMenu(){
 
   // HUD 切角按钮路径（复用：菜单按钮 / 继续键）
   function cutPath(w,h,cut){ctx.beginPath();ctx.moveTo(-w/2+cut,-h/2);ctx.lineTo(w/2-cut,-h/2);ctx.lineTo(w/2,-h/2+cut);ctx.lineTo(w/2,h/2-cut);ctx.lineTo(w/2-cut,h/2);ctx.lineTo(-w/2+cut,h/2);ctx.lineTo(-w/2,h/2-cut);ctx.lineTo(-w/2,-h/2+cut);ctx.closePath();}
-  function pill(x,y,w,h,accent,icon,text,idx){
+  function pill(x,y,w,h,accent,icon,text,lf,idx){
     var hov=myRaw>y-h/2&&myRaw<y+h/2&&mxRaw>x-w/2&&mxRaw<x+w/2;
     var press=(menuPulse.i===idx)&&(performance.now()-menuPulse.t<180);
     var sc=press?1.06:(hov?1.03:1);
