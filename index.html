@@ -99,7 +99,7 @@ var mxRaw=240,myRaw=640; // 始终记录原始光标位置（暂停时也能追�
 
 var bls=[],ens=[],pts=[],pws=[],drs=[],stars=[],lasers=[],wingLasers=[],et=0,df=1,keys={};
 // 初始化视差星空（三层：远/中/近，速度/大小/亮度不同）+ 偶尔流星
-for(var _si=0;_si<170;_si++){var _sl=_si%3;var _cc=Math.random();stars.push({x:Math.random()*480,y:Math.random()*720,l:_sl,v:_sl==0?0.4:_sl==1?0.9:1.6,ph:Math.random()*6.28,twinkle:0.5,r:_cc<0.18?180:_cc<0.34?255:255,g:_cc<0.18?220:_cc<0.34?205:255,b:_cc<0.18?255:_cc<0.34?170:255});}
+for(var _si=0;_si<170;_si++){var _sl=_si%3;var _cc=Math.random();var _r=_cc<0.18?180:_cc<0.34?255:255,_g=_cc<0.18?220:_cc<0.34?205:255,_b=_cc<0.18?255:_cc<0.34?170:255;stars.push({x:Math.random()*480,y:Math.random()*720,l:_sl,v:_sl==0?0.4:_sl==1?0.9:1.6,ph:Math.random()*6.28,twinkle:0.5,r:_r,g:_g,b:_b,col:'rgba('+_r+','+_g+','+_b+',1)'});}
 var comet=null,cometTimer=90;
 var wave=0,waveEnemies=0,waveMax=0,spawnTimer=0,bossWarningTimer=0;
 // === 整体节奏加速参数（一处调全局）===
@@ -1688,7 +1688,7 @@ function drawBackground(){
   ctx.drawImage(_nebCanvas,0,0);
   if(!_bgVg){_bgVg=ctx.createRadialGradient(240,720,0,240,720,320);_bgVg.addColorStop(0,'rgba(40,120,200,0.12)');_bgVg.addColorStop(1,'rgba(0,0,30,0)');}
   ctx.fillStyle=_bgVg;ctx.fillRect(0,0,480,720);
-  for(var l=0;l<3;l++)for(var i=0;i<stars.length;i++){var s=stars[i];if(s.l!=l)continue;var sz=l==0?1:l==1?1.8:3,al=(l==0?0.3:l==1?0.6:1)*(s.twinkle||0.5);ctx.fillStyle='rgba('+s.r+','+s.g+','+s.b+','+al+')';ctx.fillRect(s.x-sz/2,s.y-sz/2,sz,sz);}
+  for(var l=0;l<3;l++)for(var i=0;i<stars.length;i++){var s=stars[i];if(s.l!=l)continue;var sz=l==0?1:l==1?1.8:3,al=(l==0?0.3:l==1?0.6:1)*(s.twinkle||0.5);ctx.globalAlpha=al;ctx.fillStyle=s.col;ctx.fillRect(s.x-sz/2,s.y-sz/2,sz,sz);}ctx.globalAlpha=1;
   if(comet){var cg=ctx.createLinearGradient(comet.x,comet.y,comet.x-comet.vx*9,comet.y-comet.vy*9);cg.addColorStop(0,'rgba(255,255,255,0.95)');cg.addColorStop(1,'rgba(120,180,255,0)');ctx.strokeStyle=cg;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(comet.x,comet.y);ctx.lineTo(comet.x-comet.vx*9,comet.y-comet.vy*9);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(comet.x,comet.y,2,0,6.28);ctx.fill();}
 }
 
