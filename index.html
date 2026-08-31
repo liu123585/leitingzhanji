@@ -1320,6 +1320,7 @@ function handleClick(mx,my){try{
 // === UPDATE ===
 function update(){
   checkDailyReset();if(wbMsgT>0)wbMsgT--;
+  if(storyActive)return;   // 剧情过场：冻结战斗（敌机/子弹/玩家均不推进），画面静止
   if(state=='over'&&!gameOverProcessed){gameOverProcessed=true;onGameOver();}
   frameCount++;nebulaTime+=0.002;
   for(var i=0;i<stars.length;i++){var s=stars[i];s.y+=s.v;if(s.y>720){s.y=0;s.x=Math.random()*480;s.ph=Math.random()*6.28;}s.ph+=0.05;s.twinkle=0.5+0.5*Math.sin(s.ph);}
@@ -2441,6 +2442,7 @@ function drawFormShip(form){
 // === MAIN DRAW ===
 function draw(){
   ctx.save();
+  if(storyActive){drawStoryScene();ctx.restore();return;}
   drawBackground();
   // 开场倒计时（黑屏 + 金色数字 3/2/1 + 雷霆战机图标）
   if(state=='countdown'){
@@ -3020,7 +3022,7 @@ function loop(ts){try{
   // 调试面板已关闭：不绘制 FPS / bls / ens 等左上角信息
 }catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}
 requestAnimationFrame(loop);}
-var _menuBg=null,menuPulse={i:-1,t:0},_fxShadow=true,lastState='',menuEnterTime=0,_menuDust=null;
+var _menuBg=null,menuPulse={i:-1,t:0},_fxShadow=true,lastState='',menuEnterTime=0,_menuDust=null,storyActive=false,storyScene=null;
 try{var _sbD=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');var _sbV=0;Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,get:function(){return _sbV;},set:function(v){_sbV=(_fxShadow&&v)?v:0;if(_sbD&&_sbD.set)_sbD.set.call(this,_sbV);}});}catch(e){}
 loadAssets();
 loop();
@@ -3140,6 +3142,7 @@ function addRank(sc,mode){lb.push({s:sc,m:mode,d:todayStr()});lb.sort(function(a
 function onLevelStart(){gSession={kills:0,maxCombo:0,ults:0,airdrop:0,cleared:false,nohit:true};gameOverProcessed=false;if(isBossRush)return;showScene(currentLevel);}
 function showScene(lv){
   var sc=STORY[lv-1];if(!sc){hideOverlay();return;}
+  storyActive=true;storyScene=sc;
   var lines=[sc.s].concat(sc.d||[]);var total=lines.length;var step=0;
   showOverlay('<div class="st-card"><div class="st-head"><span class="st-ava">'+sc.a+'</span><span class="st-who">'+sc.n+'</span><span class="st-m">'+sc.m+'</span></div><div class="st-t">'+sc.t+'</div><div class="st-txt" id="stTxt"></div><div class="st-ch" id="stCh"></div><div class="st-foot"><button class="st-btn st-next" id="stNext" onclick="window.__stNext()">继续 ▶</button></div></div>');
   var txtEl=document.getElementById('stTxt');var ci=0,full='';
@@ -3149,10 +3152,40 @@ function showScene(lv){
   function type(){full=lines[step]||'';ci=0;if(txtEl)txtEl.textContent='';typeChar();}
   function renderChoices(){nxHide();if(txtEl)txtEl.classList.add('done');var chEl=document.getElementById('stCh');if(!chEl)return;chEl.innerHTML='';
     (sc.c||[]).forEach(function(ch){var b=document.createElement('button');b.className='st-btn st-chb';b.textContent=ch.t;
-      b.onclick=function(){if(ch.rep)gstat.rep=(gst('rep')||0)+ch.rep;saveWbBase();applyStoryBuff(ch.fx);hideOverlay();play('menuClick');};
+      b.onclick=function(){showChoiceResult(ch,sc);};
       chEl.appendChild(b);});}
+  function showChoiceResult(ch,sc){
+    if(ch.rep){gstat.rep=(gst('rep')||0)+ch.rep;}
+    saveWbBase();applyStoryBuff(ch.fx);
+    var chEl=document.getElementById('stCh');if(!chEl){storyActive=false;hideOverlay();return;}
+    var repTxt=(ch.rep>0?'好感 +'+ch.rep:(ch.rep<0?'好感 '+ch.rep:'好感 ±0'));
+    var fxName=ch.fx=='atk'?'火力强化 +2':ch.fx=='shield'?'护盾强化 +1':ch.fx=='heal'?'紧急维修 +15':ch.fx=='score'?'得分狂潮':'（无强化）';
+    var resp='';
+    if(ch.fx&&ch.rep>0)resp='「'+sc.n+'」 眼底多了几分信任。';
+    else if(ch.rep<0)resp='「'+sc.n+'」 微微皱眉，没有再说什么。';
+    else if(!ch.fx&&ch.rep===0)resp='「'+sc.n+'」 只是静静地看着你。';
+    else resp='「'+sc.n+'」 轻轻点了点头。';
+    chEl.innerHTML='<div style="color:#9fb6e0;font:italic 14px Arial;margin:10px 0;line-height:1.6">'+resp+'</div><div style="color:#ffd98a;font:bold 16px Arial;margin:6px 0">'+repTxt+' ｜ '+fxName+'</div><button class="st-btn st-next" style="margin-top:14px" onclick="window.__stClose()">继续 ▶</button>';
+    play('menuClick');
+  }
   window.__stNext=function(){if(step<total-1){step++;type();}else{renderChoices();}};
+  window.__stClose=function(){hideOverlay();storyActive=false;};
   type();
+}
+function drawStoryScene(){
+  var g=ctx.createRadialGradient(240,300,20,240,300,440);
+  g.addColorStop(0,'rgba(38,58,110,0.6)');g.addColorStop(1,'rgba(4,7,26,1)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,480,720);
+  for(var i=0;i<stars.length;i++){var s=stars[i];ctx.globalAlpha=0.35+0.5*(s.twinkle||0.5);ctx.fillStyle='#cfe6ff';ctx.beginPath();ctx.arc(s.x,s.y,1.2,0,6.28);ctx.fill();}
+  ctx.globalAlpha=1;
+  if(storyScene){
+    var cx=240,cy=460,ac=(storyScene.n=='熵')?'#b78cff':'#82b9ff';
+    var rg=ctx.createRadialGradient(cx,cy,4,cx,cy,150);
+    rg.addColorStop(0,'rgba(130,185,255,0.38)');rg.addColorStop(1,'rgba(130,185,255,0)');
+    ctx.fillStyle=rg;ctx.beginPath();ctx.arc(cx,cy,150,0,6.28);ctx.fill();
+    ctx.textAlign='center';ctx.font=UF(92)+'px Arial';ctx.fillStyle=ac;ctx.fillText(storyScene.a,cx,cy+32);
+    ctx.fillStyle='rgba(160,200,255,0.55)';ctx.font=UF(15)+'px Arial';ctx.fillText(storyScene.m,240,692);
+  }
 }
 function applyStoryBuff(fx){if(!fx)return;if(fx=='atk'){wPower+=2;wbMsg='火力强化 +2!';wbMsgT=90;play('powerup');}else if(fx=='shield'){wShield+=1;wbMsg='护盾强化 +1!';wbMsgT=90;play('shield');}else if(fx=='heal'){hp=Math.min(mhp,hp+15);wbMsg='紧急维修 +15!';wbMsgT=90;play('levelComplete');}else if(fx=='score'){scoreMultTimer=600;wbMsg='得分狂潮!';wbMsgT=90;play('powerup');}}
 function showEnding(){var rep=gst('rep')||0;var ti,bo;
