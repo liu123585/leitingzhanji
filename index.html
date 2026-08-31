@@ -43,7 +43,7 @@ canvas{display:block;max-width:none;max-height:none;border:2px solid #0af;transi
 var c=document.getElementById('c'),ctx=c.getContext('2d');
 var _isMobile=/Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent)||('ontouchstart' in window&&Math.max(window.innerWidth,window.innerHeight)<900);
 // 移动端（尤其是 QQ 浏览器等弱内核）填充率极弱：DPR 封顶 1.0（并会在低帧率时自适应降到 0.85），用分辨率换帧率；桌面端仍保持 1.5 清晰度
-var DPR=Math.min(window.devicePixelRatio||1,_isMobile?1:1.25);
+var DPR=Math.min(window.devicePixelRatio||1,_isMobile?1:1);
 c.width=480*DPR;c.height=720*DPR;
 // 计算适配尺寸
 function vh(){var v=window.innerHeight;if(window.visualViewport&&window.visualViewport.height)v=window.visualViewport.height;return v||document.documentElement.clientHeight||window.innerHeight;}
@@ -76,7 +76,7 @@ var BLS_MAX=160; // 子弹（玩家弹+敌弹）硬上限：超过即回收 olde
 // 稳健关闭阴影：在主渲染上下文实例上强制 shadowBlur 为 0（不依赖原型覆写，防止部分手机内核原型覆写失效导致阴影真实开启而严重卡顿）
 try{Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:true,get:function(){return 0;},set:function(v){}});}catch(e){}
 // 自适应降分辨率：持续低帧率时自动下调 DPR（最低 0.85），用清晰度换帧率，保证弱内核手机（QQ 浏览器等）也能流畅
-function downgradeDPR(){DPR=Math.max(0.85,+(DPR-0.25).toFixed(2));c.width=480*DPR;c.height=720*DPR;resizeCanvas();ctx.setTransform(1,0,0,1,0,0);ctx.scale(DPR,DPR);try{Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:true,get:function(){return 0;},set:function(v){}});}catch(e){}}
+function downgradeDPR(){DPR=Math.max(0.6,+(DPR-0.3).toFixed(2));c.width=480*DPR;c.height=720*DPR;resizeCanvas();ctx.setTransform(1,0,0,1,0,0);ctx.scale(DPR,DPR);try{Object.defineProperty(ctx,'shadowBlur',{configurable:true,enumerable:true,get:function(){return 0;},set:function(v){}});}catch(e){}}
 var TTS_ENABLED=false; // 语音播报默认关闭：移动端中文 TTS 偶发会卡 1 秒
 var _lastTTS=0; // 语音播报节流时间戳：避免连续事件堆叠多次 speak 造成移动端卡顿
 function newBullet(){var b=blsPool.pop()||{};for(var k in b)delete b[k];return b;}
@@ -2670,7 +2670,7 @@ function draw(){
 
 
   // Particles
-  for(var i=0;i<pts.length;i++){var p=pts[i];if(p.x<-20||p.x>500||p.y<-20||p.y>740)continue;
+  for(var i=0;i<(_fxShadow?pts.length:Math.min(pts.length,100));i++){var p=pts[i];if(p.x<-20||p.x>500||p.y<-20||p.y>740)continue;
     if(p.txt){ctx.fillStyle=p.cl||'#fff';ctx.globalAlpha=p.life/30;ctx.font='bold 17px Arial';ctx.textAlign='center';ctx.fillText(p.txt,p.x,p.y);ctx.globalAlpha=1;continue;}
     var al=p.life/30;ctx.fillStyle=p.cl||'#fff';ctx.globalAlpha=al;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill();
   }
@@ -2692,7 +2692,7 @@ function draw(){
     ctx.restore();ctx.globalAlpha=1;
   }
   // ---- 必杀渲染（独立计时，可叠加） ----
-  if(burstTimer>0){
+  if(_fxShadow&&burstTimer>0){
     var ringR=novaRing;
     ctx.save();
     ctx.shadowColor='#ffd700';ctx.shadowBlur=30;
@@ -2707,7 +2707,7 @@ function draw(){
         ctx.save();ctx.globalAlpha=na;ctx.shadowColor=ns.cl;ctx.shadowBlur=12;
         ctx.fillStyle=ns.cl;ctx.beginPath();ctx.arc(ns.x,ns.y,ns.sz*na,0,6.28);ctx.fill();ctx.restore();}}
   }
-  if(empTimer>0){
+  if(_fxShadow&&empTimer>0){
     ctx.save();
     var ef=empTimer/60;
     ctx.shadowColor='#ff0';ctx.shadowBlur=30;
