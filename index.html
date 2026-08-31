@@ -2983,7 +2983,7 @@ function draw(){
 }
 
 var _prof={fps:60,upd:0,drw:0,tot:0,slowT:0,slowU:0,slowD:0,slowB:0,slowE:0,slowP:0},_SLOW_MS=120,_profShown=0,_fpsAvg=60,_lowF=0;
-function _drawProfiler(){ctx.save();ctx.textAlign='left';ctx.font='12px monospace';ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(2,2,152,46);ctx.fillStyle='#0f0';ctx.fillText('FPS '+_prof.fps,6,15);ctx.fillStyle='#0cf';ctx.fillText('up '+_prof.upd.toFixed(1)+' dr '+_prof.drw.toFixed(1),6,29);ctx.fillStyle='#888';ctx.fillText('bls '+bls.length+' ens '+ens.length,6,43);if(performance.now()<_profShown){ctx.fillStyle='rgba(140,0,0,0.9)';ctx.fillRect(0,72,480,36);ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.textAlign='center';ctx.fillText('卡顿! 总'+_prof.slowT.toFixed(0)+'ms 更新'+_prof.slowU.toFixed(0)+' 绘制'+_prof.slowD.toFixed(0)+' bls'+_prof.slowB+' ens'+_prof.slowE,240,94);}ctx.restore();}
+
 var _lastTS=0,_acc=0,_MAXSTEP=5; // 帧时间保护：掉帧时最多补算 5 步，避免慢设备上越拖越卡
 function loop(ts){try{
   if(!_lastTS)_lastTS=ts||0;
@@ -2999,11 +2999,11 @@ function loop(ts){try{
   _fpsAvg=_fpsAvg*0.95+_prof.fps*0.05; // 平滑帧率，避免瞬时波动误判
   if(_fpsAvg<52){_fxShadow=false;_lowF++;if(_lowF>45){_lowF=0;if(DPR>0.85)downgradeDPR();}}else{_lowF=0;_fxShadow=true;} // <52fps 先关发光特效止损，持续 ~0.75s 再降分辨率
   if(_prof.tot>_SLOW_MS){_prof.slowT=_prof.tot;_prof.slowU=_prof.upd;_prof.slowD=_prof.drw;_prof.slowB=bls.length;_prof.slowE=ens.length;_prof.slowP=pts.length;_profShown=performance.now()+4000;}
-  if(_dbg)_drawProfiler();
+
   // 调试面板已关闭：不绘制 FPS / bls / ens 等左上角信息
 }catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}
 requestAnimationFrame(loop);}
-var _menuBg=null,menuPulse={i:-1,t:0},_fxShadow=true,lastState='',menuEnterTime=0,_menuDust=null,storyActive=false,storyScene=null,_dbg=true,_hitGradColor='',_hg1=null,_hg2=null,_hg3=null,_hg4=null;
+var _menuBg=null,menuPulse={i:-1,t:0},_fxShadow=true,lastState='',menuEnterTime=0,_menuDust=null,storyActive=false,storyScene=null,_hitGradColor='',_hg1=null,_hg2=null,_hg3=null,_hg4=null;
 try{var _sbD=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');var _sbV=0;Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,get:function(){return _sbV;},set:function(v){_sbV=(_fxShadow&&v)?v:0;if(_sbD&&_sbD.set)_sbD.set.call(this,_sbV);}});}catch(e){}
 loadAssets();
 loop();
