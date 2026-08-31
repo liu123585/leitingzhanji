@@ -1549,7 +1549,7 @@ function update(){
           for(var gb=-1;gb<=1;gb++){var aa=a+gb*0.12;enemyBullet(e.x,e.y+10,Math.cos(aa)*sp,Math.sin(aa)*sp,si,1);}}
       }else if(e.kind=='missile'){ // 激光型：机翼两侧常驻蓝色粗激光（向下贯穿，跟随飞机）
         if(e.fireTimer>80*ENEMY_FIRE_MUL){e.fireTimer=0;
-          if(!e._wl){e._wl=true;spawnWingLaser({owner:'enemy',ref:e,side:-1,ang:Math.PI/2,hostile:true,dmg:1,life:999999});spawnWingLaser({owner:'enemy',ref:e,side:1,ang:Math.PI/2,hostile:true,dmg:1,life:999999});}
+          if(!e._wl){e._wl=true;spawnWingLaser({owner:'enemy',ref:e,side:-1,ang:Math.PI/2,hostile:true,dmg:1,life:999999});spawnWingLaser({owner:'enemy',ref:e,side:1,ang:Math.PI/2,hostile:true,dmg:1,life:999999});if(wingLasers.length>16){var _rm=wingLasers.shift();if(_rm&&_rm.owner=='p1')wingLasers.push(_rm);}}
         }
       }else{ // 普通型：瞄准单发，关卡越高越频繁
         var normFt=(42-Math.min(10,glv.enemyMult*1.5)+Math.random()*16)*(wSlow>0?2:1)*ENEMY_FIRE_MUL;
@@ -2540,49 +2540,26 @@ function draw(){
       ctx.fillStyle=lc[2];ctx.beginPath();ctx.moveTo(0,5);ctx.lineTo(-5,-5);ctx.lineTo(0,-7);ctx.lineTo(5,-5);ctx.closePath();ctx.fill();
     }
     if(e.t>0){ctx.fillStyle='rgba(255,255,255,'+(e.t/10)+')';ctx.fillRect(-e.w/2,-e.h/2,e.w,e.h);}
-    // 燃烧视觉效果（明火焰：大火舌×浓烟×火星×爆燃）
+    // 燃烧视觉效果（精简：机身覆盖 + 火舌 + 两侧喷焰；去掉浓烟/火星装饰层以降绘制成本）
     if(e.burnTimer&&e.burnTimer>0){
       var intensity=Math.min(1,e.burnTimer/20);
       var ft=frameCount;
-      // ① 机身全覆盖亮色（鲜红→橙渐变）
       ctx.fillStyle='rgba(255,30,0,'+(0.7+0.2*Math.sin(ft*0.12+e.x))+')';ctx.fillRect(-e.w/2,-e.h/2,e.w,e.h);
       ctx.fillStyle='rgba(255,150,0,'+(0.35+0.15*Math.sin(ft*0.1+e.x+1))+')';ctx.fillRect(-e.w/2,-e.h/2,e.w,e.h*0.5);
-      // ② 大型火舌（从机身顶部往上窜，更大更亮）
-      var flameN=(_heavy?2:4)+Math.floor(e.w/5);
+      var flameN=(_heavy?2:3)+Math.min(6,Math.floor(e.w/10));
       for(var fl=0;fl<flameN;fl++){
         var phase=ft*0.08+fl*1.3;
         var flx=-e.w/2+e.w*(fl+0.5)/flameN+Math.sin(phase)*3;
         var fly=-e.h/2-Math.abs(Math.sin(ft*0.06+fl*2.1))*16*intensity-4;
         var fw=5+Math.sin(ft*0.1+fl*1.7)*2.5;
         var fh=8+Math.abs(Math.sin(ft*0.07+fl*2.3))*14*intensity;
-        // 外焰（鲜红）
         ctx.fillStyle='rgba(255,40,0,'+(0.85+0.12*Math.sin(ft*0.09+fl))+')';
         ctx.beginPath();ctx.moveTo(flx-fw/1.5,fly+fh);ctx.lineTo(flx,fly);ctx.lineTo(flx+fw/1.5,fly+fh);ctx.closePath();ctx.fill();
-        // 中焰（亮橙）
         ctx.fillStyle='rgba(255,140,0,'+(0.75+0.15*Math.sin(ft*0.11+fl*1.2))+')';
         ctx.beginPath();ctx.moveTo(flx-fw/2.5,fly+fh*0.7);ctx.lineTo(flx,fly+fh*0.15);ctx.lineTo(flx+fw/2.5,fly+fh*0.7);ctx.closePath();ctx.fill();
-        // 内焰（鲜黄）
         ctx.fillStyle='rgba(255,220,20,'+(0.6+0.2*Math.sin(ft*0.13+fl*0.8))+')';
         ctx.beginPath();ctx.moveTo(flx-fw/5,fly+fh*0.45);ctx.lineTo(flx,fly+fh*0.05);ctx.lineTo(flx+fw/5,fly+fh*0.45);ctx.closePath();ctx.fill();
       }
-      // ③ 浓烟粒子（从机身两侧和底部升起）
-      if(!_heavy)for(var sm=0;sm<4;sm++){
-        var smx=-e.w/2+e.w*Math.random()+Math.sin(ft*0.05+sm*3)*3;
-        var smy=e.h/2-Math.random()*e.h*0.5;
-        var sms=2+Math.random()*4;
-        ctx.fillStyle='rgba(80,40,20,'+(0.3+0.15*Math.sin(ft*0.08+sm*2.1))+')';
-        ctx.beginPath();ctx.arc(smx,smy,sms,0,6.28);ctx.fill();
-        ctx.fillStyle='rgba(255,60,0,'+(0.4+0.2*Math.sin(ft*0.1+sm*1.5))+')';
-        ctx.beginPath();ctx.arc(smx-1+Math.random()*2,smy-2,sms*0.5,0,6.28);ctx.fill();
-      }
-      // ④ 底部火星（持续溅射，更亮更大）
-      if(!_heavy)for(var sp=0;sp<4;sp++){
-        var spx=-e.w/2+e.w*Math.sin(ft*0.15+sp*2.3)*0.45+e.w/2;
-        var spy=e.h/2-1-Math.random()*3;
-        ctx.fillStyle=['rgba(255,200,50,0.9)','rgba(255,100,0,0.8)','rgba(255,50,0,0.7)'][sp%3];
-        ctx.beginPath();ctx.arc(spx,spy,1.5+Math.random()*2,0,6.28);ctx.fill();
-      }
-      // ⑤ 两侧喷焰（左右各一个大火舌）
       for(var side=-1;side<=1;side+=2){
         if(Math.sin(ft*0.06+side*4)>0){
           var sy=-e.h/3+Math.random()*e.h*0.6;
@@ -2982,16 +2959,19 @@ function draw(){
   // 受击氛围：屏幕边缘向内渐变光晕（按攻击类型着色，强度由 hitFx 控制）
   if((state=='playing'||state=='over')&&hitFx>0){
     var a=hitFx;
+    if(_hitGradColor!==hitFxColor){_hitGradColor=hitFxColor;
+      _hg1=ctx.createLinearGradient(0,0,0,160);_hg1.addColorStop(0,'rgba('+hitFxColor+',0.55)');_hg1.addColorStop(1,'rgba('+hitFxColor+',0)');
+      _hg2=ctx.createLinearGradient(0,720,0,720-160);_hg2.addColorStop(0,'rgba('+hitFxColor+',0.55)');_hg2.addColorStop(1,'rgba('+hitFxColor+',0)');
+      _hg3=ctx.createLinearGradient(0,0,160,0);_hg3.addColorStop(0,'rgba('+hitFxColor+',0.45)');_hg3.addColorStop(1,'rgba('+hitFxColor+',0)');
+      _hg4=ctx.createLinearGradient(480,0,480-160,0);_hg4.addColorStop(0,'rgba('+hitFxColor+',0.45)');_hg4.addColorStop(1,'rgba('+hitFxColor+',0)');
+    }
     ctx.save();
-    // 四边向内的红色/紫色受击光晕（用径向渐变模拟边缘脉冲）
-    var g1=ctx.createLinearGradient(0,0,0,160);g1.addColorStop(0,'rgba('+hitFxColor+','+(a*0.55)+')');g1.addColorStop(1,'rgba('+hitFxColor+',0)');
-    ctx.fillStyle=g1;ctx.fillRect(0,0,480,160);
-    var g2=ctx.createLinearGradient(0,720,0,720-160);g2.addColorStop(0,'rgba('+hitFxColor+','+(a*0.55)+')');g2.addColorStop(1,'rgba('+hitFxColor+',0)');
-    ctx.fillStyle=g2;ctx.fillRect(0,560,480,160);
-    var g3=ctx.createLinearGradient(0,0,160,0);g3.addColorStop(0,'rgba('+hitFxColor+','+(a*0.45)+')');g3.addColorStop(1,'rgba('+hitFxColor+',0)');
-    ctx.fillStyle=g3;ctx.fillRect(0,0,160,720);
-    var g4=ctx.createLinearGradient(480,0,480-160,0);g4.addColorStop(0,'rgba('+hitFxColor+','+(a*0.45)+')');g4.addColorStop(1,'rgba('+hitFxColor+',0)');
-    ctx.fillStyle=g4;ctx.fillRect(320,0,160,720);
+    ctx.globalAlpha=a;
+    ctx.fillStyle=_hg1;ctx.fillRect(0,0,480,160);
+    ctx.fillStyle=_hg2;ctx.fillRect(0,560,480,160);
+    ctx.fillStyle=_hg3;ctx.fillRect(0,0,160,720);
+    ctx.fillStyle=_hg4;ctx.fillRect(320,0,160,720);
+    ctx.globalAlpha=1;
     // 外圈描边脉冲，强化"被击中"氛围
     ctx.strokeStyle='rgba('+hitFxColor+','+(a*0.8)+')';ctx.lineWidth=6;ctx.strokeRect(3,3,474,714);
     ctx.restore();
@@ -3017,12 +2997,13 @@ function loop(ts){try{
   _prof.upd=_t1-_t0;_prof.drw=_t2-_t1;_prof.tot=_t2-_t0;
   if(dt>0)_prof.fps=Math.round(1000/dt);
   _fpsAvg=_fpsAvg*0.95+_prof.fps*0.05; // 平滑帧率，避免瞬时波动误判
-  if(_fpsAvg<42){_lowF++;if(_lowF>120){_lowF=0;if(DPR>0.85)downgradeDPR();}_fxShadow=false;}else{_lowF=0;_fxShadow=true;} // 持续 ~2 秒低帧则降分辨率并关闭发光特效
+  if(_fpsAvg<52){_fxShadow=false;_lowF++;if(_lowF>45){_lowF=0;if(DPR>0.85)downgradeDPR();}}else{_lowF=0;_fxShadow=true;} // <52fps 先关发光特效止损，持续 ~0.75s 再降分辨率
   if(_prof.tot>_SLOW_MS){_prof.slowT=_prof.tot;_prof.slowU=_prof.upd;_prof.slowD=_prof.drw;_prof.slowB=bls.length;_prof.slowE=ens.length;_prof.slowP=pts.length;_profShown=performance.now()+4000;}
+  if(_dbg)_drawProfiler();
   // 调试面板已关闭：不绘制 FPS / bls / ens 等左上角信息
 }catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}
 requestAnimationFrame(loop);}
-var _menuBg=null,menuPulse={i:-1,t:0},_fxShadow=true,lastState='',menuEnterTime=0,_menuDust=null,storyActive=false,storyScene=null;
+var _menuBg=null,menuPulse={i:-1,t:0},_fxShadow=true,lastState='',menuEnterTime=0,_menuDust=null,storyActive=false,storyScene=null,_dbg=true,_hitGradColor='',_hg1=null,_hg2=null,_hg3=null,_hg4=null;
 try{var _sbD=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');var _sbV=0;Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,get:function(){return _sbV;},set:function(v){_sbV=(_fxShadow&&v)?v:0;if(_sbD&&_sbD.set)_sbD.set.call(this,_sbV);}});}catch(e){}
 loadAssets();
 loop();
