@@ -1435,6 +1435,7 @@ function update(){
     return;
   }
   if(state!='playing')return;
+  if(!midDone&&gSession&&gSession.kills>=MID_KILL){midDone=true;var _m=MID[currentLevel-1];if(_m){showScene(_m);return;}}
   et++;dropTimer++;
   var dropInterval=wave==getLv().waveCount?200:600;if(dropTimer>dropInterval+Math.random()*150&&drs.length<3){spawnAirdrop();dropTimer=0;}
   if(bossWarningTimer>0){bossWarningTimer--;if(bossWarningTimer==0){spawnBoss();}}
@@ -1516,7 +1517,7 @@ function update(){
           var vargain=Math.round(10*Math.min(combo,10)*(scoreMultTimer>0?2:1));
           var _kp=newPt();_kp.x=e.x;_kp.y=e.y-10;_kp.vy=-2.2;_kp.life=40;_kp.cl=combo>=10?'#ffd700':'#fff';_kp.sz=combo>=10?2.6:2;_kp.txt='+'+vargain+(combo>1?'  x'+combo:'')+(scoreMultTimer>0?' x2':'');pts.push(_kp);
         }
-        var sz=e.type=='s'?'s':e.type=='m'?'m':'l';spawnDrop(e.x,e.y,sz);ens.splice(j,1);break;}
+        var sz=e.type=='s'?'s':e.type=='m'?'m':'l';spawnDrop(e.x,e.y,sz);gSession.kills++;ens.splice(j,1);break;}
       else{if(hitSndCd<=0){play('enemyHit');hitSndCd=4;}}}
   }}
   // Enemy update
@@ -3022,7 +3023,7 @@ function loop(ts){try{
   // 调试面板已关闭：不绘制 FPS / bls / ens 等左上角信息
 }catch(e){console.error('GAME ERROR:',e);var _d=document.getElementById('_err')||(function(){var _e=document.createElement('div');_e.id='_err';_e.style.cssText='position:fixed;top:0;left:0;color:#f44;font:14px monospace;background:rgba(0,0,0,0.85);z-index:99999;padding:8px 12px;max-width:100%;pointer-events:none;white-space:pre-wrap;word-break:break-all';document.body.appendChild(_e);return _e;})();_d.textContent='JS ERROR: '+(e.message||e)+' at '+(e.stack||'').split('\n')[0];}
 requestAnimationFrame(loop);}
-var _menuBg=null,menuPulse={i:-1,t:0},_fxShadow=true,lastState='',menuEnterTime=0,_menuDust=null,storyActive=false,storyScene=null;
+var _menuBg=null,menuPulse={i:-1,t:0},_fxShadow=true,lastState='',menuEnterTime=0,_menuDust=null,storyActive=false,storyScene=null,midDone=false,MID_KILL=8;
 try{var _sbD=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');var _sbV=0;Object.defineProperty(CanvasRenderingContext2D.prototype,'shadowBlur',{configurable:true,get:function(){return _sbV;},set:function(v){_sbV=(_fxShadow&&v)?v:0;if(_sbD&&_sbD.set)_sbD.set.call(this,_sbV);}});}catch(e){}
 loadAssets();
 loop();
@@ -3138,10 +3139,52 @@ var STORY=[
 {n:'艾拉',a:'🛰️',m:'裂隙之心',t:'第三十九关 · 最后门槛',s:'门后是熵的本源，也是所有被遗忘之人的脸。',d:['「无论你看见什么，记住——」艾拉的声音发抖，「你是对的，你一直都是。」','「推门吧。」'],c:[{t:'「为了记得的人。」',rep:1,fx:'shield'},{t:'「为了还世界一个梦。」',rep:1,fx:'atk'}]},
 {n:'你',a:'⚡',m:'终焉·抉择',t:'第四十关 · 裂隙之心',s:'本源在面前脉动，它递来一个选择：同化，或是放手。',d:['「给我你的手，痛苦就结束了。」它轻声，「或者，你放手，让一切重新开始。」','「这一次，由你决定。」'],c:[{t:'「我放手，但我不走。」',rep:1,fx:'heal'},{t:'「我选择，继续守。」',rep:1,fx:'atk'}]}
 ];
+var MID=[
+{n:'艾拉',a:'🛰️',m:'星港·黎明轨道',t:'战中·危情',s:'警报拉满，敌舰从残骸后包抄！',d:['「艾拉」拽住操纵杆：「左翼空了，要赌一把吗？」'],c:[{t:'冒险绕后，抢占有利射界',rep:1,fx:'atk'},{t:'稳妥收缩，先补护盾',rep:0,fx:'shield'}]},
+{n:'老周',a:'🛠️',m:'星港·维修舱',t:'战中·豁口',s:'舱体被啃出豁口，火光四溅。',d:['「老周」踹开工具箱：「别修门面了，保命要紧！」'],c:[{t:'听他的，临时焊接护盾',rep:1,fx:'shield'},{t:'抢时间反击',rep:-1,fx:'atk'}]},
+{n:'凯尔',a:'⚔️',m:'防线·外环',t:'战中·失手',s:'「凯尔」的嘲讽变成闷哼——他被三艘咬住。',d:['「老兵也会失手……拉我一把？」'],c:[{t:'为凯尔开路火力掩护',rep:1,fx:'atk'},{t:'自保优先，冷眼旁观',rep:-1,fx:'score'}]},
+{n:'莉拉',a:'🌿',m:'生态穹顶',t:'战中·孢子',s:'孢子云漫进来，视野里全是浮游敌。',d:['「莉拉」护住幼苗：「它们也是想活下去……」'],c:[{t:'净化孢子暂缓进攻',rep:1,fx:'heal'},{t:'无视，火力全开',rep:-1,fx:'atk'}]},
+{n:'薇拉',a:'📡',m:'通讯站',t:'战中·截频',s:'断断续续的求救信号里混着敌频。',d:['「薇拉」咬牙：「能截一段加密，或先保频道。」'],c:[{t:'截取敌方坐标(得分)',rep:0,fx:'score'},{t:'强修我方通讯护盾',rep:1,fx:'shield'}]},
+{n:'诺亚',a:'🧬',m:'实验室',t:'战中·失控',s:'培养舱接连爆裂，造物扑面而来。',d:['「诺亚」喃喃：「我造的……得由我了结。」'],c:[{t:'助他销毁失控样本',rep:1,fx:'atk'},{t:'保命撤离优先',rep:0,fx:'heal'}]},
+{n:'雷恩',a:'🔥',m:'熔炉区',t:'战中·炉火',s:'炉温失控，火舌舔向弹药库。',d:['「雷恩」大吼：「要么压火，要么炸个痛快！」'],c:[{t:'冒险压制炉火(维修)',rep:1,fx:'heal'},{t:'趁爆燃强攻',rep:-1,fx:'atk'}]},
+{n:'塞拉',a:'🌊',m:'水世界',t:'战中·潮隐',s:'浪墙压下，敌舰借潮隐身。',d:['「塞拉」潜出水面：「看潮汐，我能引开它们。」'],c:[{t:'信她，借潮迂回',rep:1,fx:'shield'},{t:'强行破浪突进',rep:-1,fx:'atk'}]},
+{n:'伊桑',a:'🔧',m:'废械场',t:'战中·拼装',s:'废墟里爬出拼装机，零件乱飞。',d:['「伊桑」眼睛发亮：「拆了送给咱，还是先轰了？」'],c:[{t:'拆解缴获强化火力',rep:1,fx:'atk'},{t:'稳妥全清护盾',rep:0,fx:'shield'}]},
+{n:'缇娜',a:'🎯',m:'靶场',t:'战中·露一手',s:'移动标靶化身敌机，弹道刁钻。',d:['「缇娜」咧嘴：「露一手？还是留手保命？」'],c:[{t:'秀一发精准击杀(得分)',rep:0,fx:'score'},{t:'稳扎稳打补护盾',rep:1,fx:'shield'}]},
+{n:'奥兹',a:'💡',m:'能源站',t:'战中·过载',s:'反应堆过载，光与影在闪烁。',d:['「奥兹」：「吸一口能量，或先稳住电网？」'],c:[{t:'汲取过载能量强化',rep:1,fx:'atk'},{t:'稳住电网维修',rep:0,fx:'heal'}]},
+{n:'卡尔',a:'🪨',m:'矿脉',t:'战中·塌方',s:'塌方封路，矿石成了掩体也是陷阱。',d:['「卡尔」抡镐：「炸开？还是垒墙？」'],c:[{t:'炸开通路强攻',rep:-1,fx:'atk'},{t:'垒石筑盾',rep:1,fx:'shield'}]},
+{n:'米拉',a:'🌀',m:'曲速回廊',t:'战中·错位',s:'空间折叠错位，敌我位置瞬移。',d:['「米拉」眩晕：「别信眼睛……跟紧我的坐标。」'],c:[{t:'信赖她的坐标引导',rep:1,fx:'shield'},{t:'凭直觉盲打',rep:-1,fx:'atk'}]},
+{n:'杰德',a:'🗡️',m:'暗巷',t:'战中·黑吃黑',s:'暗影里刀光闪，背后有人下黑手。',d:['「杰德」低笑：「黑吃黑？还是讲点义气？」'],c:[{t:'反手结盟共抗',rep:1,fx:'atk'},{t:'独吞战利品(得分)',rep:-1,fx:'score'}]},
+{n:'萝拉',a:'🌸',m:'花房',t:'战中·藤蔓',s:'藤蔓绞住炮口，花粉醉人。',d:['「萝拉」轻叹：「美与险，往往一念。」'],c:[{t:'采花酿护盾蜜',rep:1,fx:'heal'},{t:'焚花开路强攻',rep:-1,fx:'atk'}]},
+{n:'维克',a:'💀',m:'坟场',t:'战中·亡潮',s:'亡者低语越来越响，尸潮涌动。',d:['「维克」沙哑：「怕的话……现在走还来得及。」'],c:[{t:'陪他直面亡潮',rep:1,fx:'atk'},{t:'谨慎后撤筑盾',rep:0,fx:'shield'}]},
+{n:'妮可',a:'🎭',m:'戏院',t:'战中·假面',s:'幕布后假面舞会，敌我难辨。',d:['「妮可」：「演一出？还是撕了面具？」'],c:[{t:'将计就计混入(得分)',rep:0,fx:'score'},{t:'揭穿强攻',rep:-1,fx:'atk'}]},
+{n:'达拉',a:'🌌',m:'观测台',t:'战中·星变',s:'星图骤变，未知舰队切入视野。',d:['「达拉」：「预兆变了……赌预言还是当下？」'],c:[{t:'信预言布防',rep:1,fx:'shield'},{t:'逆预言抢攻',rep:-1,fx:'atk'}]},
+{n:'昆',a:'🐉',m:'龙渊',t:'战中·龙怒',s:'水底龙影盘旋，气压骤降。',d:['「昆」：「龙怒难驯，顺还是逆？」'],c:[{t:'顺龙势借力',rep:1,fx:'atk'},{t:'逆鳞硬扛筑盾',rep:0,fx:'shield'}]},
+{n:'苏珊',a:'🩺',m:'医疗舰',t:'战中·取舍',s:'伤员挤满通道，敌袭却不停。',d:['「苏珊」：「先救谁？你说了算。」'],c:[{t:'护住医护强攻清场',rep:1,fx:'atk'},{t:'专注救援维修',rep:0,fx:'heal'}]},
+{n:'泽塔',a:'🤖',m:'机械城',t:'战中·倒戈',s:'同型号机兵倒戈，逻辑崩坏。',d:['「泽塔」：「它们曾是同伴……要唤醒还是清除？」'],c:[{t:'尝试唤醒(得分)',rep:0,fx:'score'},{t:'果断清除强攻',rep:-1,fx:'atk'}]},
+{n:'阿杰',a:'🛡️',m:'要塞',t:'战中·城门',s:'城门将破，守军溃散。',d:['「阿杰」横戟：「顶住！还是弃城？」'],c:[{t:'死守加固护盾',rep:1,fx:'shield'},{t:'弃城反击',rep:-1,fx:'atk'}]},
+{n:'菲奥',a:'🌪️',m:'风暴眼',t:'战中·风眼',s:'风眼收窄，飞石如弹幕。',d:['「菲奥」：「借风，还是逆风？」'],c:[{t:'乘风加速强攻',rep:1,fx:'atk'},{t:'避风筑盾',rep:0,fx:'shield'}]},
+{n:'希文',a:'🕳️',m:'虫洞',t:'战中·引力',s:'裂隙边缘引力撕扯，敌舰被拉长。',d:['「希文」：「掉进去，或推它们进去？」'],c:[{t:'推敌入洞(得分)',rep:0,fx:'score'},{t:'稳住自身护盾',rep:1,fx:'shield'}]},
+{n:'蓝',a:'🔷',m:'数据海',t:'战中·虚实',s:'数据流化刃，虚实交错。',d:['「蓝」：「我可读心……要听真话还是巧言？」'],c:[{t:'求真话结盟',rep:1,fx:'atk'},{t:'取巧夺数据(得分)',rep:-1,fx:'score'}]},
+{n:'卡西',a:'🪐',m:'行星带',t:'战中·碎石',s:'碎石高速冲刺，撞上即碎。',d:['「卡西」：「赌一颗行星当掩体？」'],c:[{t:'借行星掩体筑盾',rep:1,fx:'shield'},{t:'穿带强攻',rep:-1,fx:'atk'}]},
+{n:'蕾恩',a:'❄️',m:'冰原',t:'战中·龟裂',s:'冰层龟裂，寒气封膛。',d:['「蕾恩」：「冻住它们，还是冻住自己？」'],c:[{t:'冰封敌阵维修',rep:0,fx:'heal'},{t:'破冰强攻',rep:-1,fx:'atk'}]},
+{n:'奥丁',a:'🔱',m:'神域',t:'战中·神谕',s:'神谕雷鸣，审判降临。',d:['「奥丁」：「凡人，受否我的赐力？」'],c:[{t:'受赐强化火力',rep:1,fx:'atk'},{t:'谢绝，自凭护盾',rep:0,fx:'shield'}]},
+{n:'玛雅',a:'🌑',m:'月背',t:'战中·永夜',s:'永夜无光，敌影贴脸。',d:['「玛雅」：「看不见的，才最危险……信我？」'],c:[{t:'信她指引布防',rep:1,fx:'shield'},{t:'盲射清场',rep:-1,fx:'atk'}]},
+{n:'雷神',a:'⚡',m:'雷云',t:'战中·引雷',s:'雷霆灌顶，导电成链。',d:['「雷神」：「引雷淬体，或避雷保命？」'],c:[{t:'引雷强化',rep:1,fx:'atk'},{t:'避雷维修',rep:0,fx:'heal'}]},
+{n:'影',a:'👤',m:'虚空',t:'战中·无面',s:'无面者贴上，吞噬光与声。',d:['「影」：「你怕黑吗？我带你看看。」'],c:[{t:'与影共舞结盟',rep:1,fx:'atk'},{t:'驱散黑暗筑盾',rep:0,fx:'shield'}]},
+{n:'曦',a:'🌅',m:'黎明',t:'战中·破晓',s:'破晓刺眼，敌阵现形一瞬。',d:['「曦」：「就这一刻，抓不抓得住？」'],c:[{t:'趁现形强攻',rep:1,fx:'atk'},{t:'趁光维修',rep:0,fx:'heal'}]},
+{n:'渊',a:'🕳️',m:'深渊',t:'战中·凝视',s:'深渊回望，低语勾魂。',d:['「渊」：「凝视我，还是别过头？」'],c:[{t:'回以凝视借力',rep:1,fx:'atk'},{t:'别头筑盾',rep:0,fx:'shield'}]},
+{n:'烬',a:'🔥',m:'焦土',t:'战中·余烬',s:'余烬复燃，焦土下爬出残兵。',d:['「烬」：「烧不尽的，是执念……同感吗？」'],c:[{t:'燃己强攻',rep:1,fx:'atk'},{t:'踩灭筑盾',rep:0,fx:'shield'}]},
+{n:'弦',a:'🎵',m:'共振',t:'战中·和声',s:'和声共振，频率即武器。',d:['「弦」：「听这首，能共鸣吗？」'],c:[{t:'和鸣强化',rep:1,fx:'atk'},{t:'降噪维修',rep:0,fx:'heal'}]},
+{n:'蚀',a:'🌑',m:'蚀刻',t:'战中·蔓延',s:'侵蚀蔓延，装甲在溶解。',d:['「蚀」：「被吃掉的，迟早回来……慌吗？」'],c:[{t:'逆蚀强攻',rep:1,fx:'atk'},{t:'蚀中筑盾',rep:0,fx:'shield'}]},
+{n:'枢',a:'⚙️',m:'中枢',t:'战中·过载',s:'核心过载，全舰指令紊乱。',d:['「枢」：「夺回中枢，或弃核自保？」'],c:[{t:'夺回强化',rep:1,fx:'atk'},{t:'弃核维修',rep:0,fx:'heal'}]},
+{n:'辉',a:'✨',m:'辉光',t:'战中·极昼',s:'极昼灼目，光里藏刃。',d:['「辉」：「太亮了……眯眼，还是睁到底？」'],c:[{t:'睁眼强攻',rep:1,fx:'atk'},{t:'眯眼筑盾',rep:0,fx:'shield'}]},
+{n:'熵',a:'🌀',m:'熵海',t:'战中·无序',s:'万物走向无序，连子弹都在偏移。',d:['「熵」：「挣扎也是徒劳……还是，你偏不信？」'],c:[{t:'逆熵强攻',rep:1,fx:'atk'},{t:'顺应筑盾',rep:0,fx:'shield'}]},
+{n:'零',a:'⚪',m:'归零',t:'战中·最后',s:'一切归零之前，最后的选择。',d:['「零」：「留一线生机，还是燃尽成光？」'],c:[{t:'燃尽成光强化',rep:1,fx:'atk'},{t:'留生机维修',rep:0,fx:'heal'}]}
+];
 function addRank(sc,mode){lb.push({s:sc,m:mode,d:todayStr()});lb.sort(function(a,b){return b.s-a.s;});if(lb.length>10)lb=lb.slice(0,10);saveWbBase();}
-function onLevelStart(){gSession={kills:0,maxCombo:0,ults:0,airdrop:0,cleared:false,nohit:true};gameOverProcessed=false;if(isBossRush)return;showScene(currentLevel);}
-function showScene(lv){
-  var sc=STORY[lv-1];if(!sc){hideOverlay();return;}
+function onLevelStart(){gSession={kills:0,maxCombo:0,ults:0,airdrop:0,cleared:false,nohit:true};midDone=false;gameOverProcessed=false;if(isBossRush)return;showScene(STORY[currentLevel-1]);}
+function showScene(sc){
+  if(!sc){hideOverlay();return;}
   storyActive=true;storyScene=sc;
   var lines=[sc.s].concat(sc.d||[]);var total=lines.length;var step=0;
   showOverlay('<div class="st-card"><div class="st-head"><span class="st-ava">'+sc.a+'</span><span class="st-who">'+sc.n+'</span><span class="st-m">'+sc.m+'</span></div><div class="st-t">'+sc.t+'</div><div class="st-txt" id="stTxt"></div><div class="st-ch" id="stCh"></div><div class="st-foot"><button class="st-btn st-next" id="stNext" onclick="window.__stNext()">继续 ▶</button></div></div>');
