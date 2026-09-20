@@ -175,7 +175,7 @@ var currentLevel=1,unlockedLevels=1,dropTimer=0,selectedLevel=0,pageSel=0,lastPl
 var TOTAL_LEVELS=40;
 // Boss Rush 专用
 var isBossRush=false,bossRushRound=0,bossRushHighScore=0,bossRushTimer=0,bossRushBossIdx=0,bossRushSpawned=false;
-var isEndless=false,endlessLoop=0,endlessHighScore=0,goldStars=[],goldTimer=0;
+var goldStars=[],goldTimer=0;
 var wLevel=0,wMissile=0,wPower=1,wShield=0,wSlow=0,wHoming=0;
 
 // 战机两侧炮台：常驻独立武器，发射弧线追踪导弹（不依赖掉落属性）
@@ -354,7 +354,6 @@ var isMobile=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.te
 try{
   hs=+localStorage.getItem('ths')||0;
   bossRushHighScore=+localStorage.getItem('tbr')||0;
-  endlessHighScore=+localStorage.getItem('teh')||0;
   unlockedLevels=TOTAL_LEVELS; // 全部关卡开放，可直接任意选关（不再读取历史解锁进度）
   if(unlockedLevels>TOTAL_LEVELS)unlockedLevels=TOTAL_LEVELS;
   lastPlayedLevel=+(localStorage.getItem('tlp'))||0; // 上次游玩的关卡，0 表示无记录
@@ -840,7 +839,7 @@ function getLv(){return levelData[currentLevel-1];}
 // === GAME FUNCTIONS ===
 function init(lvl){
   currentLevel=lvl||1;px=240;py=640;
-  isBossRush=false;isEndless=false;
+  isBossRush=false;
   var tHp=12+tl('hp')*2;
   mhp=tHp;hp=mhp;
   maxBombs=3;bombs=maxBombs;
@@ -937,7 +936,7 @@ function startWave(){
     else if(miniCount==2)speakText('两名小 boss 出现！',0.9,1.3);
     else speakBossArrival(mb.name,false);
   }
-  else{waveMax=Math.round((12+wave*4+Math.floor(lv.enemyMult*5))*(isEndless?1+endlessLoop*0.08:1));play('waveStart');}
+  else{waveMax=12+wave*4+Math.floor(lv.enemyMult*5);play('waveStart');}
   if(wave!=lv.waveCount&&wave%5!=0)waveEnemies=0;
   spawnTimer=wave==1?8:18;
 }
@@ -1204,18 +1203,17 @@ function handleClick(mx,my){try{
   if(mobileMsgTimer>0){mobileMsgTimer=0;return;}
   if(state=='menu'){
     // 继续游戏（自动续玩上次关卡）
-    if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels&&my>195&&my<241&&mx>240-UHW(260)&&mx<240+UHW(260)){
+    if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels&&my>217&&my<267&&mx>240-UHW(260)&&mx<240+UHW(260)){
       play('menuClick');menuPulse={i:-1,t:performance.now()};selectedLevel=lastPlayedLevel;try{localStorage.setItem('tlp',lastPlayedLevel);}catch(e){}init(selectedLevel);return;
     }
-    // 按钮中心=276+51*idx，半高≈23
-    if(my>253&&my<299&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:0,t:performance.now()};gameMode='single';try{localStorage.setItem('tgm','single');}catch(e){}gotoLevelSelect();}
-    else if(my>304&&my<350&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:1,t:performance.now()};transitionTo('diy');}
-    else if(my>355&&my<401&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:2,t:performance.now()};bossRushRound=0;bossRushTimer=0;init(1);isBossRush=true;}
-    else if(my>406&&my<452&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:3,t:performance.now()};transitionTo('help');}
-    else if(my>457&&my<503&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:4,t:performance.now()};transitionTo('settings');}
-    else if(my>508&&my<554&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:5,t:performance.now()};wbPage='home';transitionTo('warband');}
-    else if(my>559&&my<605&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:6,t:performance.now()};talentScroll=0;transitionTo('talent');}
-    else if(my>610&&my<656&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:7,t:performance.now()};endlessLoop=0;init(1);isEndless=true;}
+    // 按钮中心=300+58*idx，半高≈26，偏移±2容差
+    if(my>274&&my<326&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:0,t:performance.now()};gameMode='single';try{localStorage.setItem('tgm','single');}catch(e){}gotoLevelSelect();}
+    else if(my>332&&my<384&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:1,t:performance.now()};transitionTo('diy');}
+    else if(my>390&&my<442&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:2,t:performance.now()};bossRushRound=0;bossRushTimer=0;init(1);isBossRush=true;}
+    else if(my>448&&my<500&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:3,t:performance.now()};transitionTo('help');}
+    else if(my>506&&my<558&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:4,t:performance.now()};transitionTo('settings');}
+    else if(my>564&&my<616&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:5,t:performance.now()};wbPage='home';transitionTo('warband');}
+    else if(my>622&&my<674&&mx>240-UHW(260)&&mx<240+UHW(260)){play('menuClick');menuPulse={i:6,t:performance.now()};talentScroll=0;transitionTo('talent');}
   }else if(state=='levelSelect'){
     var totalPages=Math.ceil(TOTAL_LEVELS/20);
     // 翻页正方形按钮热区（60x60，y 628~688）
@@ -1467,7 +1465,7 @@ function update(){
   if(spawnTimer>0)spawnTimer--;
   else if(waveEnemies<waveMax&&wave!=getLv().waveCount){
     var lv=getLv(),eType=['s','m','l'][Math.floor(Math.random()*3)];
-    var eHP=Math.max(1,Math.round(lv.hpMult*(eType=='s'?4:eType=='m'?10:20)*(isEndless?1+endlessLoop*0.1:1)));
+    var eHP=Math.max(1,Math.round(lv.hpMult*(eType=='s'?4:eType=='m'?10:20)));
     // 敌人分属性：普通 / 机枪型 / 导弹型（高关卡更高概率出现特殊型）
     var rk=Math.random();var ek='normal';
     if(rk<0.18+lv.enemyMult*0.05)ek='missile';
@@ -1701,9 +1699,7 @@ function update(){
   var alive=0,hasBoss=false;
   for(var i=0;i<ens.length;i++){if(ens[i].type=='boss')hasBoss=true;else alive++;}
   if((waveEnemies>=waveMax||(wave==getLv().waveCount&&bossWarningTimer==0))&&alive==0&&!hasBoss&&!isBossRush){
-    if(wave<getLv().waveCount){startWave();}else if(isEndless){
-      endlessLoop++;currentLevel=currentLevel%TOTAL_LEVELS+1;wave=0;waveEnemies=0;waveMax=0;bossWarningTimer=0;spawnTimer=10;pts.push({x:240,y:300,vy:-1,life:70,txt:'第 '+(endlessLoop+1)+' 轮 · 难度提升',cl:'#7CFFB2'});startWave();
-    }else{
+    if(wave<getLv().waveCount){startWave();}else{
       state='levelComplete';speakText('闯关成功！',1,1.1);
       // 评价：残血比例 + 是否用炸弹少
       var hpRate=hp/mhp;var rk='C';
@@ -1860,7 +1856,7 @@ function drawMenu(){
     ctx.fillStyle=hov?(isMain?'#fff':'#bfe9ff'):'rgba(180,210,255,0.5)';ctx.font='bold 15px Arial';ctx.textAlign='right';ctx.fillText('\u25B6',w/2-14,6);
     ctx.restore();
   }
-  var BW=UWw(260),BH=46,BY=276,BG=51;
+  var BW=UWw(260),BH=50,BY=300,BG=58;
   // 继续游戏（金橙主按钮，带脉冲光环）
   if(lastPlayedLevel>0&&lastPlayedLevel<=unlockedLevels){
     var cy=BY-58;
@@ -1881,8 +1877,7 @@ function drawMenu(){
   pill(240,BY+BG*4,BW,BH,'#3fd0ff','\u2699','设置','#dffaff',4);
   pill(240,BY+BG*5,BW,BH,'#ffd700','\u26A1','战令中心','#fff3c0',5);
   pill(240,BY+BG*6,BW,BH,'#c77bff','\u272F','天赋 ('+talentPoints+'点)','#f3d9ff',6);
-  pill(240,BY+BG*7,BW,BH,'#7CFFB2','\u221E','无尽生存','#dffff0',7);
-  if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font=UF(16)+'px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,247);}
+  if(bossRushHighScore>0){ctx.fillStyle='#a84';ctx.font=UF(16)+'px Arial';ctx.fillText('Boss挑战最高分: '+bossRushHighScore,240,272);}
 
   // 四角 HUD 角标（瞄准框感）
   ctx.globalAlpha=0.5+0.2*Math.sin(nebulaTime*1.5);ctx.strokeStyle='#3fd0ff';ctx.lineWidth=3;
@@ -2110,7 +2105,6 @@ function drawHUD(){
   ctx.textAlign='left';var bIdx=0;
   // 默认给HUD文字加深色描边，保证在繁忙弹幕背景上清晰可读（WebKit 对 shadowBlur 较敏感，适当减小半径）
   ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=2;
-  if(isEndless){ctx.fillStyle='#7CFFB2';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.fillText('∞ 无尽生存  第 '+(endlessLoop+1)+' 轮',240,30);ctx.textAlign='left';}
   for(var i=0;i<ens.length;i++){var e=ens[i];if(e.type!='boss')continue;if(bIdx>=3)break;
     var r=e.hp/e.maxHp;var by=4+bIdx*28;
     ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(8,by,424,24);
@@ -3214,7 +3208,7 @@ function showEnding(){var rep=gst('rep')||0;var ti,bo;
 window.__wbLootClose=function(){hideOverlay();if(gSession.cleared&&currentLevel>=TOTAL_LEVELS)showEnding();};
 function onLevelClear(){gSession.cleared=true;var gain=Math.round((50+currentLevel*8)*(1+0.1*ml('warlord')));CREDIT+=gain;gstat.totalkill=(gst('totalkill')||0)+gSession.kills;gstat.clear=(gst('clear')||0)+1;gstat.maxcombo=Math.max(gst('maxcombo')||0,gSession.maxCombo);updateDaily();checkAch();pendingLoot=true;saveWbBase();wbMsg='通关! +'+gain+' 学分';wbMsgT=160;showLoot();}
 function onBossRushRound(){var gain=Math.round((30+bossRushRound*5)*(1+0.1*ml('warlord')));CREDIT+=gain;if(dailyTasks&&dailyTasks.date===todayStr()){for(var i=0;i<dailyTasks.list.length;i++){var t=dailyTasks.list[i];if(t.done)continue;if(t.type=='bossrush'){t.prog=Math.max(t.prog,bossRushRound);if(t.prog>=t.target){t.done=true;CREDIT+=Math.round(t.reward*(1+0.2*ml('scholar')));}}}}checkAch();saveWbBase();}
-function onGameOver(){if(isEndless&&score>endlessHighScore){endlessHighScore=score;try{localStorage.setItem('teh',endlessHighScore);}catch(e){}}var gain=Math.round((10+gSession.kills*2+score*0.02)*(1+0.1*ml('warlord')));CREDIT+=gain;gstat.totalkill=(gst('totalkill')||0)+gSession.kills;gstat.maxcombo=Math.max(gst('maxcombo')||0,gSession.maxCombo);gstat.score=Math.max(gst('score')||0,score);updateDaily();checkAch();addRank(score,isBossRush?'Boss挑战':'闯关');pendingLoot=true;saveWbBase();wbMsg='阵亡! +'+gain+' 学分';wbMsgT=160;showLoot();}
+function onGameOver(){var gain=Math.round((10+gSession.kills*2+score*0.02)*(1+0.1*ml('warlord')));CREDIT+=gain;gstat.totalkill=(gst('totalkill')||0)+gSession.kills;gstat.maxcombo=Math.max(gst('maxcombo')||0,gSession.maxCombo);gstat.score=Math.max(gst('score')||0,score);updateDaily();checkAch();addRank(score,isBossRush?'Boss挑战':'闯关');pendingLoot=true;saveWbBase();wbMsg='阵亡! +'+gain+' 学分';wbMsgT=160;showLoot();}
 function updateDaily(){if(!dailyTasks||dailyTasks.date!==todayStr())return;for(var i=0;i<dailyTasks.list.length;i++){var t=dailyTasks.list[i];if(t.done)continue;if(t.type=='kill')t.prog=Math.max(t.prog,gSession.kills);else if(t.type=='combo')t.prog=Math.max(t.prog,gSession.maxCombo);else if(t.type=='clear')t.prog=1;else if(t.type=='score')t.prog=Math.max(t.prog,score);else if(t.type=='score2')t.prog=Math.max(t.prog,score);else if(t.type=='nohit'){if(gSession.nohit)t.prog=1;}else if(t.type=='air')t.prog=Math.max(t.prog,gSession.airdrop);else if(t.type=='bossrush')t.prog=Math.max(t.prog,bossRushRound);if(t.prog>=t.target){t.done=true;CREDIT+=Math.round(t.reward*(1+0.2*ml('scholar')));}}saveWbBase();}
 var wbOv=document.getElementById('wbOv');
 function showOverlay(html){if(wbOv){wbOv.innerHTML=html;wbOv.style.display='flex';}}
