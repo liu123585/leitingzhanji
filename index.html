@@ -353,8 +353,7 @@ var isMobile=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.te
 try{
   hs=+localStorage.getItem('ths')||0;
   bossRushHighScore=+localStorage.getItem('tbr')||0;
-  unlockedLevels=+(localStorage.getItem('tul'))||1;
-  if(unlockedLevels<1)unlockedLevels=1;
+  unlockedLevels=TOTAL_LEVELS; // 全部关卡开放，可直接任意选关（不再读取历史解锁进度）
   if(unlockedLevels>TOTAL_LEVELS)unlockedLevels=TOTAL_LEVELS;
   lastPlayedLevel=+(localStorage.getItem('tlp'))||0; // 上次游玩的关卡，0 表示无记录
   if(lastPlayedLevel<1||lastPlayedLevel>unlockedLevels)lastPlayedLevel=0;
@@ -1069,7 +1068,7 @@ function fireBullets(x,y,wLv,wMis,wPow,wSl,wHom,wSide,fromP1){
 function clearEnemyBullets(c){for(var i=bls.length-1;i>=0;i--){if(!bls[i].pl){boom(bls[i].x,bls[i].y,c||'#fff',4);blsPool.push(bls[i]);bls.splice(i,1);}}}
 
 // === 关卡选择辅助 ===
-function gotoLevelSelect(){selectedLevel=unlockedLevels;pageSel=Math.floor((unlockedLevels-1)/20);state='levelSelect';}
+function gotoLevelSelect(){selectedLevel=lastPlayedLevel||1;pageSel=Math.floor(((lastPlayedLevel||1)-1)/20);state='levelSelect';}
 // === 界面切换转场（jQuery 遮罩淡入淡出 + 画布滑入插入，丝滑流畅）===
 function transitionTo(s){
   if(window.jQuery){
@@ -1224,7 +1223,7 @@ function handleClick(mx,my){try{
   else if(state=='pause'){
     if(my>240-UH(48)/2&&my<240+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');state='playing';px=mxRaw;py=myRaw;}
     else if(my>312-UH(48)/2&&my<312+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');init(currentLevel);}
-    else if(my>384-UH(48)/2&&my<384+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=unlockedLevels;pageSel=Math.floor((unlockedLevels-1)/20);state='levelSelect';}
+    else if(my>384-UH(48)/2&&my<384+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');gotoLevelSelect();}
     else if(my>456-UH(48)/2&&my<456+UH(48)/2&&mx>240-UWw(220)/2&&mx<240+UWw(220)/2){play('menuClick');selectedLevel=0;state='menu';}
     // BGM 开关（媒体按钮）—— 左侧
     else if(my>506&&my<544&&mx>30&&mx<225){bgmMuted=!bgmMuted;try{localStorage.setItem('tbm',bgmMuted?'1':'0');}catch(e){}applyBgmMute();play('menuClick');return;}
@@ -1895,7 +1894,7 @@ function drawLevelSelect(){
   var start=pageSel*20,end=Math.min(start+20,TOTAL_LEVELS);
   for(var i=start;i<end;i++){
     var col=(i-start)%4,row=Math.floor((i-start)/4),lx=ox+col*gapX,ly=oy+row*gapY;
-    var locked=i+1>unlockedLevels,sel=(i+1==selectedLevel),cur=(i+1==unlockedLevels);
+    var locked=i+1>unlockedLevels,sel=(i+1==selectedLevel),cur=(i+1==lastPlayedLevel);
     var bx=lx-gw/2,by=ly-gh/2;
     // 底色
     ctx.fillStyle=locked?'rgba(30,30,45,0.9)':(sel?'rgba(0,60,60,0.95)':'rgba(10,30,50,0.92)');
