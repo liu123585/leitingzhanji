@@ -142,6 +142,8 @@ function spawnBoss(){if(bossWarningTimer<=0&&state!='playing')return;bossWarning
 // BOSS挑战：直接生成一个Boss（跳过小兵）
 function spawnBossRushBoss(){
   if(state!='playing')return;
+  currentLevel=Math.min(TOTAL_LEVELS,bossRushRound+1); // 每轮难度/关卡名真正推进，不再卡在第1关
+  bossRushSpawned=true;
   var lv=getLv();
   var idx=bossRushRound%BIGBOSSES.length;
   var bb=BIGBOSSES[idx];
@@ -172,7 +174,7 @@ var currentLevel=1,unlockedLevels=1,dropTimer=0,selectedLevel=0,pageSel=0,lastPl
 })();
 var TOTAL_LEVELS=40;
 // Boss Rush 专用
-var isBossRush=false,bossRushRound=0,bossRushHighScore=0,bossRushTimer=0,bossRushBossIdx=0;
+var isBossRush=false,bossRushRound=0,bossRushHighScore=0,bossRushTimer=0,bossRushBossIdx=0,bossRushSpawned=false;
 var wLevel=0,wMissile=0,wPower=1,wShield=0,wSlow=0,wHoming=0;
 
 // 战机两侧炮台：常驻独立武器，发射弧线追踪导弹（不依赖掉落属性）
@@ -444,8 +446,8 @@ function onKillHeal(){hp=Math.min(mhp,hp+1);}
 function vcComboKill(){vcCombo++;vcComboTimer=120;vcComboPop=1;}
 // 必杀技触发
 function useNova(){
-  if(skillCds[selectedUlt]>0||!novaUnlocked)return;
-  var sk=ULT_SKILLS[selectedUlt];if(!sk)return;
+  var sk=ULT_SKILLS[selectedUlt];if(!sk||tl(sk.talentId)<=0)return; // 仅已解锁天赋的技能可触发
+  if(skillCds[selectedUlt]>0)return;
   skillCds[selectedUlt]=sk.cd;novaStars=[];ultCracks=[];ultVortex=0;ultVortexExplode=0;
   if(sk.type=='burst'){
     burstTimer=90;
@@ -839,7 +841,8 @@ function init(lvl){
 
   // 护盾被动：开局即有一层护盾（层数由天赋决定），再生倒计时就绪
   wShield=Math.min(3,1+Math.floor(tl('shield')/2));shieldRegenCd=0;
-  novaUnlocked=tl('nova')>0;skillCds=new Array(ULT_SKILLS.length).fill(0);skinSkillCd=0;passiveLaserCd=0;skinSkillName=activeSkinSkill().name;turretCd=0;missileCd=0;
+  novaUnlocked=(tl('nova')>0)||ULT_SKILLS.some(function(s){return tl(s.talentId)>0;});skillCds=new Array(ULT_SKILLS.length).fill(0);skinSkillCd=0;passiveLaserCd=0;skinSkillName=activeSkinSkill().name;turretCd=0;missileCd=0;
+  {var _fu=0;for(var _ui=0;_ui<ULT_SKILLS.length;_ui++){if(tl(ULT_SKILLS[_ui].talentId)>0){_fu=_ui;break;}}selectedUlt=_fu;}
   // 重置必杀动画
  ultActive=false;burstTimer=0;slowTimer=0;vortexTimer=0;vortexPhase=0;slashTimer=0;slashPhase=0;empTimer=0;ultCracks=[];ultVortex=0;
  ultCloneActive=false;ultCloneTimer=0;ultClones=[];
@@ -853,8 +856,12 @@ function init(lvl){
   wave=0;waveEnemies=0;waveMax=0;spawnTimer=0;bossWarningTimer=0;dropTimer=0;enterMsgTimer=0;countdownTimer=0;bossRushTimer=0;scoreMultTimer=0;homingTimer=0;
   applyMeta();
   onLevelStart();
-  // 直接进入游戏（去掉开场倒计时黑屏，开局有短无敌保护）
-  state='playing';
+  if(isBossRush){ // Boss挑战：走倒计时流程，倒计时结束生成首个Boss（避免直接playing却无敌人卡死）
+    state='countdown';countdownTimer=90;bossRushSpawned=false;
+  }else{
+    // 直接进入游戏（去掉开场倒计时黑屏，开局有短无敌保护）
+    state='playing';
+  }
 }
 function useBomb(){
   if(state!='playing'||bombs<=0)return;
@@ -1454,19 +1461,23 @@ function update(){
   if(keys['ArrowLeft']||keys['a']){px-=spd;}if(keys['ArrowRight']||keys['d']){px+=spd;}
   if(keys['ArrowUp']||keys['w']){py-=spd;}if(keys['ArrowDown']||keys['s']){py+=spd;}
   px=Math.max(20,Math.min(460,px));py=Math.max(30,Math.min(700,py));
+  // 仅在屏幕内有敌人才开火（屏幕外/无敌人时不浪费子弹）
+  var enemyOnScreen=false;
+  for(var ei=0;ei<ens.length;ei++){var e=ens[ei];if(e.y>-e.h&&e.y<720){enemyOnScreen=true;break;}}
   if(pt<=0){
     var wL=wLevel;
     var wMisN=wMissile+(wL>=2?1:0)+(wL>=4?1:0);
-    var wBkN=(wL>=4)?1:0;
     var wSideN=(wL>=3?1:0)+(wL>=5?1:0);
     var wHomN=(homingTimer>0)||(wPower>=4);
-    fireBullets(px,py,wL,wMisN,wPower,wSlow,wHomN,wSideN);
-    var baseCd=Math.max(3,5-wL);var cd=wSlow>0?1:Math.max(1,baseCd-tl('spd'));var od=hp/mhp<0.3?0.5:1;pt=Math.max(1,Math.round(cd*od));
+    if(enemyOnScreen){
+      fireBullets(px,py,wL,wMisN,wPower,wSlow,wHomN,wSideN);
+      var baseCd=Math.max(3,5-wL);var cd=wSlow>0?1:Math.max(1,baseCd-tl('spd'));var od=hp/mhp<0.3?0.5:1;pt=Math.max(1,Math.round(cd*od));
+    }
   }else pt--;
   for(var si=0;si<skillCds.length;si++)if(skillCds[si]>0)skillCds[si]--;if(playerInvuln>0)playerInvuln--;
-  if(passiveLaserCd>0)passiveLaserCd--;else{passiveLaserCd=PASSIVE_LASER_INTERVAL;useSkinSkill();}
+  if(passiveLaserCd>0)passiveLaserCd--;else{passiveLaserCd=PASSIVE_LASER_INTERVAL;if(enemyOnScreen)useSkinSkill();}
   // 导弹被动：由天赋等级驱动，间隔随天赋缩短
-  if(missileCd>0)missileCd--;else{var mi=Math.max(120,PASSIVE_MISSILE_INTERVAL-tl('missile')*30);missileCd=mi;firePassiveMissiles();}
+  if(missileCd>0)missileCd--;else{var mi=Math.max(120,PASSIVE_MISSILE_INTERVAL-tl('missile')*30);missileCd=mi;if(enemyOnScreen)firePassiveMissiles();}
   // 战机两侧炮台：每隔固定帧从左右机翼外侧发射弧线追踪导弹
   if(turretCd>0)turretCd--;else{turretCd=TURRET_INTERVAL;fireTurretMissile(px-TURRET_DX,py+TURRET_DY,-1,wPower,true);fireTurretMissile(px+TURRET_DX,py+TURRET_DY,1,wPower,true);}
 
@@ -1692,9 +1703,9 @@ function update(){
       onLevelClear();
     }
   }
-  // BOSS挑战：检测Boss是否被击杀
-  if(isBossRush&&state=='playing'&&!ens.length&&bossRushTimer<=0){
-    bossRushRound++;bossRushTimer=90;countdownTimer=90;state='countdown';
+  // BOSS挑战：检测Boss是否被击杀（需确实生成过Boss，避免进入首帧空场景误判）
+  if(isBossRush&&state=='playing'&&!ens.length&&bossRushTimer<=0&&bossRushSpawned){
+    bossRushSpawned=false;bossRushRound++;bossRushTimer=90;countdownTimer=90;state='countdown';
     hp=Math.min(mhp,hp+5);bombs=maxBombs;play('levelComplete');onBossRushRound();
   }
   // 玩家燃烧 DoT（被 boss 燃烧子弹击中后的持续掉血）
